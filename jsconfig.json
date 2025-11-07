@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/**/*.js", "src/**/*.jsx"]
+} 
