@@ -20,6 +20,7 @@ import {
 import { 
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -83,6 +84,24 @@ export default function Admin() {
 
   useEffect(() => {
     loadData();
+    
+    // Listen for user update events from Settings page or other components
+    const handleUserUpdate = () => {
+      // Reload data when user updates their profile
+      loadData();
+    };
+    
+    // Listen for both custom events and postMessage
+    window.addEventListener('userUpdated', handleUserUpdate);
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'USER_UPDATED') {
+        handleUserUpdate();
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('userUpdated', handleUserUpdate);
+    };
   }, []);
 
   const filterUsers = useCallback(() => {
@@ -147,7 +166,7 @@ export default function Admin() {
         user_agent: navigator.userAgent
       });
     } catch (err) {
-      console.error("Failed to log audit:", err);
+      // Failed to log audit
     }
   };
 
@@ -215,7 +234,6 @@ export default function Admin() {
       setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
       setError("Failed to create user profile: " + err.message);
-      console.error("Create user error:", err);
     }
   };
 
@@ -258,7 +276,6 @@ export default function Admin() {
       }
     } catch (err) {
       setError("Failed to reset password: " + err.message);
-      console.error("Reset password error:", err);
     }
   };
 
@@ -266,38 +283,69 @@ export default function Admin() {
     try {
       const userToUpdate = users.find(u => u.id === userId);
       
+      // Update User model (role, full_name) if role or full_name changed
+      const userUpdateData = {};
+      if (updates.role !== undefined && updates.role !== userToUpdate.role) {
+        userUpdateData.role = updates.role;
+      }
+      if (updates.full_name !== undefined && updates.full_name !== userToUpdate.full_name) {
+        userUpdateData.full_name = updates.full_name;
+      }
+      
+      // Update User model if there are changes
+      if (Object.keys(userUpdateData).length > 0) {
+        await User.update(userId, userUpdateData);
+      }
+      
       // Update UserProfile if it exists
       if (userToUpdate.profile_id) {
-        await UserProfile.update(userToUpdate.profile_id, {
+        // Get current profile to preserve existing preferences
+        const currentProfile = await UserProfile.get(userToUpdate.profile_id);
+        const currentPreferences = currentProfile.preferences || {};
+        
+        // Update preferences with new values
+        const updatedPreferences = {
+          ...currentPreferences,
           role: updates.role,
-          department: updates.department,
-          territory: updates.territory,
-          phone: updates.phone,
-          status: updates.status // Status might be updated via this dialog
+          department: updates.department || currentPreferences.department || "",
+          territory: updates.territory || currentPreferences.territory || "",
+          status: updates.status || currentPreferences.status || "active"
+        };
+        
+        await UserProfile.update(userToUpdate.profile_id, {
+          full_name: updates.full_name || userToUpdate.full_name,
+          phone: updates.phone || userToUpdate.phone,
+          preferences: updatedPreferences
         });
       } else {
         // Create new profile if it doesn't exist
         await UserProfile.create({
-          user_email: userToUpdate.email,
+          user_id: userId,
           full_name: userToUpdate.full_name,
-          role: updates.role || "sales_rep",
-          department: updates.department || "",
-          territory: updates.territory || "",
           phone: updates.phone || "",
-          status: "active" // Default to active if creating a new profile this way
+          preferences: {
+            role: updates.role || "sales_rep",
+            department: updates.department || "",
+            territory: updates.territory || "",
+            status: "active"
+          }
         });
       }
       
       // Log audit
       await logAudit("update_user", userToUpdate, updates);
       
+      // Reload data to get fresh user information
       await loadData();
+      
+      // The loadData() call above will update the users state, so the UI will refresh automatically
+      // No need to manually update selectedUser since we're closing the dialog
+      
       setSuccess("User updated successfully");
       setShowUserDialog(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError("Failed to update user: " + err.message);
-      console.error("Update user error:", err);
     }
   };
 
@@ -317,7 +365,6 @@ export default function Admin() {
       }
     } catch (err) {
       setError(`Failed to ${newStatus === 'active' ? 'activate' : 'deactivate'} user: ${err.message}`);
-      console.error("Toggle status error:", err);
     }
   };
 
@@ -400,12 +447,19 @@ export default function Admin() {
       
       // Merge User data with UserProfile data
       const mergedUsers = userList.map(user => {
-        const profile = profileData.find(p => p.user_email === user.email);
+        const profile = profileData.find(p => p.user_id === user.id);
+        const preferences = profile?.preferences || {};
         return {
           ...user,
           ...profile,
           id: user.id, // Ensure we keep the original user ID from the User entity
-          profile_id: profile?.id // Add profile_id to identify if a profile exists and its ID
+          profile_id: profile?.id, // Add profile_id to identify if a profile exists and its ID
+          // User model fields take precedence over profile fields
+          full_name: user.full_name || profile?.full_name || user.email, // User model full_name takes precedence
+          role: user.role || preferences.role, // User model role takes precedence
+          department: preferences.department || "",
+          territory: preferences.territory || "",
+          status: preferences.status || "active"
         };
       });
       
@@ -415,7 +469,6 @@ export default function Admin() {
       setAuditLogs(auditData);
     } catch (err) {
       setError("Failed to load data");
-      console.error("Load data error:", err);
     }
     setIsLoading(false);
   };
@@ -641,6 +694,9 @@ export default function Admin() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New User Profile</DialogTitle>
+              <DialogDescription>
+                Add a new user to the system with their profile information.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -800,6 +856,9 @@ export default function Admin() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Reset Password for {selectedUser?.full_name}</DialogTitle>
+              <DialogDescription>
+                Set a new password for this user. The user will need to use this password to log in.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -877,6 +936,9 @@ export default function Admin() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit User Permissions</DialogTitle>
+              <DialogDescription>
+                Update user information and preferences.
+              </DialogDescription>
             </DialogHeader>
             {selectedUser && (
               <div className="space-y-6">
@@ -985,6 +1047,9 @@ export default function Admin() {
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>User Management Audit Log</DialogTitle>
+              <DialogDescription>
+                View the audit trail for user actions and changes.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Table>

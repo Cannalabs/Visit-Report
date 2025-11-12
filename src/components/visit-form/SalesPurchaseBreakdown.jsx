@@ -145,7 +145,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                 <Input
                   id="organic_percentage"
                   type="number" min="0" max="100"
-                  value={salesData.organic_percentage}
+                  value={salesData.organic_percentage ?? ""}
                   onChange={(e) => updateSalesData({ organic_percentage: parseFloat(e.target.value) || 0 })}
                   className={getFieldStyle(salesData.organic_percentage, true)}
                   placeholder="0" />
@@ -183,7 +183,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                 <Input
                   id="estimated_canna_value"
                   type="number" min="0" step="0.1"
-                  value={salesData.estimated_canna_value}
+                  value={salesData.estimated_canna_value ?? ""}
                   onChange={(e) => updateSalesData({ estimated_canna_value: parseFloat(e.target.value) || 0 })}
                   className={getFieldStyle(salesData.estimated_canna_value, true)}
                   placeholder="0.0" />
@@ -197,7 +197,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                 <Input
                   id="liquids_percentage"
                   type="number" min="0" max="100"
-                  value={salesData.liquids_percentage}
+                  value={salesData.liquids_percentage ?? ""}
                   onChange={(e) => updateSalesData({ liquids_percentage: parseFloat(e.target.value) || 0 })}
                   className={getFieldStyle(salesData.liquids_percentage, true)}
                   placeholder="0" />
@@ -233,7 +233,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
             <Label className="font-semibold">Liquids Trend</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Select value={salesData.liquids_trend} onValueChange={(value) => updateSalesData({ liquids_trend: value })}>
+                <Select value={salesData.liquids_trend || ""} onValueChange={(value) => updateSalesData({ liquids_trend: value })}>
                   <SelectTrigger className="border-purple-200">
                     <SelectValue placeholder="Select trend" />
                   </SelectTrigger>
@@ -247,7 +247,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  value={salesData.liquids_trend_percentage}
+                  value={salesData.liquids_trend_percentage ?? ""}
                   onChange={(e) => updateSalesData({ liquids_trend_percentage: parseFloat(e.target.value) || 0 })}
                   className="border-purple-200"
                   placeholder="0" />
@@ -260,7 +260,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
             <Label className="font-semibold">Substrates Trend</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Select value={salesData.substrates_trend} onValueChange={(value) => updateSalesData({ substrates_trend: value })}>
+                <Select value={salesData.substrates_trend || ""} onValueChange={(value) => updateSalesData({ substrates_trend: value })}>
                   <SelectTrigger className="border-purple-200">
                     <SelectValue placeholder="Select trend" />
                   </SelectTrigger>
@@ -274,7 +274,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  value={salesData.substrates_trend_percentage}
+                  value={salesData.substrates_trend_percentage ?? ""}
                   onChange={(e) => updateSalesData({ substrates_trend_percentage: parseFloat(e.target.value) || 0 })}
                   className="border-purple-200"
                   placeholder="0" />
@@ -296,7 +296,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
               {salesData.liquid_brands?.map((brand, index) =>
               <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] items-center gap-2 p-3 bg-white rounded-lg border border-yellow-200">
                   <Input
-                  value={brand.name}
+                  value={brand.name || ""}
                   onChange={(e) => updateBrandField('liquid_brands', index, 'name', e.target.value)}
                   placeholder="Brand name"
                   className="flex-1 border-yellow-200" />
@@ -304,7 +304,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                   <div className="flex items-center gap-1">
                     <Input
                     type="number" min="0" max="100"
-                    value={brand.percentage}
+                    value={brand.percentage ?? ""}
                     onChange={(e) => updateBrandField('liquid_brands', index, 'percentage', e.target.value)}
                     className="w-24 border-yellow-200"
                     placeholder="0" />
@@ -345,7 +345,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
               {salesData.substrate_brands?.map((brand, index) =>
               <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] items-center gap-2 p-3 bg-white rounded-lg border border-orange-200">
                   <Input
-                  value={brand.name}
+                  value={brand.name || ""}
                   onChange={(e) => updateBrandField('substrate_brands', index, 'name', e.target.value)}
                   placeholder="Brand name"
                   className="flex-1 border-orange-200" />
@@ -353,7 +353,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                   <div className="flex items-center gap-1">
                     <Input
                     type="number" min="0" max="100"
-                    value={brand.percentage}
+                    value={brand.percentage ?? ""}
                     onChange={(e) => updateBrandField('substrate_brands', index, 'percentage', e.target.value)}
                     className="w-24 border-orange-200"
                     placeholder="0" />
@@ -400,7 +400,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
               <div className="flex items-center gap-2">
                 <Input
                   type="number" min="0" max="100"
-                  value={salesData.german_purchase_percentage}
+                  value={salesData.german_purchase_percentage ?? ""}
                   onChange={(e) => updateSalesData({ german_purchase_percentage: parseFloat(e.target.value) || 0 })}
                   className="border-indigo-200"
                   placeholder="0" />
@@ -432,7 +432,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
             {salesData.german_distributors?.map((distributor, index) =>
             <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] items-center gap-2 p-3 bg-white rounded-lg border border-indigo-200">
                 <Input
-                value={distributor.name}
+                value={distributor.name || ""}
                 onChange={(e) => updateDistributorField('german_distributors', index, 'name', e.target.value)}
                 placeholder="Distributor name"
                 className="flex-1 border-indigo-200" />
@@ -440,7 +440,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
                 <div className="flex items-center gap-1">
                   <Input
                   type="number" min="0" max="100"
-                  value={distributor.percentage}
+                  value={distributor.percentage ?? ""}
                   onChange={(e) => updateDistributorField('german_distributors', index, 'percentage', e.target.value)}
                   className="w-24 border-indigo-200"
                   placeholder="0" />
@@ -484,7 +484,7 @@ export default function SalesPurchaseBreakdown({ formData, updateFormData }) {
             <Label>Total Employees</Label>
             <Input
               type="number" min="0"
-              value={salesData.total_employees}
+              value={salesData.total_employees ?? ""}
               onChange={(e) => updateSalesData({ total_employees: parseInt(e.target.value) || 0 })}
               className="w-32 border-teal-200"
               placeholder="0" />

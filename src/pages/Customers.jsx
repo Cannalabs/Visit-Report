@@ -31,6 +31,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -355,6 +356,9 @@ export default function Customers() {
               <DialogTitle>
                 {editingCustomer ? "Edit Customer" : "Add New Customer"}
               </DialogTitle>
+              <DialogDescription>
+                {editingCustomer ? "Update customer information." : "Add a new customer to the system."}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

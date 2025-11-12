@@ -208,7 +208,7 @@ export const generateVisitReportPDF = (formData, user) => {
       doc.addImage(formData.signature, 'PNG', margin, currentY, 80, 30);
       currentY += 35;
     } catch (error) {
-      console.warn('Could not add signature image:', error);
+      // Could not add signature image
       doc.text('Signature captured but could not be displayed in PDF', margin, currentY);
       currentY += 10;
     }

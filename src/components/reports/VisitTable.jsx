@@ -75,7 +75,7 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
         await ShopVisit.delete(visitId);
         if (onRefresh) onRefresh();
       } catch (error) {
-        console.error("Failed to delete visit:", error);
+        // Failed to delete visit
         alert("Failed to delete visit report. Please try again.");
       }
     }
@@ -90,7 +90,7 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
         onSelectionChange([]);
         if (onRefresh) onRefresh();
       } catch (error) {
-        console.error("Failed to delete visits:", error);
+        // Failed to delete visits
         alert("Failed to delete some visit reports. Please try again.");
       }
     }

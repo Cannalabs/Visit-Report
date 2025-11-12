@@ -73,7 +73,7 @@ export default function Reports() {
       const data = await ShopVisit.list("-created_date", 200);
       setVisits(data);
     } catch (error) {
-      console.error("Error loading visits:", error);
+      // Error loading visits
     }
     setIsLoading(false);
   };

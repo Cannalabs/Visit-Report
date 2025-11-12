@@ -56,7 +56,7 @@ export default function Analytics() {
         setCustomers(customerData);
         setUsers(userData);
       } catch (error) {
-        console.error("Failed to fetch analytics data:", error);
+        // Failed to fetch analytics data
       }
       setIsLoading(false);
     };

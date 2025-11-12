@@ -44,11 +44,11 @@ export default function TopShops({ visits }) {
 
   const getShopTypeColor = (type) => {
     const colors = {
-      growshop: "bg-green-100 text-green-800",
-      garden_center: "bg-blue-100 text-blue-800",
-      nursery: "bg-purple-100 text-purple-800",
-      hydroponics_store: "bg-orange-100 text-orange-800",
-      other: "bg-gray-100 text-gray-800"
+      growshop: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+      garden_center: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
+      nursery: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300",
+      hydroponics_store: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300",
+      other: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
     };
     return colors[type] || colors.other;
   };
@@ -59,17 +59,17 @@ export default function TopShops({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <Card className="shadow-lg">
-        <CardHeader className="border-b border-gray-100">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
+      <Card className="shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+          <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             Top Performing Shops
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-4">
             {topShops.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 No shop data available yet
               </p>
             ) : (
@@ -79,14 +79,14 @@ export default function TopShops({ visits }) {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
                   <div className="flex items-center justify-center w-8 h-8">
                     {getRankIcon(index)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 truncate">
+                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">
                       {shop.name}
                     </h4>
                     <div className="flex items-center gap-2 mt-1">
@@ -96,17 +96,17 @@ export default function TopShops({ visits }) {
                       >
                         {shop.type?.replace('_', ' ')}
                       </Badge>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {shop.visitCount} visit{shop.visitCount !== 1 ? 's' : ''}
                       </span>
                     </div>
                   </div>
                   
                   <div className="text-right">
-                    <div className="font-bold text-lg text-green-600">
+                    <div className="font-bold text-lg text-green-600 dark:text-green-400">
                       {shop.averageScore.toFixed(1)}
                     </div>
-                    <div className="text-xs text-gray-500">avg score</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">avg score</div>
                   </div>
                 </motion.div>
               ))

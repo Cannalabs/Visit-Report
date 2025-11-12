@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, Plus, X, Package, TrendingUp, Building2 } from "lucide-react";
 import { Configuration } from "@/api/entities";
 
@@ -14,6 +15,8 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
   const [newProduct, setNewProduct] = React.useState("");
   const [cannaProducts, setCannaProducts] = useState([]);
   const [competitorOptions, setCompetitorOptions] = useState([]);
+  const [hasProductConfigs, setHasProductConfigs] = useState(false); // Track if any products are configured
+  const [hasCompetitorConfigs, setHasCompetitorConfigs] = useState(false); // Track if any competitor options are configured
 
   useEffect(() => {
     loadConfigurations();
@@ -22,15 +25,24 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
   const loadConfigurations = async () => {
     try {
       const configs = await Configuration.list();
-      const products = configs.filter(c => c.config_type === 'canna_products' && c.is_active)
-                              .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-      const competitors = configs.filter(c => c.config_type === 'competitor_presence' && c.is_active)
-                                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      // Check if any products are configured at all (active or inactive)
+      const allProducts = configs.filter(c => c.config_type === 'canna_products');
+      setHasProductConfigs(allProducts.length > 0);
+      
+      // Check if any competitor options are configured at all (active or inactive)
+      const allCompetitors = configs.filter(c => c.config_type === 'competitor_presence');
+      setHasCompetitorConfigs(allCompetitors.length > 0);
+      
+      // Only show active products
+      const products = allProducts.filter(c => c.is_active)
+                                  .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      const competitors = allCompetitors.filter(c => c.is_active)
+                                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       
       setCannaProducts(products);
       setCompetitorOptions(competitors);
     } catch (error) {
-      console.error("Failed to load configurations:", error);
+      // Failed to load configurations
     }
   };
 
@@ -99,12 +111,20 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
             <Label htmlFor="competitor_presence" className="flex items-center gap-1">
               Competitor Presence {renderRequiredAsterisk()}
             </Label>
+            {hasCompetitorConfigs && competitorOptions.length === 0 && (
+              <Alert className="border-yellow-200 bg-yellow-50 mb-2">
+                <AlertDescription className="text-yellow-800">
+                  All competitor presence options are currently inactive. Please enable competitor presence options from the Configuration page.
+                </AlertDescription>
+              </Alert>
+            )}
             <Select
               value={formData.competitor_presence || ""}
               onValueChange={(value) => updateFormData({ competitor_presence: value })}
+              disabled={hasCompetitorConfigs && competitorOptions.length === 0}
             >
-              <SelectTrigger className={getFieldStyle(formData.competitor_presence, true)}>
-                <SelectValue placeholder="Select competitor presence level" />
+              <SelectTrigger className={getFieldStyle(formData.competitor_presence, true)} disabled={hasCompetitorConfigs && competitorOptions.length === 0}>
+                <SelectValue placeholder={hasCompetitorConfigs && competitorOptions.length === 0 ? "No active competitor options available" : "Select competitor presence level"} />
               </SelectTrigger>
               <SelectContent>
                 {competitorOptions.length > 0 ? (
@@ -113,8 +133,12 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
                       {option.config_name}
                     </SelectItem>
                   ))
+                ) : hasCompetitorConfigs ? (
+                  <div className="px-2 py-6 text-center text-sm text-gray-500">
+                    No active competitor options available
+                  </div>
                 ) : (
-                  // Fallback options if configuration is not set
+                  // Fallback options only if no configurations exist at all
                   <>
                     <SelectItem value="none">None - CANNA exclusive</SelectItem>
                     <SelectItem value="low">Low - Minimal competition</SelectItem>
@@ -136,13 +160,21 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {hasProductConfigs && cannaProducts.length === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> All products are currently inactive. Please activate products in the Configuration page to select them.
+              </p>
+            </div>
+          )}
           <div className="flex gap-2">
             <Select
               value={newProduct}
               onValueChange={setNewProduct}
+              disabled={hasProductConfigs && cannaProducts.length === 0}
             >
-              <SelectTrigger className="flex-1 border-green-200">
-                <SelectValue placeholder="Select CANNA product" />
+              <SelectTrigger className="flex-1 border-green-200" disabled={hasProductConfigs && cannaProducts.length === 0}>
+                <SelectValue placeholder={hasProductConfigs && cannaProducts.length === 0 ? "No active products available" : "Select CANNA product"} />
               </SelectTrigger>
               <SelectContent>
                 {cannaProducts.length > 0 ? (
@@ -153,8 +185,13 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
                         {product.config_name}
                       </SelectItem>
                     ))
+                ) : hasProductConfigs ? (
+                  // Products are configured but all are inactive - show empty state
+                  <div className="px-2 py-6 text-center text-sm text-gray-500">
+                    No active products available
+                  </div>
                 ) : (
-                  // Fallback products if configuration is not set
+                  // Fallback products only if no products are configured at all
                   ["CANNA Coco", "CANNA Terra", "CANNA Aqua", "CANNAZYM", "RHIZOTONIC", "PK 13/14", "BOOST Accelerator", "CANNA Start", "COGR Boards", "FLUSH"]
                     .filter(p => !formData.products_discussed.includes(p))
                     .map(product => (
@@ -167,7 +204,7 @@ export default function ProductVisibilitySection({ formData, updateFormData }) {
             </Select>
             <Button
               onClick={addProduct}
-              disabled={!newProduct}
+              disabled={!newProduct || (hasProductConfigs && cannaProducts.length === 0)}
               size="icon"
               variant="outline"
               className="border-green-200 hover:bg-green-50"

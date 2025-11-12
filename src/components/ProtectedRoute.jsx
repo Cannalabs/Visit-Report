@@ -19,6 +19,17 @@ export default function ProtectedRoute({ children }) {
 
   const checkAuth = async () => {
     try {
+      // Check for hardcoded admin (frontend-only bootstrap user)
+      const isHardcodedAdmin = localStorage.getItem('is_hardcoded_admin') === 'true';
+      if (isHardcodedAdmin) {
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return; // Skip backend verification for hardcoded admin
+        }
+      }
+      
       // Check if we have a token
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -56,20 +67,13 @@ export default function ProtectedRoute({ children }) {
                     // Only clear if refresh definitely failed AND token is expired
                     const expiration = getTokenExpiration(currentToken);
                     if (expiration && Date.now() >= expiration) {
-                      console.warn('Token expired and refresh failed, clearing auth');
                       localStorage.removeItem('access_token');
                       localStorage.removeItem('user');
                       setIsAuthenticated(false);
-                    } else {
-                      // Token might still be valid, just keep authenticated
-                      console.warn('Token validation failed but token not expired, keeping session');
                     }
-                  } else {
-                    console.log('Token refreshed during validation');
                   }
                 }).catch(() => {
                   // Refresh error - don't clear, might be network issue
-                  console.warn('Token refresh error, but keeping session');
                 });
               }
             }
@@ -119,29 +123,19 @@ export default function ProtectedRoute({ children }) {
                   localStorage.removeItem('access_token');
                   localStorage.removeItem('user');
                   setIsAuthenticated(false);
-                } else {
-                  // Token not expired, might be temporary issue - keep authenticated
-                  console.warn('Auth error but token not expired, keeping session');
                 }
-              } else {
-                console.log('Token refreshed successfully');
               }
             }).catch(() => {
               // Refresh error - don't clear, might be network issue
-              console.warn('Token refresh error, but keeping session');
             });
           } else {
             // No token, clear auth
             setIsAuthenticated(false);
           }
-        } else {
-          // Network error or other issue - keep authenticated with token
-          // User can retry later
-          console.warn('Failed to verify token, but keeping session:', fetchError);
         }
       });
     } catch (error) {
-      console.error('ProtectedRoute auth check failed:', error);
+      // ProtectedRoute auth check failed
       // Only clear token if it's definitely an authentication error
       const token = localStorage.getItem('access_token');
       if (token && error.message === 'Not authenticated') {

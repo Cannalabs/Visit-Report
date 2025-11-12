@@ -17,20 +17,20 @@ import { createPageUrl } from "@/utils";
 
 const getShopTypeColor = (type) => {
   const colors = {
-    growshop: "bg-green-100 text-green-800 border-green-200",
-    garden_center: "bg-blue-100 text-blue-800 border-blue-200",
-    nursery: "bg-purple-100 text-purple-800 border-purple-200",
-    hydroponics_store: "bg-orange-100 text-orange-800 border-orange-200",
-    other: "bg-gray-100 text-gray-800 border-gray-200"
+    growshop: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700",
+    garden_center: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700",
+    nursery: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700",
+    hydroponics_store: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-700",
+    other: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600"
   };
   return colors[type] || colors.other;
 };
 
 const getPriorityColor = (priority) => {
   const colors = {
-    high: "bg-red-100 text-red-800 border-red-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-green-100 text-green-800 border-green-200"
+    high: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700",
+    medium: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700",
+    low: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700"
   };
   return colors[priority] || colors.medium;
 };
@@ -42,12 +42,12 @@ export default function RecentVisits({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     >
-      <Card className="shadow-lg">
-        <CardHeader className="border-b border-gray-100">
+      <Card className="shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold">Recent Visits</CardTitle>
+            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Recent Visits</CardTitle>
             <Link to={createPageUrl("Reports")}>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600">
                 View All
                 <ExternalLink className="w-4 h-4 ml-2" />
               </Button>
@@ -58,10 +58,10 @@ export default function RecentVisits({ visits }) {
           <div className="space-y-0">
             {visits.length === 0 ? (
               <div className="p-8 text-center">
-                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No visits recorded yet</p>
+                <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 mb-4">No visits recorded yet</p>
                 <Link to={createPageUrl("NewVisit")}>
-                  <Button className="bg-green-600 hover:bg-green-700">
+                  <Button className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                     Create Your First Visit Report
                   </Button>
                 </Link>
@@ -73,14 +73,20 @@ export default function RecentVisits({ visits }) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="p-6 border-b border-gray-50 last:border-b-0 hover:bg-gray-100 transition-colors duration-200"
+                    className="p-6 border-b border-gray-50 dark:border-gray-700 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-200"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
                             {visit.shop_name}
                           </h3>
+                          <Badge 
+                            variant="outline" 
+                            className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 font-mono text-xs"
+                          >
+                            ID: {visit.id}
+                          </Badge>
                           <Badge 
                             variant="secondary" 
                             className={getShopTypeColor(visit.shop_type)}
@@ -97,7 +103,7 @@ export default function RecentVisits({ visits }) {
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
                           <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
                             <span>{visit.shop_address || 'Address not specified'}</span>
@@ -117,7 +123,7 @@ export default function RecentVisits({ visits }) {
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-600 capitalize">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
                           {visit.visit_purpose?.replace('_', ' ') || 'Purpose not specified'}
                         </p>
                       </div>
@@ -126,13 +132,13 @@ export default function RecentVisits({ visits }) {
                         {visit.calculated_score && (
                           <div className="flex items-center gap-1 mb-2">
                             <Star className="w-4 h-4 text-yellow-500" />
-                            <span className="font-semibold">
+                            <span className="font-semibold text-gray-900 dark:text-white">
                               {visit.calculated_score.toFixed(1)}
                             </span>
                           </div>
                         )}
                         {visit.follow_up_required && (
-                          <Badge variant="outline" className="border-orange-300 text-orange-700">
+                          <Badge variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300">
                             Follow-up
                           </Badge>
                         )}

@@ -43,7 +43,6 @@ export async function refreshAccessToken() {
     // Check if token is already expired
     const expiration = getTokenExpiration(token);
     if (expiration && Date.now() >= expiration) {
-      console.warn('Token already expired');
       return false;
     }
 
@@ -68,12 +67,10 @@ export async function refreshAccessToken() {
     const data = await response.json();
     if (data.access_token) {
       localStorage.setItem('access_token', data.access_token);
-      console.log('Token refreshed successfully at', new Date().toLocaleTimeString());
       return true;
     }
     return false;
   } catch (error) {
-    console.error('Error refreshing token:', error);
     // Don't clear token on network errors - might be temporary
     if (error.message && error.message.includes('401')) {
       // Only clear on actual auth errors
@@ -116,22 +113,14 @@ export function startTokenRefresh() {
 
     // Check if token is expiring soon
     if (isTokenExpiringSoon(currentToken, REFRESH_BUFFER_MINUTES)) {
-      console.log('Token expiring soon, attempting refresh...');
       const refreshed = await refreshAccessToken();
       if (!refreshed) {
         // If refresh failed, check if token is already expired
         const expiration = getTokenExpiration(currentToken);
         if (expiration && Date.now() >= expiration) {
           // Token is expired, stop refresh but don't clear - let ProtectedRoute handle it
-          console.warn('Token expired and refresh failed');
           stopTokenRefresh();
-        } else {
-          // Token not expired yet, might be temporary issue
-          console.warn('Token refresh failed but token not expired, will retry');
         }
-      } else {
-        // Successfully refreshed
-        console.log('Token refreshed successfully, will check again in 1 minute');
       }
     }
   }, CHECK_INTERVAL);

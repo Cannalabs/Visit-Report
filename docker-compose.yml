@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    env_file:
+      - .env.conf
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-canna_db}
+      POSTGRES_USER: ${POSTGRES_USER:-canna_user}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Changed to 5433 to avoid conflict with quote-app on 5432
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    env_file:
+      - .env.conf
+    ports:
+      - "8002:8000"
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    ports:
+      - "8003:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

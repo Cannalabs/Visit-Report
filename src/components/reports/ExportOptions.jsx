@@ -17,7 +17,7 @@ export default function ExportOptions({ onExport, selectedCount }) {
     try {
       await onExport(format);
     } catch (error) {
-      console.error("Export failed:", error);
+      // Export failed
     }
     setIsExporting(false);
   };

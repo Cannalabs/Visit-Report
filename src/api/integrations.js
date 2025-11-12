@@ -4,54 +4,111 @@
 // Core integrations stub
 export const Core = {
   InvokeLLM: async (params) => {
-    console.warn('InvokeLLM called with:', params);
     return {
       response: 'This is a mock LLM response. Replace with your own implementation.',
       usage: { tokens: 0 }
     };
   },
   SendEmail: async (params) => {
-    console.warn('SendEmail called with:', params);
     return {
       success: true,
       messageId: `email_${Date.now()}`
     };
   },
   UploadFile: async (file, options = {}) => {
-    console.warn('UploadFile called with:', file, options);
-    // Return a mock file URL
-    return {
-      url: `https://example.com/files/${file?.name || 'file'}`,
-      fileId: `file_${Date.now()}`
-    };
+    // Try to use backend API first, fallback to data URL if backend is not available
+    try {
+      const { getApiBaseUrl } = await import('./config');
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const token = localStorage.getItem('access_token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // Get API base URL dynamically (includes /api)
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/files/upload`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return {
+          url: result.url || result.file_url,
+          fileId: result.fileId,
+          file_url: result.file_url || result.url
+        };
+      }
+    } catch (error) {
+      // Backend upload failed, using data URL fallback
+    }
+    
+    // Fallback to data URL if backend upload fails
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve({
+          url: e.target.result, // Data URL
+          fileId: `file_${Date.now()}`,
+          file_url: e.target.result // Also provide file_url for compatibility
+        });
+      };
+      reader.onerror = () => {
+        // Fallback to a placeholder data URL if read fails
+        resolve({
+          url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          fileId: `file_${Date.now()}`,
+          file_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        });
+      };
+      reader.readAsDataURL(file);
+    });
   },
   GenerateImage: async (params) => {
-    console.warn('GenerateImage called with:', params);
+    // Return a placeholder data URL instead of example.com
     return {
-      url: 'https://example.com/generated-image.png',
+      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       imageId: `image_${Date.now()}`
     };
   },
   ExtractDataFromUploadedFile: async (fileId, options = {}) => {
-    console.warn('ExtractDataFromUploadedFile called with:', fileId, options);
     return {
       extractedData: {},
       success: true
     };
   },
   CreateFileSignedUrl: async (fileId, options = {}) => {
-    console.warn('CreateFileSignedUrl called with:', fileId, options);
+    // Return a data URL instead of example.com
     return {
-      signedUrl: `https://example.com/signed/${fileId}`,
+      signedUrl: `data:application/octet-stream;base64,`,
       expiresAt: new Date(Date.now() + 3600000).toISOString()
     };
   },
   UploadPrivateFile: async (file, options = {}) => {
-    console.warn('UploadPrivateFile called with:', file, options);
-    return {
-      url: `https://example.com/private/files/${file?.name || 'file'}`,
-      fileId: `private_file_${Date.now()}`
-    };
+    // Return a data URL instead of example.com
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve({
+          url: e.target.result,
+          fileId: `private_file_${Date.now()}`,
+          file_url: e.target.result
+        });
+      };
+      reader.onerror = () => {
+        resolve({
+          url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          fileId: `private_file_${Date.now()}`,
+          file_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        });
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
 

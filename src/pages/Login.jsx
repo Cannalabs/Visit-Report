@@ -21,7 +21,45 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      // Hardcoded bootstrap admin user (frontend only, for initial access)
+      // This allows accessing the admin panel in production to create real users
+      // Note: API calls that require authentication may fail with this user
+      // since it doesn't have a valid backend token. Use this to access the UI,
+      // then create a real admin user through the backend (DB script, etc.)
+      // and use that real admin to create more users through the UI.
+      const HARDCODED_ADMIN_EMAIL = "admin@canna.com";
+      const HARDCODED_ADMIN_PASSWORD = "admin123";
+      
+      if (email.toLowerCase().trim() === HARDCODED_ADMIN_EMAIL && password === HARDCODED_ADMIN_PASSWORD) {
+        // Create mock admin user object
+        const hardcodedUser = {
+          id: 0,
+          email: HARDCODED_ADMIN_EMAIL,
+          name: "Admin User",
+          full_name: "Admin User",
+          role: "admin",
+          avatar_url: null
+        };
+        
+        // Store user info
+        localStorage.setItem('user', JSON.stringify(hardcodedUser));
+        
+        // Create a dummy token (not used for API calls, but needed for ProtectedRoute)
+        // We'll need to handle API calls differently for this user
+        const dummyToken = "hardcoded_admin_token_" + Date.now();
+        localStorage.setItem('access_token', dummyToken);
+        localStorage.setItem('is_hardcoded_admin', 'true');
+        
+        // Navigate to dashboard
+        navigate("/Dashboard", { replace: true });
+        return;
+      }
+      
+      // Regular backend authentication for all other users
       const user = await User.signIn({ email, password });
+      
+      // Clear hardcoded admin flag if using real auth
+      localStorage.removeItem('is_hardcoded_admin');
       
       // User info is already stored in signIn
       // Navigate to dashboard after successful login

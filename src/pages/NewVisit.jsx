@@ -22,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
@@ -93,8 +93,24 @@ export default function NewVisit() {
     signature: null,
     signature_signer_name: null,
     signature_date: null,
+    sales_data: {}, // Sales and purchase breakdown data
     is_draft: false
   });
+
+  // Auto-update checklist when formData changes
+  useEffect(() => {
+    const hasPhotos = formData.visit_photos && formData.visit_photos.length > 0;
+    const isComplete = formData.customer_id && formData.shop_name && formData.shop_type && formData.visit_purpose;
+    const hasFollowUp = formData.follow_up_required ? formData.follow_up_notes && formData.follow_up_notes.length > 0 : true;
+    const hasSignature = !!formData.signature && !!formData.signature_signer_name && !!formData.signature_date;
+
+    setChecklistItems({
+      photosAttached: hasPhotos,
+      questionnaireComplete: isComplete,
+      followUpAdded: hasFollowUp,
+      signatureAttached: hasSignature
+    });
+  }, [formData.visit_photos, formData.customer_id, formData.shop_name, formData.shop_type, formData.visit_purpose, formData.follow_up_required, formData.follow_up_notes, formData.signature, formData.signature_signer_name, formData.signature_date]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -133,9 +149,6 @@ export default function NewVisit() {
           }
         } catch (error) {
           // Use cached user if API call fails
-          if (!currentUser) {
-            console.error("Failed to load user:", error);
-          }
         }
 
         if (id) {
@@ -168,7 +181,6 @@ export default function NewVisit() {
         }
       } catch (err) {
         setError("Failed to load initial data: " + err.message);
-        console.error(err);
       } finally {
         setIsLoading(false);
       }
@@ -196,20 +208,26 @@ export default function NewVisit() {
 
   const loadVisitData = async (id) => {
     try {
-      const visits = await ShopVisit.filter({ id });
-      const visit = visits.length > 0 ? visits[0] : null;
+      // Use get() method instead of filter() to get a single visit by ID
+      const visit = await ShopVisit.get(id);
       if (visit) {
         // Convert visit_date from datetime to date string for the form
         const formDataToSet = {
           ...visit,
-          visit_date: visit.visit_date ? new Date(visit.visit_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          visit_date: visit.visit_date ? new Date(visit.visit_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          // Ensure sales_data is initialized if missing
+          sales_data: visit.sales_data || {}
         };
         setFormData(formDataToSet);
         if (visit.customer_id) {
-          const customers = await Customer.filter({ id: visit.customer_id });
-          const customer = customers.length > 0 ? customers[0] : null;
-          if (customer) {
-            setSelectedCustomer(customer);
+          // Use get() method instead of filter() for single customer lookup
+          try {
+            const customer = await Customer.get(visit.customer_id);
+            if (customer) {
+              setSelectedCustomer(customer);
+            }
+          } catch (err) {
+            // Failed to load customer
           }
         }
       } else {
@@ -217,7 +235,6 @@ export default function NewVisit() {
       }
     } catch (err) {
       setError("Failed to load visit data.");
-      console.error(err);
     }
   };
 
@@ -240,16 +257,26 @@ export default function NewVisit() {
     
     setIsDraftSaving(true);
     try {
+      // Clean visit_photos to ensure all items are strings
+      const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
+        typeof photo === 'string' && photo.trim().length > 0
+      );
+      
       // Ensure visit_date is a proper datetime string
+      // Include ALL fields from formData to ensure nothing is lost
       const draftData = { 
         ...formData, 
+        visit_photos: cleanVisitPhotos,
         is_draft: true,
-        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString()
+        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        draft_saved_at: new Date().toISOString(),
+        // Ensure sales_data is included
+        sales_data: formData.sales_data || {}
       };
       await ShopVisit.update(visitId, draftData);
       setLastSaved(new Date());
     } catch (err) {
-      console.error("Failed to save draft:", err);
+      // Failed to save draft
     }
     setIsDraftSaving(false);
   };
@@ -259,11 +286,21 @@ export default function NewVisit() {
     
     setIsDraftCreated(true); // Prevent multiple calls
     try {
+      // Clean visit_photos to ensure all items are strings
+      const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
+        typeof photo === 'string' && photo.trim().length > 0
+      );
+      
       // Ensure visit_date is a proper datetime string
+      // Include ALL fields from formData to ensure nothing is lost
       const draftData = { 
         ...formData, 
+        visit_photos: cleanVisitPhotos,
         is_draft: true,
-        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString()
+        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        draft_saved_at: new Date().toISOString(),
+        // Ensure sales_data is included
+        sales_data: formData.sales_data || {}
       };
       const created = await ShopVisit.create(draftData);
       setVisitId(created.id);
@@ -272,7 +309,6 @@ export default function NewVisit() {
       return created.id;
     } catch (err) {
       setIsDraftCreated(false); // Reset on error
-      console.error("Failed to create initial draft:", err);
       setError("Could not create a new visit report draft.");
       return null;
     }
@@ -306,7 +342,8 @@ export default function NewVisit() {
     };
     score += commercialScores[data.commercial_outcome] || 0;
     score += (data.overall_satisfaction || 0) * 2.5;
-    return Math.min(100, Math.max(0, score));
+    // Round to integer as the schema expects an int, not a float
+    return Math.round(Math.min(100, Math.max(0, score)));
   };
 
   const getPriorityLevel = (score) => {
@@ -350,13 +387,31 @@ export default function NewVisit() {
       const priorityLevel = getPriorityLevel(calculatedScore);
 
       // Ensure visit_date is a proper datetime string
+      // Ensure visit_photos contains only strings (filter out any non-string values)
+      const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
+        typeof photo === 'string' && photo.trim().length > 0
+      );
+      
+      // Build complete payload with ALL fields from formData
+      // This ensures nothing is lost when saving to database
       const payload = {
         ...formData,
         visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
         calculated_score: calculatedScore,
         priority_level: priorityLevel,
+        visit_photos: cleanVisitPhotos, // Ensure all items are strings
         is_draft: false,
-        draft_saved_at: null // Explicitly set to null for final submission
+        draft_saved_at: null, // Explicitly set to null for final submission
+        // Ensure all optional fields are included even if empty
+        products_discussed: formData.products_discussed || [],
+        training_topics: formData.training_topics || [],
+        support_materials_items: formData.support_materials_items || [],
+        gps_coordinates: formData.gps_coordinates || null,
+        signature: formData.signature || null,
+        signature_signer_name: formData.signature_signer_name || null,
+        signature_date: formData.signature_date ? new Date(formData.signature_date).toISOString() : null,
+        // Ensure sales_data is included (contains all the sales/purchase breakdown data)
+        sales_data: formData.sales_data || {}
       };
 
       let currentVisitId = visitId;
@@ -568,6 +623,9 @@ export default function NewVisit() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Pre-Submission Checklist</DialogTitle>
+              <DialogDescription>
+                Please review the checklist before submitting your visit report.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex items-center space-x-2">

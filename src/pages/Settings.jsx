@@ -79,7 +79,6 @@ export default function Settings() {
           });
         }
       } catch (error) {
-        console.error("Failed to load user data:", error);
         // Don't clear token here - let ProtectedRoute handle auth failures
         // Only show error if we don't have cached data
         if (!currentUser) {
@@ -87,7 +86,7 @@ export default function Settings() {
         }
       }
     } catch (error) {
-      console.error("Error in loadUser:", error);
+      // Error in loadUser
     } finally {
       setIsLoading(false);
     }
@@ -129,6 +128,8 @@ export default function Settings() {
       if (window.parent) {
         window.parent.postMessage({ type: 'USER_UPDATED', payload: updatedUser }, '*');
       }
+      // Also dispatch a custom event for same-window components
+      window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }));
       
     } catch (err) {
       setError("Failed to save settings");
@@ -142,7 +143,7 @@ export default function Settings() {
       await User.logout();
       window.location.reload();
     } catch (error) {
-      console.error("Logout error:", error);
+      // Logout error
     }
   };
 

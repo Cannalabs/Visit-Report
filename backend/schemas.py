@@ -1,0 +1,238 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+from models import UserRole
+
+# User Schemas
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: Optional[str] = None
+    role: Optional[UserRole] = None
+
+class UserCreate(UserBase):
+    password: str
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    avatar_url: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+# Auth Schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+# Customer Schemas
+class CustomerBase(BaseModel):
+    shop_name: str
+    shop_type: Optional[str] = None
+    shop_address: Optional[str] = None
+    zipcode: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    job_title: Optional[str] = None
+    status: Optional[str] = "active"
+
+class CustomerCreate(CustomerBase):
+    pass
+
+class CustomerUpdate(BaseModel):
+    shop_name: Optional[str] = None
+    shop_type: Optional[str] = None
+    shop_address: Optional[str] = None
+    zipcode: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    job_title: Optional[str] = None
+    status: Optional[str] = None
+
+class CustomerResponse(CustomerBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Shop Visit Schemas
+class ShopVisitBase(BaseModel):
+    customer_id: int
+    shop_name: str
+    shop_type: Optional[str] = None
+    shop_address: Optional[str] = None
+    zipcode: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    job_title: Optional[str] = None
+    visit_date: datetime
+    visit_duration: Optional[int] = 60
+    visit_purpose: Optional[str] = None
+    product_visibility_score: Optional[int] = 50
+    products_discussed: Optional[List[str]] = []
+    competitor_presence: Optional[str] = None
+    training_provided: Optional[bool] = False
+    training_topics: Optional[List[str]] = []
+    support_materials_required: Optional[bool] = False
+    support_materials_items: Optional[List[str]] = []
+    support_materials_other_text: Optional[str] = None
+    commercial_outcome: Optional[str] = None
+    order_value: Optional[float] = 0.0
+    overall_satisfaction: Optional[int] = 5
+    sales_data: Optional[Dict[str, Any]] = {}
+    follow_up_required: Optional[bool] = False
+    follow_up_notes: Optional[str] = None
+    notes: Optional[str] = None
+    visit_photos: Optional[List[str]] = []
+    gps_coordinates: Optional[Dict[str, Any]] = None
+    signature: Optional[str] = None
+    signature_signer_name: Optional[str] = None
+    signature_date: Optional[datetime] = None
+    calculated_score: Optional[int] = None
+    priority_level: Optional[str] = None
+    is_draft: Optional[bool] = False
+
+class ShopVisitCreate(ShopVisitBase):
+    pass
+
+class ShopVisitUpdate(BaseModel):
+    customer_id: Optional[int] = None
+    shop_name: Optional[str] = None
+    shop_type: Optional[str] = None
+    shop_address: Optional[str] = None
+    zipcode: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    job_title: Optional[str] = None
+    visit_date: Optional[datetime] = None
+    visit_duration: Optional[int] = None
+    visit_purpose: Optional[str] = None
+    product_visibility_score: Optional[int] = None
+    products_discussed: Optional[List[str]] = None
+    competitor_presence: Optional[str] = None
+    training_provided: Optional[bool] = None
+    training_topics: Optional[List[str]] = None
+    support_materials_required: Optional[bool] = None
+    support_materials_items: Optional[List[str]] = None
+    support_materials_other_text: Optional[str] = None
+    commercial_outcome: Optional[str] = None
+    order_value: Optional[float] = None
+    overall_satisfaction: Optional[int] = None
+    sales_data: Optional[Dict[str, Any]] = None
+    follow_up_required: Optional[bool] = None
+    follow_up_notes: Optional[str] = None
+    notes: Optional[str] = None
+    visit_photos: Optional[List[str]] = None
+    gps_coordinates: Optional[Dict[str, Any]] = None
+    signature: Optional[str] = None
+    signature_signer_name: Optional[str] = None
+    signature_date: Optional[datetime] = None
+    calculated_score: Optional[int] = None
+    priority_level: Optional[str] = None
+    is_draft: Optional[bool] = None
+    draft_saved_at: Optional[datetime] = None
+
+class ShopVisitResponse(ShopVisitBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    created_by: Optional[int] = None
+    
+    class Config:
+        from_attributes = True
+
+# Configuration Schemas
+class ConfigurationBase(BaseModel):
+    config_type: str
+    config_name: str
+    config_value: str
+    is_active: Optional[bool] = True
+    display_order: Optional[int] = 0
+
+class ConfigurationCreate(ConfigurationBase):
+    pass
+
+class ConfigurationUpdate(BaseModel):
+    config_type: Optional[str] = None
+    config_name: Optional[str] = None
+    config_value: Optional[str] = None
+    is_active: Optional[bool] = None
+    display_order: Optional[int] = None
+
+class ConfigurationResponse(ConfigurationBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Audit Log Schemas
+class AuditLogCreate(BaseModel):
+    actor_user_id: Optional[int] = None
+    actor_email: Optional[str] = None
+    target_user_id: Optional[int] = None
+    target_email: Optional[str] = None
+    action: str
+    details: Optional[Dict[str, Any]] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+
+class AuditLogResponse(AuditLogCreate):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# User Profile Schemas
+class UserProfileBase(BaseModel):
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = {}
+
+class UserProfileCreate(UserProfileBase):
+    user_id: int
+
+class UserProfileUpdate(UserProfileBase):
+    pass
+
+class UserProfileResponse(UserProfileBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+

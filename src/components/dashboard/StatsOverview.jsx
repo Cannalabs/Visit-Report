@@ -17,24 +17,24 @@ const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
   >
-    <Card className="relative overflow-hidden hover:shadow-lg transition-all duration-300">
-      <div className={`absolute top-0 right-0 w-24 h-24 transform translate-x-6 -translate-y-6 ${color} rounded-full opacity-10`} />
+    <Card className="relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <div className={`absolute top-0 right-0 w-24 h-24 transform translate-x-6 -translate-y-6 ${color} rounded-full opacity-10 dark:opacity-20`} />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-gray-600">
+          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </CardTitle>
-          <div className={`p-2 rounded-xl ${color} bg-opacity-10`}>
+          <div className={`p-2 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20`}>
             <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="text-2xl font-bold text-gray-900 mb-1">
+        <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
           {value}
         </div>
         {trend && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {trend}
           </p>
         )}

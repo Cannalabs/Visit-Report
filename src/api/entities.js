@@ -242,7 +242,6 @@ export const User = {
       };
     } catch (error) {
       // If not authenticated, return null or throw
-      console.error('Failed to get current user:', error);
       throw error;
     }
   },
@@ -281,7 +280,6 @@ export const User = {
       
       return user;
     } catch (error) {
-      console.error('Login failed:', error);
       // Clear token on login failure
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
@@ -295,6 +293,7 @@ export const User = {
     
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('is_hardcoded_admin'); // Clear hardcoded admin flag
     return true;
   },
   signOut: async () => {
@@ -327,7 +326,6 @@ export const User = {
         avatar_url: null
       };
     } catch (error) {
-      console.error('Signup failed:', error);
       throw error;
     }
   },
@@ -335,6 +333,12 @@ export const User = {
     // Get current user first
     const currentUser = await User.me();
     return apiCall(`/users/${currentUser.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  update: async (userId, data) => {
+    return apiCall(`/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     });

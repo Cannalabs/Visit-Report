@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function ShopInfoSection({ formData, updateFormData }) {
   const [customers, setCustomers] = useState([]);
   const [visitPurposes, setVisitPurposes] = useState([]);
+  const [hasVisitPurposeConfigs, setHasVisitPurposeConfigs] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [contactEditable, setContactEditable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,12 +42,17 @@ export default function ShopInfoSection({ formData, updateFormData }) {
       ]);
       
       const activeCustomers = customersData.filter(c => c.status === 'active');
-      const purposes = configsData.filter(c => c.config_type === 'visit_purposes' && c.is_active);
+      // Check if any visit purposes are configured at all (active or inactive)
+      const allVisitPurposes = configsData.filter(c => c.config_type === 'visit_purposes');
+      setHasVisitPurposeConfigs(allVisitPurposes.length > 0);
+      
+      // Only show active purposes
+      const purposes = allVisitPurposes.filter(c => c.is_active);
       
       setCustomers(activeCustomers);
       setVisitPurposes(purposes);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      // Failed to load data
     }
     setIsLoading(false);
   };
@@ -86,7 +92,7 @@ export default function ShopInfoSection({ formData, updateFormData }) {
       
       // Update the customer record with new contact info
       if (selectedCustomer) {
-        Customer.update(selectedCustomer.id, { [field]: value }).catch(console.error);
+        Customer.update(selectedCustomer.id, { [field]: value }).catch(() => {});
       }
     }
   };
@@ -340,19 +346,43 @@ export default function ShopInfoSection({ formData, updateFormData }) {
             <Label htmlFor="visit_purpose" className="flex items-center gap-1">
               Visit Purpose {renderRequiredAsterisk()}
             </Label>
+            {hasVisitPurposeConfigs && visitPurposes.length === 0 && (
+              <Alert className="border-yellow-200 bg-yellow-50 mb-2">
+                <AlertDescription className="text-yellow-800">
+                  All visit purposes are currently inactive. Please enable visit purposes from the Configuration page.
+                </AlertDescription>
+              </Alert>
+            )}
             <Select
               value={formData.visit_purpose || ""}
               onValueChange={(value) => updateFormData({ visit_purpose: value })}
+              disabled={hasVisitPurposeConfigs && visitPurposes.length === 0}
             >
-              <SelectTrigger className={getFieldStyle(formData.visit_purpose, true)}>
-                <SelectValue placeholder="Select purpose" />
+              <SelectTrigger className={getFieldStyle(formData.visit_purpose, true)} disabled={hasVisitPurposeConfigs && visitPurposes.length === 0}>
+                <SelectValue placeholder={hasVisitPurposeConfigs && visitPurposes.length === 0 ? "No active visit purposes available" : "Select purpose"} />
               </SelectTrigger>
               <SelectContent>
-                {visitPurposes.map((purpose) => (
-                  <SelectItem key={purpose.id} value={purpose.config_value}>
-                    {purpose.config_name}
-                  </SelectItem>
-                ))}
+                {visitPurposes.length > 0 ? (
+                  visitPurposes.map((purpose) => (
+                    <SelectItem key={purpose.id} value={purpose.config_value}>
+                      {purpose.config_name}
+                    </SelectItem>
+                  ))
+                ) : hasVisitPurposeConfigs ? (
+                  <div className="px-2 py-6 text-center text-sm text-gray-500">
+                    No active visit purposes available
+                  </div>
+                ) : (
+                  // Fallback if no configurations exist at all
+                  <>
+                    <SelectItem value="routine_check">Routine Check</SelectItem>
+                    <SelectItem value="training">Training Session</SelectItem>
+                    <SelectItem value="promotion">Product Promotion</SelectItem>
+                    <SelectItem value="complaint_resolution">Complaint Resolution</SelectItem>
+                    <SelectItem value="new_products">New Products Introduction</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
