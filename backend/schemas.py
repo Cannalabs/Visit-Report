@@ -55,19 +55,31 @@ class CustomerBase(BaseModel):
     visit_notes: Optional[str] = None
     status: Optional[str] = "active"
     
-    @field_validator("shop_name")
+    @field_validator("shop_name", mode="before")
     @classmethod
     def validate_shop_name(cls, v):
-        if not v or not v.strip():
-            raise ValueError("Shop name is required and cannot be empty")
-        return v.strip()
+        # Allow empty strings for existing database records (responses)
+        # Only validate on create/update operations
+        if v is None:
+            return ""
+        if isinstance(v, str):
+            # For responses, allow empty strings
+            # For input validation, this will be checked in the router
+            return v.strip() if v.strip() else v
+        return v
     
-    @field_validator("shop_type")
+    @field_validator("shop_type", mode="before")
     @classmethod
     def validate_shop_type(cls, v):
-        if not v or not v.strip():
-            raise ValueError("Shop type is required and cannot be empty")
-        return v.strip()
+        # Allow empty strings for existing database records (responses)
+        # Only validate on create/update operations
+        if v is None:
+            return ""
+        if isinstance(v, str):
+            # For responses, allow empty strings
+            # For input validation, this will be checked in the router
+            return v.strip() if v.strip() else v
+        return v
 
 class CustomerCreate(CustomerBase):
     pass
@@ -87,8 +99,21 @@ class CustomerUpdate(BaseModel):
     visit_notes: Optional[str] = None
     status: Optional[str] = None
 
-class CustomerResponse(CustomerBase):
+class CustomerResponse(BaseModel):
     id: int
+    shop_name: str  # Allow empty strings for existing records
+    shop_type: str  # Allow empty strings for existing records
+    shop_address: Optional[str] = None
+    zipcode: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    job_title: Optional[str] = None
+    shop_timings: Optional[str] = None
+    visit_notes: Optional[str] = None
+    status: Optional[str] = "active"
     created_at: datetime
     updated_at: Optional[datetime] = None
     
