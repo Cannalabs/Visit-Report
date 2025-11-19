@@ -9,6 +9,11 @@ class UserRole(str, enum.Enum):
     sales_rep = "sales_rep"
     manager = "manager"
 
+class VisitStatus(str, enum.Enum):
+    appointment = "appointment"
+    draft = "draft"
+    done = "done"
+
 class Customer(Base):
     __tablename__ = "customers"
     
@@ -23,6 +28,8 @@ class Customer(Base):
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     job_title = Column(String(100))
+    shop_timings = Column(Text)  # Working hours, e.g., "Mon-Fri: 9:00 AM - 6:00 PM"
+    visit_notes = Column(Text)  # Notes for next visit, e.g., "Bring new samples on next visit"
     status = Column(String(20), default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -46,6 +53,15 @@ class ShopVisit(Base):
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     job_title = Column(String(100))
+    shop_timings = Column(Text)  # Working hours snapshot
+    
+    # Visit status and workflow
+    visit_status = Column(SQLEnum(VisitStatus), default=VisitStatus.draft)
+    
+    # Appointment stage fields
+    assigned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # User assigned to the visit
+    planned_visit_date = Column(DateTime(timezone=True), nullable=True)  # Planned date for appointment
+    appointment_description = Column(Text, nullable=True)  # Optional description for planning
     
     # Visit details
     visit_date = Column(DateTime(timezone=True), nullable=False)

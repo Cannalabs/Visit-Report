@@ -10,6 +10,14 @@ router = APIRouter()
 @router.post("", response_model=CustomerResponse)
 @router.post("/", response_model=CustomerResponse)
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+    # Additional validation: ensure shop_name is not empty
+    if not customer.shop_name or not customer.shop_name.strip():
+        raise HTTPException(status_code=400, detail="Shop name is required and cannot be empty")
+    
+    # Additional validation: ensure shop_type is provided
+    if not customer.shop_type or not customer.shop_type.strip():
+        raise HTTPException(status_code=400, detail="Shop type is required")
+    
     db_customer = Customer(**customer.dict())
     db.add(db_customer)
     db.commit()

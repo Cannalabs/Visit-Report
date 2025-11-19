@@ -17,7 +17,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
   >
-    <Card className="relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+    <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg">
       <div className={`absolute top-0 right-0 w-24 h-24 transform translate-x-6 -translate-y-6 ${color} rounded-full opacity-10 dark:opacity-20`} />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">

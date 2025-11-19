@@ -16,6 +16,10 @@ import Configuration from "./Configuration";
 
 import Analytics from "./Analytics";
 
+import FollowUps from "./FollowUps";
+
+import VisitSelector from "./VisitSelector";
+
 import Login from "./Login";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -39,6 +43,10 @@ const PAGES = {
     Configuration: Configuration,
     
     Analytics: Analytics,
+    
+    FollowUps: FollowUps,
+    
+    VisitSelector: VisitSelector,
     
 }
 
@@ -81,6 +89,8 @@ function ProtectedLayoutWrapper() {
                 <Route path="/Customers" element={<Customers />} />
                 <Route path="/Configuration" element={<Configuration />} />
                 <Route path="/Analytics" element={<Analytics />} />
+                <Route path="/FollowUps" element={<FollowUps />} />
+                <Route path="/VisitSelector" element={<VisitSelector />} />
             </Routes>
         </Layout>
     );

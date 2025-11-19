@@ -2,7 +2,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-export default function ReportFilters({ filters, onFiltersChange }) {
+export default function ReportFilters({ filters, onFiltersChange, shopTypes = [] }) {
   const updateFilter = (key, value) => {
     onFiltersChange(prev => ({ ...prev, [key]: value }));
   };
@@ -38,11 +38,21 @@ export default function ReportFilters({ filters, onFiltersChange }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="growshop">Growshop</SelectItem>
-            <SelectItem value="garden_center">Garden Center</SelectItem>
-            <SelectItem value="nursery">Nursery</SelectItem>
-            <SelectItem value="hydroponics_store">Hydroponics Store</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
+            {shopTypes.length > 0 ? (
+              shopTypes.map((shopType) => (
+                <SelectItem key={shopType.config_value} value={shopType.config_value}>
+                  {shopType.config_name}
+                </SelectItem>
+              ))
+            ) : (
+              <>
+                <SelectItem value="growshop">Growshop</SelectItem>
+                <SelectItem value="garden_center">Garden Center</SelectItem>
+                <SelectItem value="nursery">Nursery</SelectItem>
+                <SelectItem value="hydroponics_store">Hydroponics Store</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>

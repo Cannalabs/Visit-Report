@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from db import get_db
-from models import ShopVisit, User
+from models import ShopVisit, User, VisitStatus
 from schemas import ShopVisitCreate, ShopVisitUpdate, ShopVisitResponse
 from auth import get_current_user
 
@@ -49,6 +49,7 @@ def create_shop_visit(
 def list_shop_visits(
     customer_id: Optional[int] = None,
     is_draft: Optional[bool] = None,
+    visit_status: Optional[VisitStatus] = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
@@ -58,6 +59,8 @@ def list_shop_visits(
         query = query.filter(ShopVisit.customer_id == customer_id)
     if is_draft is not None:
         query = query.filter(ShopVisit.is_draft == is_draft)
+    if visit_status is not None:
+        query = query.filter(ShopVisit.visit_status == visit_status)
     return query.order_by(ShopVisit.visit_date.desc()).offset(skip).limit(limit).all()
 
 @router.get("/{visit_id}", response_model=ShopVisitResponse)
@@ -95,6 +98,17 @@ def update_shop_visit(
     visit = db.query(ShopVisit).filter(ShopVisit.id == visit_id).first()
     if not visit:
         raise HTTPException(status_code=404, detail="Shop visit not found")
+    
+    # Prevent editing if status is "done" (unless only updating status itself)
+    current_status = visit.visit_status or VisitStatus.draft
+    if current_status == VisitStatus.done:
+        # Allow status change from "done" to other statuses (for admin/manager override)
+        update_data = visit_update.dict(exclude_unset=True)
+        if 'visit_status' not in update_data or update_data.get('visit_status') == VisitStatus.done:
+            raise HTTPException(
+                status_code=403, 
+                detail="Cannot edit visit report with status 'done'. Change status first to allow editing."
+            )
     
     # Get all update data - use exclude_unset=False to include all fields that were sent
     # This ensures we update all fields, not just the ones that changed

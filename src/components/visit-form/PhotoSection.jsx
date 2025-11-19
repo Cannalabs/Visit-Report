@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { UploadFile } from "@/api/integrations";
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { 
   Camera, 
   Upload, 
@@ -16,7 +19,8 @@ import {
   CheckCircle,
   ZoomIn,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,21 +28,54 @@ export default function PhotoSection({ formData, updateFormData }) {
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const recognitionRef = useRef(null);
-  const networkRetryCountRef = useRef(0); // Track network retry attempts
-  const [finalTranscript, setFinalTranscript] = useState(formData.notes || '');
-  const [interimTranscript, setInterimTranscript] = useState('');
   const [previewFiles, setPreviewFiles] = useState([]); // Store selected files for preview
   const [previewImage, setPreviewImage] = useState(null); // Store image URL for full preview modal
+  
+  // React Speech Recognition hook
+  // Note: Hook must be called unconditionally (React rules)
+  const {
+    transcript,
+    interimTranscript,
+    finalTranscript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition({
+    continuous: true,
+    interimResults: true,
+    language: 'en-US'
+  });
 
-  // Sync finalTranscript with formData.notes when it changes externally
+  // Track the notes before recording started and last transcript
+  const notesBeforeRecordingRef = useRef('');
+  const lastTranscriptRef = useRef('');
+
+  // Save notes before recording starts
   useEffect(() => {
-    if (formData.notes !== finalTranscript && !isRecording) {
-      setFinalTranscript(formData.notes || '');
+    if (listening && !notesBeforeRecordingRef.current) {
+      // Recording just started - save current notes
+      notesBeforeRecordingRef.current = formData.notes || '';
+      lastTranscriptRef.current = '';
+    } else if (!listening) {
+      // Recording stopped - reset
+      notesBeforeRecordingRef.current = '';
+      lastTranscriptRef.current = '';
     }
-  }, [formData.notes, finalTranscript, isRecording]);
+  }, [listening, formData.notes]);
+
+  // Update formData.notes in real-time as user speaks
+  useEffect(() => {
+    if (listening && transcript && transcript.trim() && transcript !== lastTranscriptRef.current) {
+      // Get the base notes (before recording started)
+      const baseNotes = notesBeforeRecordingRef.current;
+      // Append current transcript
+      const newNotes = baseNotes ? `${baseNotes} ${transcript.trim()}` : transcript.trim();
+      
+      updateFormData({ notes: newNotes });
+      lastTranscriptRef.current = transcript;
+    }
+  }, [transcript, listening, updateFormData]);
 
   // Keyboard navigation for preview modal
   useEffect(() => {
@@ -306,15 +343,20 @@ export default function PhotoSection({ formData, updateFormData }) {
   };
 
   const toggleVoiceRecording = async () => {
-    if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-      setInterimTranscript('');
-      networkRetryCountRef.current = 0; // Reset retry counter when stopping
+    if (listening) {
+      try {
+        resetTranscript();
+        SpeechRecognition.stopListening();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
     } else {
-      // Reset retry counter when starting new recording
-      networkRetryCountRef.current = 0;
-      
+      // Check if browser supports speech recognition
+      if (!browserSupportsSpeechRecognition) {
+        alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+        return;
+      }
+
       // Check internet connection first
       const hasInternet = await checkInternetConnection();
       if (!hasInternet) {
@@ -323,148 +365,64 @@ export default function PhotoSection({ formData, updateFormData }) {
       }
 
       // Try to request microphone permission explicitly (especially important for mobile)
-      // If MediaDevices API is not available, speech recognition will request permission itself
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const hasPermission = await requestMicrophonePermission();
         if (!hasPermission) {
           return;
         }
       }
-      // If MediaDevices API is not available, speech recognition will request permission when started
 
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognitionRef.current = recognition;
-        
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onstart = () => {
-          setIsRecording(true);
-          setInterimTranscript('');
-          networkRetryCountRef.current = 0; // Reset retry counter on successful start
-        };
-
-        recognition.onresult = (event) => {
-          let interimText = '';
-          let finalText = formData.notes || '';
-          
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            
-            if (event.results[i].isFinal) {
-              finalText += transcript + ' ';
-              setInterimTranscript('');
-            } else {
-              interimText += transcript;
-            }
-          }
-          
-          // Update final transcript if we have final results
-          if (finalText !== (formData.notes || '')) {
-            setFinalTranscript(finalText.trim());
-            updateFormData({ notes: finalText.trim() });
-          }
-          
-          // Show interim results
-          if (interimText) {
-            setInterimTranscript(interimText);
-          }
-        };
-
-        recognition.onerror = (event) => {
-          setIsRecording(false);
-          setInterimTranscript('');
-          
-          // For network errors, try to restart automatically (max 2 retries)
-          if (event.error === 'network') {
-            const currentRetryCount = networkRetryCountRef.current;
-            networkRetryCountRef.current = currentRetryCount + 1;
-            
-            if (networkRetryCountRef.current <= 2) {
-              // Wait a moment and try to restart
-              setTimeout(() => {
-                // Check if we're still supposed to retry (user might have stopped)
-                if (networkRetryCountRef.current <= 2 && recognitionRef.current) {
-                  try {
-                    recognitionRef.current.start();
-                  } catch (restartError) {
-                    networkRetryCountRef.current = 0; // Reset counter
-                    alert('Network error: Unable to connect to speech recognition service.\n\nThis could be due to:\n- Firewall or network restrictions\n- VPN or proxy settings\n- Browser blocking the connection\n- Service temporarily unavailable\n\nYou can still type your notes manually in the text field below.');
-                  }
-                }
-              }, 2000); // Wait 2 seconds before retry
-              return; // Don't show alert on retry attempts
-            } else {
-              // Max retries reached
-              networkRetryCountRef.current = 0; // Reset counter
-              alert('Network error: Unable to connect to speech recognition service after multiple attempts.\n\nThis could be due to:\n- Firewall or network restrictions blocking the service\n- VPN or proxy settings interfering\n- Browser blocking the connection\n- Service temporarily unavailable\n\nYou can still type your notes manually in the text field below.');
-            }
-          } else {
-            // Reset retry counter for non-network errors
-            networkRetryCountRef.current = 0;
-          }
-          
-          // Show user-friendly error messages for other errors
-          let errorMessage = 'Speech recognition error occurred.';
-          switch(event.error) {
-            case 'no-speech':
-              errorMessage = 'No speech detected. Please try again.';
-              break;
-            case 'audio-capture':
-              errorMessage = 'Microphone not found or access denied. Please check your microphone permissions.';
-              break;
-            case 'not-allowed':
-              errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
-              break;
-            case 'service-not-allowed':
-              errorMessage = 'Speech recognition service is not available. Please try again later.';
-              break;
-            case 'bad-grammar':
-              errorMessage = 'Speech recognition grammar error. Please try again.';
-              break;
-            case 'language-not-supported':
-              errorMessage = 'Language not supported. Please use English.';
-              break;
-            case 'aborted':
-              // User stopped, don't show error
-              return;
-            default:
-              errorMessage = `Speech recognition error: ${event.error}. Please try again or type your notes manually.`;
-          }
-          
-          // Only show alert for non-user-initiated errors
-          if (event.error !== 'aborted') {
-            alert(errorMessage);
-          }
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-          setInterimTranscript('');
-        };
-
-        try {
-          recognition.start();
-        } catch (error) {
-          alert('Failed to start voice recording. Please try again.');
-          setIsRecording(false);
+      try {
+        // Start listening - options are set in the hook configuration
+        SpeechRecognition.startListening({ 
+          continuous: true, 
+          interimResults: true, 
+          language: 'en-US' 
+        });
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        let errorMessage = 'Failed to start voice recording. ';
+        if (error.message) {
+          errorMessage += error.message;
+        } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          errorMessage += 'Microphone permission denied. Please allow microphone access in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No microphone found. Please connect a microphone and try again.';
+        } else {
+          errorMessage += 'Please check your microphone permissions and try again.';
         }
-      } else {
-        alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+        alert(errorMessage);
       }
     }
   };
 
+  // Check if photos are required (mandatory field)
+  const hasPhotos = formData.visit_photos && formData.visit_photos.length > 0;
+  const isPhotosRequired = true; // Photos are mandatory according to checklist
+
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+      {isPhotosRequired && !hasPhotos && (
+        <Alert variant="destructive" className="border-red-300 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <strong>Required:</strong> At least one photo must be attached. Please upload photos using the options below.
+          </AlertDescription>
+        </Alert>
+      )}
+      <Card className={`bg-gradient-to-br from-blue-50 to-indigo-50 ${isPhotosRequired && !hasPhotos ? 'border-red-300' : 'border-blue-200'}`}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <Camera className="w-5 h-5" />
             Visit Photos
+            {isPhotosRequired && (
+              <span className="text-red-500 font-bold ml-1">*</span>
+            )}
+            {isPhotosRequired && !hasPhotos && (
+              <Badge variant="destructive" className="ml-auto">
+                Required - No Photos
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -698,9 +656,9 @@ export default function PhotoSection({ formData, updateFormData }) {
                 size="sm"
                 variant="outline"
                 onClick={toggleVoiceRecording}
-                className={`border-green-300 hover:bg-green-50 ${isRecording ? 'text-red-600 border-red-300' : ''}`}
+                className={`border-green-300 hover:bg-green-50 ${listening ? 'text-red-600 border-red-300' : ''}`}
               >
-                {isRecording ? (
+                {listening ? (
                   <>
                     <MicOff className="w-4 h-4 mr-2" />
                     Stop Recording
@@ -715,23 +673,28 @@ export default function PhotoSection({ formData, updateFormData }) {
             </div>
             <Textarea
               id="notes"
-              value={(formData.notes || '') + (interimTranscript ? ' ' + interimTranscript : '')}
+              value={formData.notes || ''}
               onChange={(e) => {
                 const newValue = e.target.value;
-                // Remove interim transcript if user is typing
-                const cleanValue = interimTranscript ? newValue.replace(interimTranscript, '').trim() : newValue;
-                setFinalTranscript(cleanValue);
-                setInterimTranscript('');
-                updateFormData({ notes: cleanValue });
+                // If user is typing, stop listening to avoid conflicts
+                if (listening) {
+                  try {
+                    SpeechRecognition.stopListening();
+                    resetTranscript();
+                  } catch (err) {
+                    console.error('Error stopping recognition on user input:', err);
+                  }
+                }
+                updateFormData({ notes: newValue });
               }}
               placeholder="Add any additional observations, comments, or important details about this visit..."
               rows={4}
               className="border-green-200 focus:border-green-400"
             />
-            {isRecording && (
-              <div className="flex items-center gap-2 text-sm text-red-600">
+            {listening && (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
                 <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                <span>Recording... {interimTranscript && `(${interimTranscript})`}</span>
+                <span>Recording... {transcript && `(${transcript})`}</span>
               </div>
             )}
             <p className="text-xs text-green-600">

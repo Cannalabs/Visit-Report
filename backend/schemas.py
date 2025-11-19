@@ -1,7 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from models import UserRole
+from models import UserRole, VisitStatus
 
 # User Schemas
 class UserBase(BaseModel):
@@ -42,7 +42,7 @@ class LoginRequest(BaseModel):
 # Customer Schemas
 class CustomerBase(BaseModel):
     shop_name: str
-    shop_type: Optional[str] = None
+    shop_type: str
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
@@ -51,7 +51,23 @@ class CustomerBase(BaseModel):
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
+    shop_timings: Optional[str] = None
+    visit_notes: Optional[str] = None
     status: Optional[str] = "active"
+    
+    @field_validator("shop_name")
+    @classmethod
+    def validate_shop_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Shop name is required and cannot be empty")
+        return v.strip()
+    
+    @field_validator("shop_type")
+    @classmethod
+    def validate_shop_type(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Shop type is required and cannot be empty")
+        return v.strip()
 
 class CustomerCreate(CustomerBase):
     pass
@@ -67,6 +83,8 @@ class CustomerUpdate(BaseModel):
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
+    shop_timings: Optional[str] = None
+    visit_notes: Optional[str] = None
     status: Optional[str] = None
 
 class CustomerResponse(CustomerBase):
@@ -90,6 +108,11 @@ class ShopVisitBase(BaseModel):
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
+    shop_timings: Optional[str] = None
+    visit_status: Optional[VisitStatus] = VisitStatus.draft
+    assigned_user_id: Optional[int] = None
+    planned_visit_date: Optional[datetime] = None
+    appointment_description: Optional[str] = None
     visit_date: datetime
     visit_duration: Optional[int] = 60
     visit_purpose: Optional[str] = None
@@ -132,6 +155,10 @@ class ShopVisitUpdate(BaseModel):
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
+    visit_status: Optional[VisitStatus] = None
+    assigned_user_id: Optional[int] = None
+    planned_visit_date: Optional[datetime] = None
+    appointment_description: Optional[str] = None
     visit_date: Optional[datetime] = None
     visit_duration: Optional[int] = None
     visit_purpose: Optional[str] = None

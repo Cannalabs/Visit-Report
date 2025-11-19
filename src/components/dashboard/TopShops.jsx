@@ -59,8 +59,8 @@ export default function TopShops({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <Card className="shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30">
           <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
             <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             Top Performing Shops

@@ -49,6 +49,7 @@ export default function NewVisit() {
   const [user, setUser] = useState(null);
   const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [nextSaveIn, setNextSaveIn] = useState(5); // Countdown for next auto-save
   const [checklistItems, setChecklistItems] = useState({
     photosAttached: false,
     questionnaireComplete: false,
@@ -58,6 +59,8 @@ export default function NewVisit() {
   const [selectedCustomer, setSelectedCustomer] = useState(null); // New state for selected customer
 
   const autoSaveIntervalRef = useRef(null);
+  const autoCreateDraftTimeoutRef = useRef(null);
+  const isCreatingDraftRef = useRef(false);
 
   const [formData, setFormData] = useState({
     // customer_id is no longer initialized here; it's set dynamically upon customer selection/loading
@@ -71,6 +74,11 @@ export default function NewVisit() {
     contact_phone: "",
     contact_email: "",
     job_title: "",
+    shop_timings: "",
+    visit_status: "draft", // appointment, draft, done
+    assigned_user_id: null,
+    planned_visit_date: null,
+    appointment_description: "",
     visit_date: new Date().toISOString().split('T')[0],
     visit_duration: 60,
     visit_purpose: "",
@@ -94,7 +102,7 @@ export default function NewVisit() {
     signature_signer_name: null,
     signature_date: null,
     sales_data: {}, // Sales and purchase breakdown data
-    is_draft: false
+    is_draft: false // Keep for backward compatibility
   });
 
   // Auto-update checklist when formData changes
@@ -116,6 +124,7 @@ export default function NewVisit() {
     const params = new URLSearchParams(location.search);
     const id = params.get('id');
     const customerId = params.get('customer_id'); // Get customer_id from URL params
+    const sectionParam = params.get('section'); // Get section parameter to jump to specific section
 
     const loadInitialData = async () => {
       setIsLoading(true);
@@ -173,6 +182,7 @@ export default function NewVisit() {
               contact_phone: customer.contact_phone || "",
               contact_email: customer.contact_email || "",
               job_title: customer.job_title || "",
+              shop_timings: customer.shop_timings || "",
               gps_coordinates: customer.gps_coordinates || null,
             }));
           } else {
@@ -188,12 +198,97 @@ export default function NewVisit() {
     loadInitialData();
   }, [location.search]);
 
-  // Auto-save functionality - only when we have a visit ID
+  // Handle section navigation after visit data is loaded
   useEffect(() => {
-    if (visitId && isDraftCreated) {
+    const params = new URLSearchParams(location.search);
+    const sectionParam = params.get('section');
+    const highlightParam = params.get('highlight');
+    
+    if (sectionParam && visitId && !isLoading) {
+      const sectionIndex = parseInt(sectionParam, 10);
+      // Sections array has 6 items (0-5), so check if index is valid
+      if (!isNaN(sectionIndex) && sectionIndex >= 0 && sectionIndex < 6) {
+        setCurrentSection(sectionIndex);
+        
+        // If highlight parameter is set, scroll to the follow-up section after a short delay
+        if (highlightParam === 'followup' && sectionIndex === 3) {
+          setTimeout(() => {
+            const followUpCard = document.getElementById('follow-up-section');
+            if (followUpCard) {
+              followUpCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add a highlight effect
+              followUpCard.classList.add('ring-4', 'ring-orange-300', 'ring-opacity-75');
+              setTimeout(() => {
+                followUpCard.classList.remove('ring-4', 'ring-orange-300', 'ring-opacity-75');
+              }, 3000);
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [visitId, isLoading, location.search]);
+
+  // Auto-create draft when Step 1 mandatory fields are completed
+  useEffect(() => {
+    // Clear any pending timeout
+    if (autoCreateDraftTimeoutRef.current) {
+      clearTimeout(autoCreateDraftTimeoutRef.current);
+      autoCreateDraftTimeoutRef.current = null;
+    }
+    
+    // Skip if already creating a draft
+    if (isCreatingDraftRef.current) {
+      return;
+    }
+    
+    // Create visit ID immediately when customer is selected (for both appointments and drafts)
+    if (formData.customer_id && !visitId && !isDraftCreated) {
+      // Use a small delay to debounce and avoid creating multiple drafts
+      autoCreateDraftTimeoutRef.current = setTimeout(async () => {
+        // Double-check conditions (they might have changed during timeout)
+        if (formData.customer_id && !visitId && !isDraftCreated && !isCreatingDraftRef.current) {
+          isCreatingDraftRef.current = true;
+          try {
+            const newVisitId = await createInitialDraft();
+            if (newVisitId) {
+              console.log("Auto-created visit with ID:", newVisitId);
+            }
+          } catch (err) {
+            console.error("Auto-create visit failed:", err);
+            isCreatingDraftRef.current = false; // Reset on error
+          } finally {
+            isCreatingDraftRef.current = false;
+          }
+        }
+        autoCreateDraftTimeoutRef.current = null;
+      }, 500); // Small delay to debounce (500ms)
+    }
+    
+    return () => {
+      if (autoCreateDraftTimeoutRef.current) {
+        clearTimeout(autoCreateDraftTimeoutRef.current);
+        autoCreateDraftTimeoutRef.current = null;
+      }
+    };
+  }, [formData.customer_id, visitId, isDraftCreated]);
+
+  // Auto-save functionality - only when we have a visit ID and it's still a draft
+  useEffect(() => {
+    if (visitId && (isDraftCreated || formData.visit_status === "appointment") && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false)) {
+      // Reset countdown when auto-save starts
+      setNextSaveIn(5);
+      
       autoSaveIntervalRef.current = setInterval(() => {
         saveDraft();
-      }, 30000); // Auto-save every 30 seconds
+        setNextSaveIn(5); // Reset countdown after save
+      }, 5000); // Auto-save every 5 seconds
+    } else {
+      // Clear auto-save if report is submitted
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+        autoSaveIntervalRef.current = null;
+      }
+      setNextSaveIn(0);
     }
 
     return () => {
@@ -201,7 +296,29 @@ export default function NewVisit() {
         clearInterval(autoSaveIntervalRef.current);
       }
     };
-  }, [visitId, isDraftCreated, formData]);
+  }, [visitId, isDraftCreated, formData.is_draft, formData.visit_status]);
+
+  // Countdown timer for next auto-save
+  useEffect(() => {
+    const shouldShowCountdown = (visitId && (isDraftCreated || formData.visit_status === "appointment")) || (formData.visit_status === "appointment" && formData.customer_id);
+    
+    if (shouldShowCountdown && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false)) {
+      const countdownInterval = setInterval(() => {
+        setNextSaveIn((prev) => {
+          if (prev <= 1) {
+            return 5; // Reset to 5 when it reaches 0 or below (auto-save will also reset it)
+          }
+          return prev - 1;
+        });
+      }, 1000); // Update countdown every second
+
+      return () => {
+        clearInterval(countdownInterval);
+      };
+    } else {
+      setNextSaveIn(0);
+    }
+  }, [visitId, isDraftCreated, formData.is_draft, formData.visit_status, formData.customer_id]);
 
   // Removed useEffect for fetching suggested contacts based on shop_name
   // Removed fetchSuggestedContacts and handleContactSelect functions
@@ -248,12 +365,260 @@ export default function NewVisit() {
   ];
 
   const updateFormData = (updates) => {
-    setFormData((prev) => ({ ...prev, ...updates }));
+    setFormData((prev) => {
+      // If user is explicitly setting visit_status, always allow it (don't override)
+      if (updates.hasOwnProperty('visit_status')) {
+        const newStatus = updates.visit_status;
+        const updatedData = { ...prev, ...updates };
+        
+        // If setting to "appointment", save it immediately with all current data
+        if (newStatus === "appointment") {
+          // Save appointment status asynchronously
+          const saveAppointment = async () => {
+            try {
+              if (visitId) {
+                // Update existing visit with all current formData to ensure nothing is lost
+                const cleanVisitPhotos = (updatedData.visit_photos || []).filter(photo => 
+                  typeof photo === 'string' && photo.trim().length > 0
+                );
+                
+                const updateData = {
+                  ...updatedData,
+                  visit_photos: cleanVisitPhotos,
+                  visit_status: "appointment",
+                  is_draft: false,
+                  visit_date: updatedData.visit_date ? new Date(updatedData.visit_date).toISOString() : new Date().toISOString(),
+                  planned_visit_date: updatedData.planned_visit_date ? new Date(updatedData.planned_visit_date).toISOString() : null,
+                  sales_data: updatedData.sales_data || {}
+                };
+                
+                await ShopVisit.update(visitId, updateData);
+              } else if (prev.customer_id && prev.visit_date && prev.visit_purpose) {
+                // Create new appointment visit if required fields are filled
+                const cleanVisitPhotos = (updatedData.visit_photos || []).filter(photo => 
+                  typeof photo === 'string' && photo.trim().length > 0
+                );
+                
+                const appointmentData = {
+                  ...updatedData,
+                  visit_photos: cleanVisitPhotos,
+                  visit_status: "appointment",
+                  is_draft: false,
+                  visit_date: updatedData.visit_date ? new Date(updatedData.visit_date).toISOString() : new Date().toISOString(),
+                  planned_visit_date: updatedData.planned_visit_date ? new Date(updatedData.planned_visit_date).toISOString() : null,
+                  sales_data: updatedData.sales_data || {}
+                };
+                const created = await ShopVisit.create(appointmentData);
+                if (created && created.id) {
+                  setVisitId(created.id);
+                  setIsDraftCreated(true);
+                  // Update URL with the new ID
+                  window.history.replaceState(null, '', `${window.location.pathname}?id=${created.id}`);
+                }
+              }
+            } catch (err) {
+              console.error("Failed to save appointment status:", err);
+            }
+          };
+          saveAppointment();
+        }
+        
+        return updatedData;
+      }
+      
+      // If current status is "appointment" and user is filling visit data (not just appointment fields),
+      // automatically change status to "draft" ONLY when moving to next section
+      // First page fields (visit_date, visit_purpose, visit_duration) should NOT trigger status change
+      let newStatus = prev.visit_status;
+      if (prev.visit_status === "appointment") {
+        // List of fields that can be updated without changing appointment to draft
+        // This includes appointment fields AND first page basic fields
+        const appointmentSafeFields = [
+          'assigned_user_id', 
+          'planned_visit_date', 
+          'appointment_description',
+          'visit_notes', // Customer visit notes
+          'visit_date', // First page - can be updated for appointment planning
+          'visit_duration', // First page - can be updated for appointment planning
+          'visit_purpose', // First page - can be updated for appointment planning
+          'customer_id', // Shop selection - can be changed for appointment
+          'shop_name', 'shop_type', 'shop_address', // Shop info - can be updated
+          'contact_person', 'contact_phone', 'contact_email', 'job_title', // Contact info - can be updated
+          'zipcode', 'city', 'county', 'region' // Additional shop info fields
+        ];
+        
+        // Fields that indicate visit documentation has started (beyond first page)
+        // These WILL trigger status change from appointment to draft
+        const visitDataFields = [
+          'product_visibility_score', 'products_discussed', 'competitor_presence',
+          'training_provided', 'training_topics', 'support_materials_required',
+          'commercial_outcome', 'order_value', 'overall_satisfaction',
+          'follow_up_required', 'follow_up_notes', 'notes',
+          'visit_photos', 'signature', 'signature_signer_name',
+          'sales_data'
+        ];
+        
+        // Check if ALL updated fields are appointment-safe fields
+        const updatedKeys = Object.keys(updates);
+        
+        // If no fields are being updated, keep current status
+        if (updatedKeys.length === 0) {
+          newStatus = prev.visit_status;
+        } else {
+          // Check if ALL updated fields are appointment-safe fields
+          const allFieldsAreSafe = updatedKeys.every(key => appointmentSafeFields.includes(key));
+          
+          // If all updated fields are safe, explicitly keep status as "appointment"
+          if (allFieldsAreSafe) {
+            newStatus = "appointment";
+          } else {
+            // Check if any of the updated fields are visit data fields (beyond first page)
+            const isFillingVisitData = updatedKeys.some(key => {
+              // Skip appointment-safe fields (appointment fields + first page fields)
+              if (appointmentSafeFields.includes(key)) return false;
+              
+              // If it's a known visit data field (beyond first page), check if it has a meaningful value
+              if (visitDataFields.includes(key)) {
+                const value = updates[key];
+                // Check if value is meaningful (not null, undefined, empty string, empty array, empty object)
+                if (value === null || value === undefined || value === "") return false;
+                if (Array.isArray(value) && value.length === 0) return false;
+                if (typeof value === 'object' && Object.keys(value || {}).length === 0) return false;
+                return true;
+              }
+              
+              // For any other field (not in appointment-safe list), don't trigger change
+              // Only known visit data fields should trigger status change
+              return false;
+            });
+            
+            if (isFillingVisitData) {
+              newStatus = "draft";
+            } else {
+              // If no visit data fields are being filled, keep status as "appointment"
+              newStatus = "appointment";
+            }
+          }
+        }
+      }
+      
+      // If status is "appointment", automatically sync visit_date with planned_visit_date
+      if (newStatus === "appointment" && updates.planned_visit_date) {
+        // Convert planned_visit_date to date string format (YYYY-MM-DD)
+        const plannedDate = new Date(updates.planned_visit_date);
+        const dateString = plannedDate.toISOString().split('T')[0];
+        updates.visit_date = dateString;
+      } else if (newStatus === "appointment" && prev.planned_visit_date && !updates.visit_date) {
+        // If status is already "appointment" and planned_visit_date exists, sync visit_date
+        const plannedDate = new Date(prev.planned_visit_date);
+        const dateString = plannedDate.toISOString().split('T')[0];
+        updates.visit_date = dateString;
+      }
+      
+      // If status is changing from "appointment" to "draft", automatically set visit_date to planned_visit_date if not already set
+      if (prev.visit_status === "appointment" && newStatus === "draft" && !updates.visit_date) {
+        // Use planned_visit_date as visit_date if available
+        if (prev.planned_visit_date) {
+          // Convert planned_visit_date to date string format (YYYY-MM-DD)
+          const plannedDate = new Date(prev.planned_visit_date);
+          const dateString = plannedDate.toISOString().split('T')[0];
+          updates.visit_date = dateString;
+        }
+      }
+      
+      const finalData = { 
+        ...prev, 
+        ...updates,
+        visit_status: newStatus
+      };
+      
+      // If status changed from "appointment" to "draft", save it immediately
+      if (prev.visit_status === "appointment" && newStatus === "draft" && visitId) {
+        const saveStatusChange = async () => {
+          try {
+            const cleanVisitPhotos = (finalData.visit_photos || []).filter(photo => 
+              typeof photo === 'string' && photo.trim().length > 0
+            );
+            
+            // Use planned_visit_date as visit_date if visit_date is not set
+            let visitDateToUse = finalData.visit_date;
+            if (!visitDateToUse && finalData.planned_visit_date) {
+              visitDateToUse = new Date(finalData.planned_visit_date).toISOString().split('T')[0];
+            }
+            
+            const updateData = {
+              ...finalData,
+              visit_photos: cleanVisitPhotos,
+              visit_status: "draft",
+              is_draft: true,
+              visit_date: visitDateToUse ? new Date(visitDateToUse).toISOString() : new Date().toISOString(),
+              planned_visit_date: finalData.planned_visit_date ? new Date(finalData.planned_visit_date).toISOString() : null,
+              sales_data: finalData.sales_data || {}
+            };
+            
+            await ShopVisit.update(visitId, updateData);
+          } catch (err) {
+            console.error("Failed to save status change to draft:", err);
+          }
+        };
+        saveStatusChange();
+      }
+      
+      // If status is "appointment" and we have a visitId, auto-save when first page fields change
+      if (finalData.visit_status === "appointment" && visitId) {
+        const appointmentSafeFields = [
+          'assigned_user_id', 'planned_visit_date', 'appointment_description', 'visit_notes',
+          'visit_date', 'visit_duration', 'visit_purpose',
+          'customer_id', 'shop_name', 'shop_type', 'shop_address',
+          'contact_person', 'contact_phone', 'contact_email', 'job_title'
+        ];
+        
+        // Check if any updated field is an appointment-safe field (first page fields)
+        const isUpdatingAppointmentFields = Object.keys(updates).some(key => 
+          appointmentSafeFields.includes(key)
+        );
+        
+        // Auto-save appointment when first page fields are updated
+        if (isUpdatingAppointmentFields) {
+          const saveAppointmentUpdate = async () => {
+            try {
+              const cleanVisitPhotos = (finalData.visit_photos || []).filter(photo => 
+                typeof photo === 'string' && photo.trim().length > 0
+              );
+              
+              const updateData = {
+                ...finalData,
+                visit_photos: cleanVisitPhotos,
+                visit_status: "appointment",
+                is_draft: false,
+                visit_date: finalData.visit_date ? new Date(finalData.visit_date).toISOString() : new Date().toISOString(),
+                planned_visit_date: finalData.planned_visit_date ? new Date(finalData.planned_visit_date).toISOString() : null,
+                sales_data: finalData.sales_data || {}
+              };
+              
+              await ShopVisit.update(visitId, updateData);
+            } catch (err) {
+              console.error("Failed to auto-save appointment update:", err);
+            }
+          };
+          saveAppointmentUpdate();
+        }
+      }
+      
+      return finalData;
+    });
     setError(null);
   };
 
   const saveDraft = async () => {
-    if (isDraftSaving || !visitId) return;
+    // Don't save if report is already submitted or status is "done"
+    // Allow saving for appointments and drafts
+    if (isDraftSaving || !visitId || formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false)) {
+      return;
+    }
+    
+    // For appointments, ensure is_draft is false
+    const isAppointment = formData.visit_status === "appointment";
     
     setIsDraftSaving(true);
     try {
@@ -264,10 +629,11 @@ export default function NewVisit() {
       
       // Ensure visit_date is a proper datetime string
       // Include ALL fields from formData to ensure nothing is lost
+      const isAppointment = formData.visit_status === "appointment";
       const draftData = { 
         ...formData, 
         visit_photos: cleanVisitPhotos,
-        is_draft: true,
+        is_draft: !isAppointment, // Set is_draft to false for appointments
         visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
         draft_saved_at: new Date().toISOString(),
         // Ensure sales_data is included
@@ -282,9 +648,20 @@ export default function NewVisit() {
   };
 
   const createInitialDraft = async () => {
-    if (isDraftCreated || !formData.customer_id) return null; // Changed condition: Requires customer_id
+    if (isDraftCreated || visitId) {
+      // If draft already created, return existing visitId
+      return visitId;
+    }
+    
+    // Validate required fields before creating draft
+    if (!formData.customer_id) {
+      setError("Customer selection is required to create a visit draft");
+      isCreatingDraftRef.current = false;
+      return null;
+    }
     
     setIsDraftCreated(true); // Prevent multiple calls
+    isCreatingDraftRef.current = true;
     try {
       // Clean visit_photos to ensure all items are strings
       const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
@@ -293,37 +670,207 @@ export default function NewVisit() {
       
       // Ensure visit_date is a proper datetime string
       // Include ALL fields from formData to ensure nothing is lost
+      // Preserve the visit_status (appointment or draft)
       const draftData = { 
         ...formData, 
         visit_photos: cleanVisitPhotos,
-        is_draft: true,
+        is_draft: formData.visit_status !== "appointment", // Only set is_draft if not appointment
+        visit_status: formData.visit_status || "draft", // Preserve visit_status
         visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        planned_visit_date: formData.planned_visit_date ? new Date(formData.planned_visit_date).toISOString() : null,
         draft_saved_at: new Date().toISOString(),
         // Ensure sales_data is included
         sales_data: formData.sales_data || {}
       };
+      
       const created = await ShopVisit.create(draftData);
-      setVisitId(created.id);
+      
+      // Ensure we got an ID back
+      if (!created || !created.id) {
+        console.error("Draft creation response:", created);
+        throw new Error("Draft created but no ID returned from server");
+      }
+      
+      // Set the visitId state immediately
+      const newVisitId = created.id;
+      setVisitId(newVisitId);
+      
+      // Update formData to preserve status
+      setFormData(prev => ({ 
+        ...prev, 
+        is_draft: prev.visit_status !== "appointment",
+        visit_status: prev.visit_status || "draft"
+      }));
+      
       setLastSaved(new Date());
-      window.history.replaceState(null, '', `${window.location.pathname}?id=${created.id}`);
-      return created.id;
+      
+      // Update URL with the new ID
+      window.history.replaceState(null, '', `${window.location.pathname}?id=${newVisitId}`);
+      
+      // Log for debugging
+      console.log("Draft created with ID:", newVisitId);
+      
+      // Trigger immediate save to ensure data is persisted
+      setTimeout(() => {
+        if (newVisitId) {
+          saveDraft().catch(err => {
+            console.error("Immediate save after draft creation failed:", err);
+          });
+        }
+      }, 500); // Small delay to ensure state is updated
+      
+      isCreatingDraftRef.current = false;
+      return newVisitId;
     } catch (err) {
-      setIsDraftCreated(false); // Reset on error
-      setError("Could not create a new visit report draft.");
+      setIsDraftCreated(false); // Reset on error so user can retry
+      isCreatingDraftRef.current = false; // Reset ref on error
+      const errorMessage = err.response?.data?.detail || err.message || "Could not create a new visit report draft";
+      setError(errorMessage);
       return null;
     }
   }
 
   const handleNextSection = async () => {
-    // Create the initial draft when moving from the first section, if a customer is selected
+      // Handle status change from "appointment" to "draft" when moving from first section
+      if (currentSection === 0 && formData.visit_status === "appointment") {
+        // Determine visit_date: use planned_visit_date if visit_date is not set
+        let visitDateToUse = formData.visit_date;
+        if (!visitDateToUse && formData.planned_visit_date) {
+          visitDateToUse = new Date(formData.planned_visit_date).toISOString().split('T')[0];
+        }
+        
+        // Update the status and visit_date immediately in formData
+        setFormData(prev => ({ 
+          ...prev, 
+          visit_status: "draft",
+          visit_date: visitDateToUse || prev.visit_date
+        }));
+        
+        // If visit already exists, save the status change to backend with all current data
+        if (visitId) {
+          try {
+            const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
+              typeof photo === 'string' && photo.trim().length > 0
+            );
+            
+            const updateData = {
+              ...formData,
+              visit_photos: cleanVisitPhotos,
+              visit_status: "draft",
+              is_draft: true,
+              visit_date: visitDateToUse ? new Date(visitDateToUse).toISOString() : (formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString()),
+              planned_visit_date: formData.planned_visit_date ? new Date(formData.planned_visit_date).toISOString() : null,
+              sales_data: formData.sales_data || {}
+            };
+            
+            await ShopVisit.update(visitId, updateData);
+          } catch (err) {
+            console.error("Failed to update visit status:", err);
+          }
+        }
+      }
+    
+    // Create the initial draft when moving from the first section
     let currentVisitId = visitId;
-    if (currentSection === 0 && !visitId && formData.customer_id) { // Changed condition: Requires customer_id
+    if (currentSection === 0 && !visitId) {
+      // Save original status before updating
+      const wasAppointment = formData.visit_status === "appointment";
+      
+      // Determine visit_date: use planned_visit_date if visit_date is not set
+      let visitDateToUse = formData.visit_date;
+      if (!visitDateToUse && formData.planned_visit_date) {
+        visitDateToUse = new Date(formData.planned_visit_date).toISOString().split('T')[0];
+      }
+      
+      // Update formData status to "draft" and visit_date if it was "appointment"
+      if (wasAppointment) {
+        setFormData(prev => ({ 
+          ...prev, 
+          visit_status: "draft",
+          visit_date: visitDateToUse || prev.visit_date
+        }));
+      }
+      
         currentVisitId = await createInitialDraft();
+      if (!currentVisitId) {
+        // Draft creation failed, don't proceed
+        return;
+      }
+      
+      // After draft creation, ensure status is saved as "draft" with correct visit_date
+      if (wasAppointment) {
+        try {
+          const updateData = {
+            visit_status: "draft",
+            is_draft: true
+          };
+          // Include visit_date if it was set from planned_visit_date
+          if (visitDateToUse) {
+            updateData.visit_date = new Date(visitDateToUse).toISOString();
+          }
+          await ShopVisit.update(currentVisitId, updateData);
+          // Update local formData to reflect the change
+          setFormData(prev => ({ 
+            ...prev, 
+            visit_status: "draft",
+            visit_date: visitDateToUse || prev.visit_date
+          }));
+        } catch (err) {
+          console.error("Failed to update visit status:", err);
+        }
+      }
+    }
+    
+    // Validate required fields for current section before proceeding
+    const requiredFields = getRequiredFieldsForSection(currentSection);
+    const missingFields = requiredFields.filter((field) => {
+      const value = formData[field];
+      // Check if field is empty
+      if (value === null || value === undefined || value === "") return true;
+      // Check if array is empty
+      if (Array.isArray(value) && value.length === 0) return true;
+      // For numeric fields like overall_satisfaction, check if it's 0 or invalid
+      if (field === 'overall_satisfaction' && (value === 0 || value === null || value === undefined)) return true;
+      // For product_visibility_score, 0 is valid, only check for null/undefined
+      if (field === 'product_visibility_score' && (value === null || value === undefined)) return true;
+      return false;
+    });
+
+    if (missingFields.length > 0) {
+      const fieldLabels = {
+        'customer_id': 'Customer/Shop',
+        'shop_name': 'Shop Name',
+        'shop_type': 'Shop Type',
+        'visit_date': 'Visit Date',
+        'visit_purpose': 'Visit Purpose',
+        'visit_duration': 'Visit Duration',
+        'product_visibility_score': 'Overall Product Visibility Score',
+        'competitor_presence': 'Competitor Presence',
+        'commercial_outcome': 'Commercial Result',
+        'overall_satisfaction': 'Overall Satisfaction Rating',
+        'follow_up_notes': 'Follow-up Notes',
+        'visit_photos': 'Visit Photos',
+        'signature': 'Signature',
+        'signature_signer_name': 'Signer Name'
+      };
+      const missingLabels = missingFields.map(field => fieldLabels[field] || field).join(', ');
+      setError(`Please complete the following required fields: ${missingLabels}`);
+      return;
     }
     
     if (currentSection < sections.length - 1) {
-      if(currentVisitId || visitId) {
+      // Only proceed if we have a visitId (either existing or newly created)
+      if (currentVisitId || visitId) {
+        // Auto-save current section data before moving to next section
+        if (visitId || currentVisitId) {
+          saveDraft().catch(err => {
+            console.error("Auto-save on section navigation failed:", err);
+          });
+        }
         setCurrentSection((prev) => prev + 1);
+        setError(null); // Clear any previous errors
+      } else {
+        setError("Could not create visit draft. Please try again.");
       }
     }
   };
@@ -383,6 +930,11 @@ export default function NewVisit() {
         throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       }
 
+      // Validate signature if signature is provided
+      if (formData.signature && !formData.signature_signer_name) {
+        throw new Error("Signer name is mandatory when a signature is provided. Please enter the signer name in the Signature section.");
+      }
+
       const calculatedScore = calculateScore(formData);
       const priorityLevel = getPriorityLevel(calculatedScore);
 
@@ -400,6 +952,7 @@ export default function NewVisit() {
         calculated_score: calculatedScore,
         priority_level: priorityLevel,
         visit_photos: cleanVisitPhotos, // Ensure all items are strings
+        visit_status: "done", // Set status to "done" when submitting
         is_draft: false,
         draft_saved_at: null, // Explicitly set to null for final submission
         // Ensure all optional fields are included even if empty
@@ -452,21 +1005,47 @@ export default function NewVisit() {
 
   const previousSection = () => {
     if (currentSection > 0) {
+      // Auto-save current section data before moving to previous section
+      if (visitId) {
+        saveDraft().catch(err => {
+          console.error("Auto-save on section navigation failed:", err);
+        });
+      }
       setCurrentSection((prev) => prev - 1);
     }
   };
 
   const getRequiredFieldsForSection = (sectionIndex) => {
     const requiredFields = {
-      // customer_id is now a required field for the first section
-      0: ['customer_id', 'shop_name', 'shop_type', 'visit_purpose'],
-      1: [],
+      // Section 0: Shop Information - required fields
+      // Note: visit_date is only required when status is NOT "appointment" (i.e., when visit has actually happened)
+      0: ['customer_id', 'shop_name', 'shop_type', 'visit_purpose', 'visit_duration'],
+      // Section 1: Product Visibility - product_visibility_score and competitor_presence are required
+      1: ['product_visibility_score', 'competitor_presence'],
+      // Section 2: Training & Support - no required fields
       2: [],
-      3: [],
-      4: [],
-      5: []
+      // Section 3: Commercial Outcomes - commercial_outcome and overall_satisfaction are required
+      3: ['commercial_outcome', 'overall_satisfaction'],
+      // Section 4: Photos & Notes - visit_photos required
+      4: ['visit_photos'],
+      // Section 5: Signature - signature and signer name required
+      5: ['signature', 'signature_signer_name']
     };
-    return requiredFields[sectionIndex] || [];
+    
+    const fields = requiredFields[sectionIndex] || [];
+    
+    // Special case for Section 0: visit_date is required only if status is NOT "appointment"
+    // (When status is "appointment", the visit hasn't happened yet, so visit_date doesn't make sense)
+    if (sectionIndex === 0 && formData.visit_status !== "appointment") {
+      fields.push('visit_date');
+    }
+    
+    // Special case for Section 3: if follow_up_required is true, follow_up_notes is required
+    if (sectionIndex === 3 && formData.follow_up_required && !formData.follow_up_notes) {
+      return [...fields, 'follow_up_notes'];
+    }
+    
+    return fields;
   };
 
   const CurrentSectionComponent = sections[currentSection].component;
@@ -490,8 +1069,8 @@ export default function NewVisit() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Visit Report Saved!</h2>
-          <p className="text-gray-600 mb-6">Your shop visit has been successfully recorded.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Visit Report Submitted!</h2>
+          <p className="text-gray-600 mb-6">Your shop visit report has been successfully submitted and is now locked for editing.</p>
           <Button
             onClick={() => navigate(createPageUrl("Dashboard"))}
             className="bg-green-600 hover:bg-green-700"
@@ -524,9 +1103,44 @@ export default function NewVisit() {
             <h1 className="text-3xl font-bold text-gray-900">{visitId ? "Edit Visit Report" : "New Visit Report"}</h1>
             <div className="flex items-center gap-4 mt-1">
               <p className="text-gray-600">Document your shop visit details</p>
-              {formData.is_draft && (
+              {visitId && (
+                <Badge variant="outline" className="border-blue-300 text-blue-700">
+                  Visit ID: {visitId}
+                </Badge>
+              )}
+              {formData.visit_status && (
+                <Badge 
+                  variant="outline" 
+                  className={
+                    formData.visit_status === "done" 
+                      ? "border-green-300 text-green-700 bg-green-50"
+                      : formData.visit_status === "appointment"
+                      ? "border-blue-300 text-blue-700 bg-blue-50"
+                      : "border-orange-300 text-orange-700 bg-orange-50"
+                  }
+                >
+                  {formData.visit_status === "done" && <CheckCircle className="w-3 h-3 mr-1" />}
+                  {formData.visit_status === "appointment" && "Appointment"}
+                  {formData.visit_status === "draft" && "Draft"}
+                  {formData.visit_status === "done" && "Done"}
+                </Badge>
+              )}
+              {/* Backward compatibility: show old is_draft badges if visit_status is not set */}
+              {!formData.visit_status && formData.is_draft === false && visitId && (
+                <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Submitted
+                </Badge>
+              )}
+              {!formData.visit_status && formData.is_draft === true && (
                 <Badge variant="outline" className="border-orange-300 text-orange-700">
                   Draft
+                </Badge>
+              )}
+              {((visitId && (isDraftCreated || formData.visit_status === "appointment")) || (formData.visit_status === "appointment" && formData.customer_id)) && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false) && (
+                <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">
+                  <Clock className="w-3 h-3 mr-1" />
+                  Next save in {nextSaveIn}s
                 </Badge>
               )}
               {lastSaved && (
@@ -549,9 +1163,35 @@ export default function NewVisit() {
             sections={sections}
             currentSection={currentSection}
             onSectionClick={setCurrentSection}
-            requiredFields={getRequiredFieldsForSection(currentSection)}
             formData={formData}
+            getRequiredFieldsForSection={getRequiredFieldsForSection}
+            setError={setError}
+            disabled={false}
           />
+
+          {/* Mandatory Fields Summary */}
+          {(() => {
+            const missingFields = [];
+            // Section 0: Shop Info
+            if (!formData.customer_id || !formData.shop_name || !formData.shop_type || !formData.visit_purpose) {
+              missingFields.push('Shop Information');
+            }
+            // Section 4: Photos
+            if (!formData.visit_photos || formData.visit_photos.length === 0) {
+              missingFields.push('Visit Photos');
+            }
+            // Section 5: Signature
+            if (!formData.signature || !formData.signature_signer_name) {
+              missingFields.push('E-Signature');
+            }
+            // Follow-up notes (if required)
+            if (formData.follow_up_required && !formData.follow_up_notes) {
+              missingFields.push('Follow-up Notes');
+            }
+            
+            // Removed mandatory fields alert as requested
+            return null;
+          })()}
 
           {error && (
             <Alert variant="destructive" className="mb-6">
@@ -575,12 +1215,30 @@ export default function NewVisit() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
+                {(formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false && visitId)) ? (
+                  <div className="space-y-4">
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <AlertDescription className="text-blue-800">
+                        This visit report has been submitted and is locked for editing. You can view the details below.
+                      </AlertDescription>
+                    </Alert>
+                    <div className="opacity-75 pointer-events-none">
+                      <CurrentSectionComponent
+                        formData={formData}
+                        updateFormData={() => {}} // Disable updates
+                        selectedCustomer={selectedCustomer}
+                      />
+                    </div>
+                  </div>
+                ) : (
                 <CurrentSectionComponent
                   formData={formData}
                   updateFormData={updateFormData}
                   selectedCustomer={selectedCustomer} // Pass selectedCustomer to ShopInfoSection
                   // removed suggestedContacts and onContactSelect props
                 />
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -598,7 +1256,33 @@ export default function NewVisit() {
           </Button>
 
           <div className="flex gap-3">
+            {!formData.visit_status && formData.is_draft === false && visitId ? (
+              <>
             {currentSection < sections.length - 1 ? (
+                  <Button
+                    onClick={() => {
+                      // Auto-save current section data before moving to next section
+                      if (visitId) {
+                        saveDraft().catch(err => {
+                          console.error("Auto-save on section navigation failed:", err);
+                        });
+                      }
+                      setCurrentSection(currentSection + 1);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Next Section
+                  </Button>
+                ) : (
+                  <Alert className="flex-1 bg-yellow-50 border-yellow-200">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-800">
+                      This report has been submitted and cannot be edited.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            ) : currentSection < sections.length - 1 ? (
               <Button
                 onClick={handleNextSection}
                 className="bg-green-600 hover:bg-green-700"
@@ -612,7 +1296,7 @@ export default function NewVisit() {
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {isSubmitting ? 'Saving...' : (visitId ? "Update Visit Report" : "Save Visit Report")}
+                {isSubmitting ? 'Submitting...' : (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false) ? "Visit Report Submitted" : "Submit Visit Report")}
               </Button>
             )}
           </div>
@@ -674,13 +1358,13 @@ export default function NewVisit() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !Object.values(checklistItems).every(Boolean)}
+                  disabled={isSubmitting || !Object.values(checklistItems).every(Boolean) || (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false && visitId))}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Saving...
+                      Submitting...
                     </>
                   ) : (
                     "Confirm & Save"

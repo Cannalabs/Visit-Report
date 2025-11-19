@@ -15,7 +15,9 @@ import {
   Users,
   LogOut,
   HelpCircle,
-  TrendingUp
+  TrendingUp,
+  AlertCircle,
+  Menu
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +57,11 @@ const navigationItems = [
     title: "Reports",
     url: createPageUrl("Reports"),
     icon: BarChart3
+  },
+  {
+    title: "Follow-ups",
+    url: createPageUrl("FollowUps"),
+    icon: AlertCircle
   },
   {
     title: "Analytics",
@@ -356,75 +363,75 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
-        <Sidebar className={`border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
-          <SidebarHeader className={`border-b border-gray-100 dark:border-gray-800 p-4 flex items-center transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-            {!sidebarCollapsed && (
-              <Link to={createPageUrl("Dashboard")} className="flex items-center gap-3 transition-opacity duration-300 opacity-100">
-                {companyLogo ? (
-                  <img
-                    src={companyLogo}
-                    alt={companyName}
-                    className="h-10 w-auto object-contain max-w-[120px]"
-                    onError={(e) => {
-                      // Fallback to text if logo fails to load
-                      e.target.style.display = 'none';
-                      const textFallback = e.target.nextElementSibling;
-                      if (textFallback) textFallback.style.display = 'block';
-                    }}
-                  />
-                ) : null}
-                <div className={`text-2xl font-bold text-green-600 dark:text-green-400 ${companyLogo ? 'hidden' : ''}`}>
-                  {companyName}
-                </div>
-              </Link>
-            )}
-            {sidebarCollapsed && companyLogo && (
-              <Link to={createPageUrl("Dashboard")} className="flex justify-center">
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="h-8 w-8 object-contain rounded"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              </Link>
-            )}
+        <Sidebar className={`border-r border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
+          <SidebarHeader className="border-b border-gray-100 dark:border-gray-900 p-3 !flex-row flex items-center gap-3 justify-start">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`hover:bg-green-50 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 ${
-                sidebarCollapsed 
-                  ? 'w-10 h-10 mx-auto' 
-                  : 'w-8 h-8 ml-auto'
-              }`}
+              className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200 h-9 w-9 flex-shrink-0"
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {sidebarCollapsed ? (
-                <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              ) : (
-                <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              )}
+              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             </Button>
+            {!sidebarCollapsed && (
+              <Link to={createPageUrl("Dashboard")} className="flex items-center flex-shrink-0">
+                {companyLogo ? (
+                  <img
+                    src={companyLogo}
+                    alt={companyName}
+                    className="h-7 w-auto object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                    {companyName}
+                  </div>
+                )}
+              </Link>
+            )}
+            {sidebarCollapsed && (
+              <Link to={createPageUrl("Dashboard")} className="flex items-center flex-shrink-0">
+                {companyLogo ? (
+                  <img
+                    src={companyLogo}
+                    alt={companyName}
+                    className="h-7 w-7 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {companyName.charAt(0)}
+                  </div>
+                )}
+              </Link>
+            )}
           </SidebarHeader>
 
-          <SidebarContent className="p-3">
+          <SidebarContent className="p-2">
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-2">
+                <SidebarMenu className="space-y-1">
                   {navigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         className={`
-                          hover:bg-green-50 dark:hover:bg-gray-800 hover:text-green-700 dark:hover:text-green-400 transition-all duration-200 rounded-xl py-3 px-4
-                          ${location.pathname === item.url ? 'bg-green-50 dark:bg-gray-800 text-green-700 dark:text-green-400 border-l-4 border-green-600 dark:border-green-500' : 'text-gray-700 dark:text-gray-300'}
+                          hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
+                          ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
+                          ${location.pathname === item.url 
+                            ? 'text-white' 
+                            : 'text-gray-600 dark:text-gray-400'}
                         `}
+                        style={location.pathname === item.url ? { backgroundColor: '#0f766e' } : {}}
                       >
-                        <Link to={item.url} className="flex items-center gap-3">
-                          <item.icon className="w-5 h-5" />
-                          {!sidebarCollapsed && <span className="font-medium">{item.title}</span>}
+                        <Link to={item.url} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!sidebarCollapsed && <span className="text-sm font-normal">{item.title}</span>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -435,13 +442,17 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuButton
                           asChild
                           className={`
-                            hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 rounded-xl py-3 px-4
-                            ${location.pathname === createPageUrl("Configuration") ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' : ''}
+                            hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
+                            ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
+                            ${location.pathname === createPageUrl("Configuration") 
+                              ? 'text-white' 
+                              : 'text-gray-600 dark:text-gray-400'}
                           `}
+                          style={location.pathname === createPageUrl("Configuration") ? { backgroundColor: '#0f766e' } : {}}
                         >
-                          <Link to={createPageUrl("Configuration")} className="flex items-center gap-3">
-                            <Settings className="w-5 h-5" />
-                            {!sidebarCollapsed && <span className="font-medium">Configuration</span>}
+                          <Link to={createPageUrl("Configuration")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
+                            <Settings className="w-4 h-4 flex-shrink-0" />
+                            {!sidebarCollapsed && <span className="text-sm font-normal">Configuration</span>}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -449,13 +460,17 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuButton
                           asChild
                           className={`
-                            hover:bg-red-50 hover:text-red-700 transition-all duration-200 rounded-xl py-3 px-4
-                            ${location.pathname === createPageUrl("Admin") ? 'bg-red-50 text-red-700 border-l-4 border-red-600' : ''}
+                            hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
+                            ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
+                            ${location.pathname === createPageUrl("Admin") 
+                              ? 'text-white' 
+                              : 'text-gray-600 dark:text-gray-400'}
                           `}
+                          style={location.pathname === createPageUrl("Admin") ? { backgroundColor: '#0f766e' } : {}}
                         >
-                          <Link to={createPageUrl("Admin")} className="flex items-center gap-3">
-                            <Shield className="w-5 h-5" />
-                            {!sidebarCollapsed && <span className="font-medium">Admin Panel</span>}
+                          <Link to={createPageUrl("Admin")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
+                            <Shield className="w-4 h-4 flex-shrink-0" />
+                            {!sidebarCollapsed && <span className="text-sm font-normal">Admin</span>}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -466,57 +481,62 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-gray-100 dark:border-gray-800 p-4 space-y-3">
+          <SidebarFooter className="border-t border-gray-100 dark:border-gray-900 p-3 space-y-2">
             {/* Server Health Indicator */}
             {!sidebarCollapsed ? (
-              <div className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center gap-2.5 mb-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+              <div className="px-2 py-1.5 rounded-md bg-gray-50 dark:bg-gray-900 space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
                     serverHealth.status === 'healthy' 
-                      ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50' 
+                      ? 'bg-green-500' 
                       : serverHealth.status === 'unhealthy' 
-                      ? 'bg-yellow-500 shadow-sm shadow-yellow-500/50' 
-                      : 'bg-red-500 shadow-sm shadow-red-500/50'
+                      ? 'bg-yellow-500' 
+                      : 'bg-red-500'
                   }`} />
-                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                    Server {serverHealth.status === 'healthy' ? 'Up' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Down'}
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {serverHealth.status === 'healthy' ? 'Online' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Offline'}
                   </span>
                 </div>
                 {serverHealth.lastUpdated && (
-                  <div className="text-[10px] text-gray-600 dark:text-gray-400 ml-5 font-medium">
-                    Last updated: {serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  <div className="text-[10px] text-gray-500 dark:text-gray-500 ml-4">
+                    {serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex justify-center mb-2">
+              <div className="flex flex-col items-center gap-1">
                 <div 
-                  className={`w-2.5 h-2.5 rounded-full ${
+                  className={`w-2 h-2 rounded-full ${
                     serverHealth.status === 'healthy' 
-                      ? 'bg-green-500 animate-pulse shadow-sm shadow-green-500/50' 
+                      ? 'bg-green-500' 
                       : serverHealth.status === 'unhealthy' 
-                      ? 'bg-yellow-500 shadow-sm shadow-yellow-500/50' 
-                      : 'bg-red-500 shadow-sm shadow-red-500/50'
+                      ? 'bg-yellow-500' 
+                      : 'bg-red-500'
                   }`} 
-                  title={`Server ${serverHealth.status === 'healthy' ? 'Up' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Down'}${serverHealth.lastUpdated ? ` - Last updated: ${serverHealth.lastUpdated.toLocaleTimeString()}` : ''}`}
+                  title={`Server ${serverHealth.status === 'healthy' ? 'Up' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Down'}${serverHealth.lastUpdated ? ` - ${serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}`}
                 />
+                {serverHealth.lastUpdated && (
+                  <div className="text-[9px] text-gray-500 dark:text-gray-500">
+                    {serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </div>
+                )}
               </div>
             )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-green-50 dark:hover:bg-gray-800">
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 rounded-full flex items-center justify-center">
+                <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
+                  <div className="flex items-center gap-2.5 w-full">
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
                       {user?.avatar_url ? (
                         <img src={user.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <User className="w-5 h-5 text-green-700 dark:text-green-300" />
+                        <User className="w-4 h-4 text-gray-500" />
                       )}
                     </div>
                     {!sidebarCollapsed && (
                       <div className="flex-1 min-w-0 text-left">
-                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 truncate font-medium">
                           {user?.full_name || 'User'}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate capitalize">
@@ -550,38 +570,31 @@ export default function Layout({ children, currentPageName }) {
 
         <main className="flex-1 flex flex-col">
           {/* Mobile header */}
-          <header className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-4 py-3 md:hidden">
+          <header className="bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 px-4 py-2.5 md:hidden">
             <div className="flex items-center justify-between">
-              <SidebarTrigger className="hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors duration-200" />
-              <div className="flex items-center gap-3">
+              <SidebarTrigger className="hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-md transition-colors" />
+              <div className="flex items-center gap-2">
                 {companyLogo ? (
                   <img
                     src={companyLogo}
                     alt={companyName}
-                    className="h-8 w-auto object-contain max-w-[100px]"
+                    className="h-7 w-auto object-contain"
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      const textFallback = e.target.nextElementSibling;
-                      if (textFallback) textFallback.style.display = 'block';
                     }}
                   />
-                ) : null}
-                <div className={`text-xl font-bold text-green-600 dark:text-green-400 ${companyLogo ? 'hidden' : ''}`}>
-                  {companyName}
-                </div>
-                {/* Server Health Indicator - Mobile */}
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    serverHealth.status === 'healthy' 
-                      ? 'bg-green-500 animate-pulse' 
-                      : serverHealth.status === 'unhealthy' 
-                      ? 'bg-yellow-500' 
-                      : 'bg-red-500'
-                  }`} />
-                  <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
-                    {serverHealth.status === 'healthy' ? 'Online' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Offline'}
-                  </span>
-                </div>
+                ) : (
+                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    {companyName}
+                  </div>
+                )}
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  serverHealth.status === 'healthy' 
+                    ? 'bg-green-500' 
+                    : serverHealth.status === 'unhealthy' 
+                    ? 'bg-yellow-500' 
+                    : 'bg-red-500'
+                }`} />
               </div>
             </div>
           </header>

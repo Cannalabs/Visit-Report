@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { DollarSign, TrendingUp, Star, AlertCircle } from "lucide-react";
 
 export default function CommercialSection({ formData, updateFormData }) {
@@ -51,6 +53,12 @@ export default function CommercialSection({ formData, updateFormData }) {
                   <SelectItem value="no_outcome">No Commercial Outcome</SelectItem>
                 </SelectContent>
               </Select>
+              {!formData.commercial_outcome && (
+                <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  This field is required
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -100,15 +108,26 @@ export default function CommercialSection({ formData, updateFormData }) {
               <span>Very Unsatisfied</span>
               <span>Very Satisfied</span>
             </div>
+            {(!formData.overall_satisfaction || formData.overall_satisfaction === 0) && (
+              <p className="text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                This field is required
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="follow-up-section" className="scroll-mt-8">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-orange-600" />
             Follow-up Actions
+            {formData.follow_up_required && !formData.follow_up_notes && (
+              <Badge variant="destructive" className="ml-auto">
+                Required - Notes Missing
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -128,6 +147,14 @@ export default function CommercialSection({ formData, updateFormData }) {
 
           {formData.follow_up_required && (
             <div className="space-y-2 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              {!formData.follow_up_notes && (
+                <Alert variant="destructive" className="border-red-300 bg-red-50 mb-2">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    <strong>Required:</strong> Follow-up notes are mandatory when follow-up is required. Please describe the required follow-up actions.
+                  </AlertDescription>
+                </Alert>
+              )}
               <Label htmlFor="follow_up_notes" className="flex items-center gap-1">
                 Follow-up Notes {renderRequiredAsterisk()}
               </Label>
@@ -138,6 +165,12 @@ export default function CommercialSection({ formData, updateFormData }) {
                 placeholder="Describe the required follow-up actions..."
                 className={getFieldStyle(formData.follow_up_notes, formData.follow_up_required)}
               />
+              {formData.follow_up_required && !formData.follow_up_notes && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  This field is required when follow-up is enabled
+                </p>
+              )}
             </div>
           )}
         </CardContent>

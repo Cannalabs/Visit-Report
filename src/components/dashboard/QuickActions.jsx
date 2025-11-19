@@ -36,7 +36,7 @@ const QuickActionButton = ({ icon: Icon, title, description, to, color, delay = 
       <Link to={to}>
         <Button
           variant="outline"
-          className={`w-full h-auto p-4 flex-col gap-2 border-gray-300 dark:border-gray-600 ${hoverClasses[color] || 'hover:bg-gray-600'} hover:text-white dark:hover:text-white transition-all duration-200 group bg-white dark:bg-gray-800`}
+          className={`w-full h-auto p-4 flex-col gap-2 border-gray-300/50 dark:border-gray-600/50 ${hoverClasses[color] || 'hover:bg-gray-600'} hover:text-white dark:hover:text-white transition-all duration-200 group bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm`}
         >
           <Icon className={`w-6 h-6 ${textColor} group-hover:text-white dark:text-gray-400`} />
           <div className="text-center">
@@ -65,7 +65,7 @@ export default function QuickActions() {
       icon: Camera,
       title: "Quick Photo",
       description: "Take photos for existing visit",
-      to: createPageUrl("NewVisit"),
+      to: createPageUrl("VisitSelector"),
       color: "bg-blue-600",
       delay: 0.2
     },
@@ -109,8 +109,8 @@ export default function QuickActions() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
     >
-      <Card className="shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30">
           <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="p-6">

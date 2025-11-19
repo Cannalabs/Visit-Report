@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ShopVisit } from "@/api/entities";
-import { User } from "@/api/entities";
-import { Configuration } from "@/api/entities";
 import { motion } from "framer-motion";
-import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Filter,
   Download,
@@ -12,85 +10,46 @@ import {
   MapPin,
   Star,
   TrendingUp,
-  Eye
+  Eye,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 
-import ReportFilters from "../components/reports/ReportFilters";
 import VisitTable from "../components/reports/VisitTable";
 import ExportOptions from "../components/reports/ExportOptions";
 
-export default function Reports() {
-  const location = useLocation();
+export default function FollowUps() {
+  const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
   const [filteredVisits, setFilteredVisits] = useState([]);
   const [selectedVisits, setSelectedVisits] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [shopTypes, setShopTypes] = useState([]);
-  const [filters, setFilters] = useState({
-    dateRange: "all",
-    shopType: "all",
-    priority: "all",
-    followUp: "all"
-  });
+  const [dateRange, setDateRange] = useState("all");
 
   useEffect(() => {
-    // On mount, check URL for filters and load data
-    const params = new URLSearchParams(location.search);
-    const dateRangeParam = params.get('dateRange');
-    const followUpParam = params.get('followUp');
-
-    // Create a mutable copy of the current filters state for initial setup
-    const initialFilters = { ...filters };
-    let hasParams = false;
-
-    if (dateRangeParam && ['today', 'week', 'month', 'all'].includes(dateRangeParam)) {
-      initialFilters.dateRange = dateRangeParam;
-      hasParams = true;
-    }
-    if (followUpParam && ['required', 'not_required', 'all'].includes(followUpParam)) {
-      initialFilters.followUp = followUpParam;
-      hasParams = true;
-    }
-
-    if(hasParams) {
-      setFilters(initialFilters); // Update filters state if URL parameters were found
-    }
-
     loadVisits();
-    loadShopTypes();
-  }, [location.search]);
+  }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [visits, searchTerm, filters]);
+  }, [visits, searchTerm, dateRange]);
 
   const loadVisits = async () => {
     try {
       const data = await ShopVisit.list("-created_date", 200);
-      setVisits(data);
+      // Filter only visits that require follow-up
+      const followUpVisits = data.filter(visit => visit.follow_up_required === true);
+      setVisits(followUpVisits);
     } catch (error) {
       // Error loading visits
     }
     setIsLoading(false);
-  };
-
-  const loadShopTypes = async () => {
-    try {
-      const configs = await Configuration.list({ config_type: "shop_types", is_active: true });
-      // Sort by display_order
-      const sorted = configs.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-      setShopTypes(sorted);
-    } catch (error) {
-      // Error loading shop types, will use fallback in ReportFilters
-      console.error("Failed to load shop types:", error);
-    }
   };
 
   const applyFilters = () => {
@@ -101,16 +60,17 @@ export default function Reports() {
       filtered = filtered.filter(visit =>
         visit.shop_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         visit.shop_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
+        visit.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit.follow_up_notes?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Date range filter
-    if (filters.dateRange !== "all") {
+    if (dateRange !== "all") {
       const now = new Date();
       let startDate;
 
-      switch (filters.dateRange) {
+      switch (dateRange) {
         case "today":
           startDate = startOfDay(now);
           break;
@@ -130,22 +90,6 @@ export default function Reports() {
           return visitCreatedDate && startOfDay(visitCreatedDate) >= startDate;
         });
       }
-    }
-
-    // Shop type filter
-    if (filters.shopType !== "all") {
-      filtered = filtered.filter(visit => visit.shop_type === filters.shopType);
-    }
-
-    // Priority filter
-    if (filters.priority !== "all") {
-      filtered = filtered.filter(visit => visit.priority_level === filters.priority);
-    }
-
-    // Follow-up filter
-    if (filters.followUp !== "all") {
-      const needsFollowUp = filters.followUp === "required";
-      filtered = filtered.filter(visit => visit.follow_up_required === needsFollowUp);
     }
 
     setFilteredVisits(filtered);
@@ -179,7 +123,15 @@ export default function Reports() {
       'Priority': visit.priority_level,
       'Commercial Outcome': visit.commercial_outcome?.replace('_', ' '),
       'Order Value': visit.order_value,
-      'Follow-up Required': visit.follow_up_required ? 'Yes' : 'No',
+      'Follow-up Notes': visit.follow_up_notes || '',
+      'Follow-up Date': visit.follow_up_date ? (() => {
+        try {
+          const date = new Date(visit.follow_up_date);
+          return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
+        } catch (e) {
+          return '';
+        }
+      })() : '',
       'Satisfaction': visit.overall_satisfaction,
       'Created': visit.created_date ? (() => {
         try {
@@ -212,13 +164,20 @@ export default function Reports() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `canna-visit-reports-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.download = `follow-up-visits-${format(new Date(), 'yyyy-MM-dd')}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
   };
+
+  const handleViewVisit = (visitId) => {
+    navigate(`/NewVisit?id=${visitId}`);
+  };
+
+  const pendingFollowUps = filteredVisits.filter(v => !v.follow_up_date);
+  const completedFollowUps = filteredVisits.filter(v => v.follow_up_date);
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
@@ -230,9 +189,9 @@ export default function Reports() {
           className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Visit Reports</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Follow-up Visits</h1>
             <p className="text-gray-600 mt-2">
-              Analyze and export your shop visit data
+              Track and manage visits that require follow-up actions
             </p>
           </div>
           <ExportOptions onExport={exportData} selectedCount={selectedVisits.length} />
@@ -249,10 +208,10 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Visits</p>
+                    <p className="text-sm font-medium text-gray-600">Total Follow-ups</p>
                     <p className="text-2xl font-bold">{filteredVisits.length}</p>
                   </div>
-                  <Eye className="w-8 h-8 text-blue-600" />
+                  <AlertCircle className="w-8 h-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
@@ -267,15 +226,10 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Avg Score</p>
-                    <p className="text-2xl font-bold">
-                      {filteredVisits.length > 0
-                        ? (filteredVisits.reduce((sum, v) => sum + (v.calculated_score || 0), 0) / filteredVisits.length).toFixed(1)
-                        : "0.0"
-                      }
-                    </p>
+                    <p className="text-sm font-medium text-gray-600">Pending</p>
+                    <p className="text-2xl font-bold text-orange-600">{pendingFollowUps.length}</p>
                   </div>
-                  <Star className="w-8 h-8 text-yellow-600" />
+                  <AlertCircle className="w-8 h-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
@@ -290,12 +244,10 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Follow-ups</p>
-                    <p className="text-2xl font-bold">
-                      {filteredVisits.filter(v => v.follow_up_required).length}
-                    </p>
+                    <p className="text-sm font-medium text-gray-600">Completed</p>
+                    <p className="text-2xl font-bold text-green-600">{completedFollowUps.length}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-orange-600" />
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
@@ -310,12 +262,15 @@ export default function Reports() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Value</p>
+                    <p className="text-sm font-medium text-gray-600">Avg Score</p>
                     <p className="text-2xl font-bold">
-                      €{filteredVisits.reduce((sum, v) => sum + (v.order_value || 0), 0).toLocaleString()}
+                      {filteredVisits.length > 0
+                        ? (filteredVisits.reduce((sum, v) => sum + (v.calculated_score || 0), 0) / filteredVisits.length).toFixed(1)
+                        : "0.0"
+                      }
                     </p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <Star className="w-8 h-8 text-yellow-600" />
                 </div>
               </CardContent>
             </Card>
@@ -336,16 +291,26 @@ export default function Reports() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search by shop name, address, or contact..."
+                    placeholder="Search by shop name, address, contact, or follow-up notes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
               </div>
+              <div className="w-full md:w-48">
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
             </div>
-
-            <ReportFilters filters={filters} onFiltersChange={setFilters} shopTypes={shopTypes} />
           </CardContent>
         </Card>
 
@@ -361,3 +326,4 @@ export default function Reports() {
     </div>
   );
 }
+

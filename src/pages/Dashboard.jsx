@@ -24,6 +24,7 @@ import { motion } from "framer-motion";
 import StatsOverview from "../components/dashboard/StatsOverview";
 import RecentVisits from "../components/dashboard/RecentVisits";
 import TopShops from "../components/dashboard/TopShops";
+import PlannedVisits from "../components/dashboard/PlannedVisits";
 import QuickActions from "../components/dashboard/QuickActions";
 
 export default function Dashboard() {
@@ -141,9 +142,28 @@ export default function Dashboard() {
     : 0;
 
   const followUpRequired = visits.filter(visit => visit.follow_up_required).length;
+  // Find the first pending follow-up visit (requires follow-up but may be missing notes or date)
+  // Priority: visits missing notes > visits missing date > any follow-up required visit
+  const pendingFollowUpVisits = visits.filter(visit => 
+    visit.follow_up_required && 
+    (!visit.follow_up_notes || visit.follow_up_notes.trim() === '' || !visit.follow_up_date)
+  );
+  
+  // Sort: missing notes first, then missing date, then by most recent
+  const sortedPending = [...pendingFollowUpVisits].sort((a, b) => {
+    const aMissingNotes = !a.follow_up_notes || a.follow_up_notes.trim() === '';
+    const bMissingNotes = !b.follow_up_notes || b.follow_up_notes.trim() === '';
+    if (aMissingNotes && !bMissingNotes) return -1;
+    if (!aMissingNotes && bMissingNotes) return 1;
+    return 0;
+  });
+  
+  const firstPendingFollowUp = sortedPending.length > 0 
+    ? sortedPending[0] 
+    : (followUpRequired > 0 ? visits.filter(v => v.follow_up_required)[0] : null);
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div 
@@ -181,11 +201,12 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <RecentVisits visits={visits.slice(0, 5)} />
+            <RecentVisits visits={visits.filter(v => v.visit_status !== "appointment").slice(0, 5)} />
             <QuickActions />
           </div>
           
           <div className="space-y-8">
+            <PlannedVisits visits={visits.filter(v => v.visit_status === "appointment")} />
             <TopShops visits={visits} />
             
             {/* Action Required Card */}
@@ -195,7 +216,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20">
+                <Card className="border-orange-200/30 dark:border-orange-800/30 bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-xl shadow-xl border border-white/20 dark:border-gray-700/30">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300">
                       <AlertCircle className="w-5 h-5" />
@@ -204,13 +225,27 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-orange-700 dark:text-orange-300 mb-4">
-                      {followUpRequired} visits require follow-up action
+                      {followUpRequired} visit{followUpRequired !== 1 ? 's' : ''} require{followUpRequired === 1 ? 's' : ''} follow-up action
+                      {firstPendingFollowUp && (
+                        <span className="block text-sm mt-2 font-semibold">
+                          Next: {firstPendingFollowUp.shop_name || 'Unnamed Shop'}
+                        </span>
+                      )}
                     </p>
-                    <Link to={createPageUrl("Reports?followUp=required")}>
-                      <Button variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40">
-                        View Details
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      {firstPendingFollowUp ? (
+                        <Link to={`${createPageUrl("NewVisit")}?id=${firstPendingFollowUp.id}&section=3&highlight=followup`}>
+                          <Button variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40">
+                            View Visit Report
+                          </Button>
+                        </Link>
+                      ) : null}
+                      <Link to={createPageUrl("FollowUps")}>
+                        <Button variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40">
+                          View All
+                        </Button>
+                      </Link>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>

@@ -18,7 +18,8 @@ import {
   User,
   Building2,
   Trash2,
-  Edit
+  Edit,
+  Eye
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -193,9 +194,27 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
                           >
                             {visit.shop_type?.replace('_', ' ')}
                           </Badge>
-                          {visit.is_draft && (
+                          {visit.visit_status ? (
+                            visit.visit_status === "done" ? (
+                              <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">
+                                Done
+                              </Badge>
+                            ) : visit.visit_status === "appointment" ? (
+                              <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
+                                Appointment
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
+                                Draft
+                              </Badge>
+                            )
+                          ) : visit.is_draft ? (
                             <Badge variant="outline" className="border-orange-300 text-orange-700">
                               Draft
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-green-300 text-green-700">
+                              Submitted
                             </Badge>
                           )}
                         </div>
@@ -294,10 +313,17 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Link to={createPageUrl(`NewVisit?id=${visit.id}`)}>
-                          <Button size="sm" variant="outline" className="flex items-center gap-1">
-                            <Edit className="w-3 h-3" />
-                            Edit
-                          </Button>
+                          {visit.is_draft ? (
+                            <Button size="sm" variant="outline" className="flex items-center gap-1">
+                              <Edit className="w-3 h-3" />
+                              Edit
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              View
+                            </Button>
+                          )}
                         </Link>
                         {canDeleteVisit(visit) && (
                           <Button 

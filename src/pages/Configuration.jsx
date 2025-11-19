@@ -13,7 +13,10 @@ import {
   Package,
   Building,
   Building2,
-  Upload
+  Upload,
+  Download,
+  FileUp,
+  FileDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,6 +80,11 @@ export default function Configuration() {
       label: "Visit Purposes",
       icon: List,
       description: "Configure available visit purposes for reports"
+    },
+    shop_types: {
+      label: "Shop Types",
+      icon: Building2,
+      description: "Configure available shop types for customers and visit reports"
     },
     canna_products: {
       label: "CANNA Products",
@@ -271,6 +279,166 @@ export default function Configuration() {
     return configs.filter(config => config.config_type === activeTab);
   };
 
+  const handleExportProducts = () => {
+    const products = getFilteredConfigs();
+    if (products.length === 0) {
+      setError("No products to export");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    // Export as CSV
+    const headers = ['name', 'value', 'is_active', 'display_order'];
+    const csvRows = [
+      headers.join(','), // Header row
+      ...products.map(p => {
+        const row = [
+          `"${(p.config_name || '').replace(/"/g, '""')}"`,
+          `"${(p.config_value || '').replace(/"/g, '""')}"`,
+          p.is_active ? 'true' : 'false',
+          (p.display_order || 0).toString()
+        ];
+        return row.join(',');
+      })
+    ];
+
+    const csvContent = csvRows.join('\n');
+    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `canna-products-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setSuccess("Products exported successfully");
+    setTimeout(() => setSuccess(""), 3000);
+  };
+
+  const handleImportProducts = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      
+      // Parse CSV
+      const lines = text.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        throw new Error("CSV file must contain at least a header row and one data row.");
+      }
+
+      // Parse header row
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+      
+      // Parse data rows
+      const importData = lines.slice(1).map(line => {
+        // Handle CSV with quoted values
+        const values = [];
+        let currentValue = '';
+        let insideQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            if (insideQuotes && line[i + 1] === '"') {
+              // Escaped quote
+              currentValue += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote state
+              insideQuotes = !insideQuotes;
+            }
+          } else if (char === ',' && !insideQuotes) {
+            // End of value
+            values.push(currentValue.trim());
+            currentValue = '';
+          } else {
+            currentValue += char;
+          }
+        }
+        // Add last value
+        values.push(currentValue.trim());
+
+        const obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index] || '';
+        });
+        return obj;
+      });
+
+      if (importData.length === 0) {
+        throw new Error("No valid data rows found in CSV file.");
+      }
+
+      // Validate and import products
+      const existingProducts = getFilteredConfigs();
+      const maxOrder = Math.max(...existingProducts.map(p => p.display_order || 0), 0);
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      for (let i = 0; i < importData.length; i++) {
+        const item = importData[i];
+        const name = item.name || item.Name || item.config_name || '';
+        const value = item.value || item.Value || item.config_value || '';
+
+        if (!name || !value) {
+          skippedCount++;
+          continue;
+        }
+
+        // Check if product already exists
+        const exists = existingProducts.some(p => 
+          p.config_value === value || p.config_name === name
+        );
+
+        if (exists) {
+          skippedCount++;
+          continue;
+        }
+
+        // Parse boolean from CSV (handles "true"/"false" strings or "1"/"0")
+        let isActive = true;
+        if (item.is_active !== undefined) {
+          const activeValue = String(item.is_active).toLowerCase().trim();
+          isActive = activeValue === 'true' || activeValue === '1' || activeValue === 'yes';
+        }
+
+        // Parse display_order from CSV
+        let displayOrder = maxOrder + i + 1;
+        if (item.display_order !== undefined && item.display_order !== '') {
+          const orderValue = parseInt(item.display_order, 10);
+          if (!isNaN(orderValue)) {
+            displayOrder = orderValue;
+          }
+        }
+
+        // Create new product
+        await ConfigEntity.create({
+          config_type: "canna_products",
+          config_name: name,
+          config_value: value,
+          is_active: isActive,
+          display_order: displayOrder
+        });
+        importedCount++;
+      }
+
+      setLastSaved(new Date());
+      loadConfigurations();
+      setSuccess(`Import completed: ${importedCount} products imported, ${skippedCount} skipped`);
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (err) {
+      setError(`Failed to import products: ${err.message}`);
+      setTimeout(() => setError(""), 5000);
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
+
   const getDefaultItems = (type) => {
     const defaults = {
       visit_purposes: [
@@ -279,6 +447,13 @@ export default function Configuration() {
         { name: "Product Promotion", value: "promotion" },
         { name: "Complaint Resolution", value: "complaint_resolution" },
         { name: "New Products Introduction", value: "new_products" },
+        { name: "Other", value: "other" }
+      ],
+      shop_types: [
+        { name: "Growshop", value: "growshop" },
+        { name: "Garden Center", value: "garden_center" },
+        { name: "Nursery", value: "nursery" },
+        { name: "Hydroponics Store", value: "hydroponics_store" },
         { name: "Other", value: "other" }
       ],
       canna_products: [
@@ -608,25 +783,55 @@ export default function Configuration() {
                     <p className="text-sm text-gray-600">{configTypes[activeTab].description}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => addDefaultItems(activeTab)}
-                      size="sm"
-                    >
-                      Add Defaults
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        resetForm();
-                        setEditingConfig(null);
-                        setShowDialog(true);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      size="sm"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Item
-                    </Button>
+                    {activeTab === "canna_products" ? (
+                      <>
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleImportProducts}
+                          className="hidden"
+                          id="import-products"
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => document.getElementById('import-products')?.click()}
+                          size="sm"
+                        >
+                          <FileUp className="w-4 h-4 mr-2" />
+                          Import
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleExportProducts}
+                          size="sm"
+                        >
+                          <FileDown className="w-4 h-4 mr-2" />
+                          Export
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => addDefaultItems(activeTab)}
+                          size="sm"
+                        >
+                          Add Defaults
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            resetForm();
+                            setEditingConfig(null);
+                            setShowDialog(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Item
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -686,12 +891,22 @@ export default function Configuration() {
                       <div className="flex flex-col items-center gap-3">
                         <Settings className="w-12 h-12 text-gray-300" />
                         <p className="text-gray-500">No configuration items found</p>
-                        <Button
-                          onClick={() => addDefaultItems(activeTab)}
-                          variant="outline"
-                        >
-                          Add Default Items
-                        </Button>
+                        {activeTab === "canna_products" ? (
+                          <Button
+                            onClick={() => document.getElementById('import-products')?.click()}
+                            variant="outline"
+                          >
+                            <FileUp className="w-4 h-4 mr-2" />
+                            Import Products
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => addDefaultItems(activeTab)}
+                            variant="outline"
+                          >
+                            Add Default Items
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

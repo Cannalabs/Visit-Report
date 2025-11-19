@@ -36,14 +36,17 @@ const getPriorityColor = (priority) => {
 };
 
 export default function RecentVisits({ visits }) {
+  // Filter out appointments - only show actual visits (drafts or done)
+  const recentVisits = visits.filter(visit => visit.visit_status !== "appointment");
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     >
-      <Card className="shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 flex flex-col h-[600px]">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 flex-shrink-0">
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Recent Visits</CardTitle>
             <Link to={createPageUrl("Reports")}>
@@ -54,9 +57,9 @@ export default function RecentVisits({ visits }) {
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="space-y-0">
-            {visits.length === 0 ? (
+        <CardContent className="p-0 flex-1 overflow-hidden">
+          <div className={`space-y-0 h-full ${recentVisits.length > 0 ? 'overflow-y-auto' : ''}`}>
+            {recentVisits.length === 0 ? (
               <div className="p-8 text-center">
                 <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400 mb-4">No visits recorded yet</p>
@@ -67,7 +70,7 @@ export default function RecentVisits({ visits }) {
                 </Link>
               </div>
             ) : (
-              visits.map((visit, index) => (
+              recentVisits.map((visit, index) => (
                 <Link to={createPageUrl(`NewVisit?id=${visit.id}`)} key={visit.id} className="block">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}

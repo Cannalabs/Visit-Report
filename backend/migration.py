@@ -3,6 +3,7 @@ Automatic database migration system.
 Checks for missing tables and columns on startup and adds them automatically.
 """
 from sqlalchemy import inspect, text, MetaData, Table, Column, Integer, String, Boolean, Float, DateTime, Text, JSON, ForeignKey, Enum as SQLEnum
+from models import VisitStatus
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import ProgrammingError
 from db import engine, Base
@@ -60,6 +61,14 @@ def get_column_type_sql(column):
         return "TIMESTAMP WITH TIME ZONE"
     elif isinstance(column.type, JSON):
         return "JSON"
+    elif isinstance(column.type, SQLEnum):
+        # For enum types, use VARCHAR with the enum values
+        enum_values = [e.value for e in column.type.enums] if hasattr(column.type, 'enums') else []
+        if enum_values:
+            # Use the longest enum value length + some buffer
+            max_length = max(len(str(v)) for v in enum_values) + 10
+            return f"VARCHAR({max_length})"
+        return "VARCHAR(50)"  # Default for enums
     else:
         return "TEXT"  # Default fallback
 
@@ -79,6 +88,9 @@ def add_missing_column(engine: Engine, table_name: str, column: Column):
     if column.default is not None:
         if hasattr(column.default, 'arg'):
             default_value = column.default.arg
+            # Handle enum defaults
+            if hasattr(default_value, 'value'):
+                default_value = default_value.value
             if isinstance(default_value, str):
                 alter_sql += f" DEFAULT '{default_value}'"
             elif isinstance(default_value, bool):
