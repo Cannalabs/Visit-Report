@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { User } from "@/api/entities";
+import { UserProfile } from "@/api/entities";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,10 +24,12 @@ export default function Settings() {
   const [userData, setUserData] = useState({
     full_name: "",
     email: "",
+    role: "",
     department: "",
     territory: "",
     phone: ""
   });
+  const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -51,13 +54,6 @@ export default function Settings() {
         try {
           currentUser = JSON.parse(cachedUser);
           setUser(currentUser);
-          setUserData({
-            full_name: currentUser.full_name || "",
-            email: currentUser.email || "",
-            department: currentUser.department || "",
-            territory: currentUser.territory || "",
-            phone: currentUser.phone || ""
-          });
         } catch (e) {
           // Invalid cache, will fetch fresh
         }
@@ -70,19 +66,60 @@ export default function Settings() {
           currentUser = freshUser;
           setUser(freshUser);
           localStorage.setItem('user', JSON.stringify(freshUser));
-          setUserData({
-            full_name: freshUser.full_name || "",
-            email: freshUser.email || "",
-            department: freshUser.department || "",
-            territory: freshUser.territory || "",
-            phone: freshUser.phone || ""
-          });
         }
       } catch (error) {
         // Don't clear token here - let ProtectedRoute handle auth failures
         // Only show error if we don't have cached data
         if (!currentUser) {
           setError("Failed to load user data");
+        }
+      }
+
+      // Load user profile to get department, territory, and phone
+      if (currentUser && currentUser.id) {
+        try {
+          // Try to get profile by user_id
+          let profile = null;
+          try {
+            profile = await UserProfile.getByUserId(currentUser.id);
+          } catch (error) {
+            // If getByUserId fails, try listing and finding
+            const profileList = await UserProfile.list();
+            profile = profileList.find(p => p.user_id === currentUser.id);
+          }
+          
+          if (profile) {
+            setUserProfile(profile);
+            const preferences = profile.preferences || {};
+            setUserData({
+              full_name: currentUser.full_name || profile.full_name || "",
+              email: currentUser.email || "",
+              role: currentUser.role || preferences.role || "",
+              department: preferences.department || "",
+              territory: preferences.territory || "",
+              phone: profile.phone || ""
+            });
+          } else {
+            // No profile found, use user data only
+            setUserData({
+              full_name: currentUser.full_name || "",
+              email: currentUser.email || "",
+              role: currentUser.role || "",
+              department: "",
+              territory: "",
+              phone: ""
+            });
+          }
+        } catch (error) {
+          // If profile loading fails, use user data only
+          setUserData({
+            full_name: currentUser.full_name || "",
+            email: currentUser.email || "",
+            role: currentUser.role || "",
+            department: "",
+            territory: "",
+            phone: ""
+          });
         }
       }
     } catch (error) {
@@ -97,38 +134,81 @@ export default function Settings() {
     setError(null);
     
     try {
+      // Update User model (full_name only, role and department are readonly)
       await User.updateMyUserData({
-        full_name: userData.full_name,
-        department: userData.department,
-        territory: userData.territory,
-        phone: userData.phone
+        full_name: userData.full_name
       });
 
-      // Re-fetch the user to get the absolute latest state
-      const updatedUser = await User.me().catch(() => {
-        // If API fails, return current user state
-        return user;
-      });
+      // Update UserProfile if it exists
+      if (userProfile && userProfile.id) {
+        const currentPreferences = userProfile.preferences || {};
+        const updatedPreferences = {
+          ...currentPreferences,
+          // Keep existing territory, department and role in preferences (readonly)
+          territory: currentPreferences.territory || userData.territory,
+          department: currentPreferences.department || userData.department,
+          role: currentPreferences.role || userData.role
+        };
+
+        await UserProfile.update(userProfile.id, {
+          full_name: userData.full_name,
+          phone: userData.phone,
+          preferences: updatedPreferences
+        });
+      } else if (user && user.id) {
+        // Create new profile if it doesn't exist
+        const currentPreferences = {};
+        const updatedPreferences = {
+          ...currentPreferences,
+          territory: userData.territory,
+          department: userData.department,
+          role: userData.role
+        };
+
+        await UserProfile.create({
+          user_id: user.id,
+          full_name: userData.full_name,
+          phone: userData.phone,
+          preferences: updatedPreferences
+        });
+      }
+
+      // Re-fetch the user and profile to get the absolute latest state
+      const updatedUser = await User.me().catch(() => user);
+      const profileList = await UserProfile.list();
+      const updatedProfile = profileList.find(p => p.user_id === updatedUser.id);
       
       // Update the local state immediately
       setUser(updatedUser);
-      setUserData({
-        full_name: updatedUser.full_name || "",
-        email: updatedUser.email || "",
-        department: updatedUser.department || "",
-        territory: updatedUser.territory || "",
-        phone: updatedUser.phone || ""
-      });
+      if (updatedProfile) {
+        setUserProfile(updatedProfile);
+        const preferences = updatedProfile.preferences || {};
+        setUserData({
+          full_name: updatedUser.full_name || updatedProfile.full_name || "",
+          email: updatedUser.email || "",
+          role: updatedUser.role || preferences.role || "",
+          department: preferences.department || "",
+          territory: preferences.territory || "",
+          phone: updatedProfile.phone || ""
+        });
+      } else {
+        setUserData({
+          full_name: updatedUser.full_name || "",
+          email: updatedUser.email || "",
+          role: updatedUser.role || "",
+          department: "",
+          territory: "",
+          phone: ""
+        });
+      }
       
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       
       // Trigger a global user update event with the new user data in the payload
-      // This is more reliable than forcing other components to re-fetch
       if (window.parent) {
         window.parent.postMessage({ type: 'USER_UPDATED', payload: updatedUser }, '*');
       }
-      // Also dispatch a custom event for same-window components
       window.dispatchEvent(new CustomEvent('userUpdated', { detail: updatedUser }));
       
     } catch (err) {
@@ -243,32 +323,45 @@ export default function Settings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Select
-                    value={userData.department}
-                    onValueChange={(value) => setUserData(prev => ({...prev, department: value}))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="operations">Operations</SelectItem>
-                      <SelectItem value="management">Management</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="role">Role</Label>
+                  <Input
+                    id="role"
+                    value={userData.role ? userData.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : ""}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Role cannot be changed here
+                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="territory">Sales Territory</Label>
+                  <Label htmlFor="department">Department</Label>
                   <Input
-                    id="territory"
-                    value={userData.territory}
-                    onChange={(e) => setUserData(prev => ({...prev, territory: e.target.value}))}
-                    placeholder="e.g., Netherlands North"
+                    id="department"
+                    value={userData.department}
+                    disabled
+                    className="bg-gray-50"
+                    placeholder="Not set"
                   />
+                  <p className="text-xs text-gray-500">
+                    Department cannot be changed here
+                  </p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="territory">Sales Territory</Label>
+                <Input
+                  id="territory"
+                  value={userData.territory}
+                  disabled
+                  className="bg-gray-50"
+                  placeholder="Not set"
+                />
+                <p className="text-xs text-gray-500">
+                  Sales Territory cannot be changed here
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -364,9 +457,6 @@ export default function Settings() {
                 </Button>
               </div>
               
-              <p className="text-xs text-gray-500">
-                Role: <span className="font-medium capitalize">{user?.role}</span>
-              </p>
             </CardContent>
           </Card>
         </motion.div>

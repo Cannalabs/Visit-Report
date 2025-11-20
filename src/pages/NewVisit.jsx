@@ -49,7 +49,6 @@ export default function NewVisit() {
   const [user, setUser] = useState(null);
   const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [nextSaveIn, setNextSaveIn] = useState(5); // Countdown for next auto-save
   const [checklistItems, setChecklistItems] = useState({
     photosAttached: false,
     questionnaireComplete: false,
@@ -58,7 +57,6 @@ export default function NewVisit() {
   });
   const [selectedCustomer, setSelectedCustomer] = useState(null); // New state for selected customer
 
-  const autoSaveIntervalRef = useRef(null);
   const autoCreateDraftTimeoutRef = useRef(null);
   const isCreatingDraftRef = useRef(false);
 
@@ -96,6 +94,9 @@ export default function NewVisit() {
     overall_satisfaction: 5,
     follow_up_required: false,
     follow_up_notes: "",
+    follow_up_date: null,
+    follow_up_assigned_user_id: null,
+    follow_up_stage: null,
     notes: "",
     visit_photos: [],
     gps_coordinates: null,
@@ -274,53 +275,6 @@ export default function NewVisit() {
     };
   }, [formData.customer_id, visitId, isDraftCreated]);
 
-  // Auto-save functionality - only when we have a visit ID and it's still a draft
-  useEffect(() => {
-    if (visitId && (isDraftCreated || formData.visit_status === "appointment") && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false)) {
-      // Reset countdown when auto-save starts
-      setNextSaveIn(5);
-      
-      autoSaveIntervalRef.current = setInterval(() => {
-        saveDraft();
-        setNextSaveIn(5); // Reset countdown after save
-      }, 5000); // Auto-save every 5 seconds
-    } else {
-      // Clear auto-save if report is submitted
-      if (autoSaveIntervalRef.current) {
-        clearInterval(autoSaveIntervalRef.current);
-        autoSaveIntervalRef.current = null;
-      }
-      setNextSaveIn(0);
-    }
-
-    return () => {
-      if (autoSaveIntervalRef.current) {
-        clearInterval(autoSaveIntervalRef.current);
-      }
-    };
-  }, [visitId, isDraftCreated, formData.is_draft, formData.visit_status]);
-
-  // Countdown timer for next auto-save
-  useEffect(() => {
-    const shouldShowCountdown = (visitId && (isDraftCreated || formData.visit_status === "appointment")) || (formData.visit_status === "appointment" && formData.customer_id);
-    
-    if (shouldShowCountdown && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false)) {
-      const countdownInterval = setInterval(() => {
-        setNextSaveIn((prev) => {
-          if (prev <= 1) {
-            return 5; // Reset to 5 when it reaches 0 or below (auto-save will also reset it)
-          }
-          return prev - 1;
-        });
-      }, 1000); // Update countdown every second
-
-      return () => {
-        clearInterval(countdownInterval);
-      };
-    } else {
-      setNextSaveIn(0);
-    }
-  }, [visitId, isDraftCreated, formData.is_draft, formData.visit_status, formData.customer_id]);
 
   // Removed useEffect for fetching suggested contacts based on shop_name
   // Removed fetchSuggestedContacts and handleContactSelect functions
@@ -455,7 +409,7 @@ export default function NewVisit() {
           'product_visibility_score', 'products_discussed', 'competitor_presence',
           'training_provided', 'training_topics', 'support_materials_required',
           'commercial_outcome', 'order_value', 'overall_satisfaction',
-          'follow_up_required', 'follow_up_notes', 'notes',
+          'follow_up_required', 'follow_up_notes', 'follow_up_date', 'follow_up_assigned_user_id', 'follow_up_stage', 'notes',
           'visit_photos', 'signature', 'signature_signer_name',
           'sales_data'
         ];
@@ -566,46 +520,6 @@ export default function NewVisit() {
         saveStatusChange();
       }
       
-      // If status is "appointment" and we have a visitId, auto-save when first page fields change
-      if (finalData.visit_status === "appointment" && visitId) {
-        const appointmentSafeFields = [
-          'assigned_user_id', 'planned_visit_date', 'appointment_description', 'visit_notes',
-          'visit_date', 'visit_duration', 'visit_purpose',
-          'customer_id', 'shop_name', 'shop_type', 'shop_address',
-          'contact_person', 'contact_phone', 'contact_email', 'job_title'
-        ];
-        
-        // Check if any updated field is an appointment-safe field (first page fields)
-        const isUpdatingAppointmentFields = Object.keys(updates).some(key => 
-          appointmentSafeFields.includes(key)
-        );
-        
-        // Auto-save appointment when first page fields are updated
-        if (isUpdatingAppointmentFields) {
-          const saveAppointmentUpdate = async () => {
-            try {
-              const cleanVisitPhotos = (finalData.visit_photos || []).filter(photo => 
-                typeof photo === 'string' && photo.trim().length > 0
-              );
-              
-              const updateData = {
-                ...finalData,
-                visit_photos: cleanVisitPhotos,
-                visit_status: "appointment",
-                is_draft: false,
-                visit_date: finalData.visit_date ? new Date(finalData.visit_date).toISOString() : new Date().toISOString(),
-                planned_visit_date: finalData.planned_visit_date ? new Date(finalData.planned_visit_date).toISOString() : null,
-                sales_data: finalData.sales_data || {}
-              };
-              
-              await ShopVisit.update(visitId, updateData);
-            } catch (err) {
-              console.error("Failed to auto-save appointment update:", err);
-            }
-          };
-          saveAppointmentUpdate();
-        }
-      }
       
       return finalData;
     });
@@ -712,14 +626,6 @@ export default function NewVisit() {
       // Log for debugging
       console.log("Draft created with ID:", newVisitId);
       
-      // Trigger immediate save to ensure data is persisted
-      setTimeout(() => {
-        if (newVisitId) {
-          saveDraft().catch(err => {
-            console.error("Immediate save after draft creation failed:", err);
-          });
-        }
-      }, 500); // Small delay to ensure state is updated
       
       isCreatingDraftRef.current = false;
       return newVisitId;
@@ -863,12 +769,6 @@ export default function NewVisit() {
     if (currentSection < sections.length - 1) {
       // Only proceed if we have a visitId (either existing or newly created)
       if (currentVisitId || visitId) {
-        // Auto-save current section data before moving to next section
-        if (visitId || currentVisitId) {
-          saveDraft().catch(err => {
-            console.error("Auto-save on section navigation failed:", err);
-          });
-        }
         setCurrentSection((prev) => prev + 1);
         setError(null); // Clear any previous errors
       } else {
@@ -1007,12 +907,6 @@ export default function NewVisit() {
 
   const previousSection = () => {
     if (currentSection > 0) {
-      // Auto-save current section data before moving to previous section
-      if (visitId) {
-        saveDraft().catch(err => {
-          console.error("Auto-save on section navigation failed:", err);
-        });
-      }
       setCurrentSection((prev) => prev - 1);
     }
   };
@@ -1105,11 +999,6 @@ export default function NewVisit() {
             <h1 className="text-3xl font-bold text-gray-900">{visitId ? "Edit Visit Report" : "New Visit Report"}</h1>
             <div className="flex items-center gap-4 mt-1">
               <p className="text-gray-600">Document your shop visit details</p>
-              {visitId && (
-                <Badge variant="outline" className="border-blue-300 text-blue-700">
-                  Visit ID: {visitId}
-                </Badge>
-              )}
               {formData.visit_status && (
                 <Badge 
                   variant="outline" 
@@ -1139,12 +1028,6 @@ export default function NewVisit() {
                   Draft
                 </Badge>
               )}
-              {((visitId && (isDraftCreated || formData.visit_status === "appointment")) || (formData.visit_status === "appointment" && formData.customer_id)) && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false) && (
-                <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Next save in {nextSaveIn}s
-                </Badge>
-              )}
               {lastSaved && (
                 <div className="flex items-center gap-1 text-xs text-gray-500">
                   <Clock className="w-3 h-3" />
@@ -1154,10 +1037,23 @@ export default function NewVisit() {
               )}
             </div>
           </div>
-          <Button onClick={handleDownloadPdf} variant="outline" className="border-green-200 hover:bg-green-50">
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
-          </Button>
+          <div className="flex gap-2">
+            {visitId && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false || formData.visit_status === "appointment") && (
+              <Button 
+                onClick={saveDraft} 
+                variant="outline" 
+                className="border-green-200 hover:bg-green-50"
+                disabled={isDraftSaving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isDraftSaving ? "Saving..." : "Save"}
+              </Button>
+            )}
+            <Button onClick={handleDownloadPdf} variant="outline" className="border-green-200 hover:bg-green-50">
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
+            </Button>
+          </div>
         </motion.div>
 
         <div>
@@ -1263,12 +1159,6 @@ export default function NewVisit() {
             {currentSection < sections.length - 1 ? (
                   <Button
                     onClick={() => {
-                      // Auto-save current section data before moving to next section
-                      if (visitId) {
-                        saveDraft().catch(err => {
-                          console.error("Auto-save on section navigation failed:", err);
-                        });
-                      }
                       setCurrentSection(currentSection + 1);
                     }}
                     className="bg-green-600 hover:bg-green-700"

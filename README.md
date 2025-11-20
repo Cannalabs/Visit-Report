@@ -10,7 +10,7 @@ A comprehensive web application for managing shop visit reports, built with Reac
   - **Appointment**: Plan future visits with assigned users, planned dates, and descriptions
   - **Draft**: Work-in-progress visits with auto-save every 5 seconds
   - **Done**: Completed visit reports
-- **Auto-save**: Automatic draft saving every 5 seconds with countdown indicator
+- **Manual Save**: Save button to manually save visit data to database
 - **Form Validation**: Required field validation prevents navigation until all mandatory fields are completed
 - **PDF Generation**: Generate comprehensive visit report PDFs
 
@@ -30,11 +30,20 @@ A comprehensive web application for managing shop visit reports, built with Reac
 - **Advanced Filtering**: Filter visits by date range, shop type, priority, and follow-up status
 - **Export Options**: Export filtered reports to CSV
 - **Visit Table**: Detailed view of all visits with sorting and selection
+- **Follow-ups Page**: Dedicated page for managing follow-up visits with assigned users, stages, and dates
 
 ### User Management
 - **Role-based Access**: Admin, Manager, and Sales Rep roles
 - **User Profiles**: Customizable user profiles with avatars
 - **Audit Logging**: Track all user actions and changes
+- **User Management Page**: Admin interface for managing users, roles, departments, and territories
+
+### Configuration Management
+- **Product Management**: Create, edit, and manage CANNA products from UI
+- **Import/Export**: Import and export products via CSV
+- **Visit Purposes**: Configure available visit purposes
+- **Shop Types**: Manage shop type options
+- **Company Settings**: Configure company information and logo
 
 ### Additional Features
 - **Product Visibility Scoring**: 0-100 scale for product visibility assessment
@@ -43,7 +52,12 @@ A comprehensive web application for managing shop visit reports, built with Reac
 - **Photo Management**: Upload and manage visit photos
 - **E-Signature**: Digital signature capture for visit reports
 - **GPS Coordinates**: Optional location tracking
-- **Follow-up Management**: Track follow-up requirements and notes
+- **Follow-up Management**: Track follow-up requirements with assigned users, stages, and dates
+  - Assign follow-up tasks to specific users
+  - Track follow-up stages (Pending, In Progress, Completed, Cancelled)
+  - Set follow-up dates
+  - Dedicated Follow-ups page with detailed tracking
+- **User Settings**: Manage profile information (role, department, and territory are managed by admins)
 
 ## Tech Stack
 
@@ -179,15 +193,16 @@ npm run build
 
 ## Development Notes
 
-- Auto-save triggers every 5 seconds for draft visits
+- Manual save button allows users to save visit data when ready
 - Visit status automatically changes from "appointment" to "draft" when user navigates to second page
 - First-page fields (shop info, contact info, visit purpose) don't trigger status change from "appointment"
 - Form validation prevents navigation until required fields are completed
 - Database migrations run automatically on backend startup
+- Follow-up fields (assigned user, stage, date) are saved automatically when changed
+- User role, department, and sales territory are managed by admins and readonly for regular users
 
 ## License
 
-[Your License Here]
 
 ## Contributing
 

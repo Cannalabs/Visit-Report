@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,9 +7,29 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, Star, AlertCircle } from "lucide-react";
+import { DollarSign, TrendingUp, Star, AlertCircle, User, Calendar } from "lucide-react";
+import { User as UserEntity } from "@/api/entities";
 
 export default function CommercialSection({ formData, updateFormData }) {
+  const [users, setUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (formData.follow_up_required) {
+        setIsLoadingUsers(true);
+        try {
+          const userList = await UserEntity.list();
+          setUsers(userList || []);
+        } catch (error) {
+          console.error("Failed to load users:", error);
+        } finally {
+          setIsLoadingUsers(false);
+        }
+      }
+    };
+    loadUsers();
+  }, [formData.follow_up_required]);
   // Validation styles for required fields
   const getFieldStyle = (value, isRequired = false) => {
     if (isRequired && (!value || value === 0)) {
@@ -146,7 +166,7 @@ export default function CommercialSection({ formData, updateFormData }) {
           </div>
 
           {formData.follow_up_required && (
-            <div className="space-y-2 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
               {!formData.follow_up_notes && (
                 <Alert variant="destructive" className="border-red-300 bg-red-50 mb-2">
                   <AlertCircle className="h-4 w-4 text-red-600" />
@@ -155,22 +175,103 @@ export default function CommercialSection({ formData, updateFormData }) {
                   </AlertDescription>
                 </Alert>
               )}
-              <Label htmlFor="follow_up_notes" className="flex items-center gap-1">
-                Follow-up Notes {renderRequiredAsterisk()}
-              </Label>
-              <Textarea
-                id="follow_up_notes"
-                value={formData.follow_up_notes || ""}
-                onChange={(e) => updateFormData({ follow_up_notes: e.target.value })}
-                placeholder="Describe the required follow-up actions..."
-                className={getFieldStyle(formData.follow_up_notes, formData.follow_up_required)}
-              />
-              {formData.follow_up_required && !formData.follow_up_notes && (
-                <p className="text-xs text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  This field is required when follow-up is enabled
-                </p>
-              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="follow_up_notes" className="flex items-center gap-1">
+                  Follow-up Notes {renderRequiredAsterisk()}
+                </Label>
+                <Textarea
+                  id="follow_up_notes"
+                  value={formData.follow_up_notes || ""}
+                  onChange={(e) => updateFormData({ follow_up_notes: e.target.value })}
+                  placeholder="Describe the required follow-up actions..."
+                  className={getFieldStyle(formData.follow_up_notes, formData.follow_up_required)}
+                />
+                {formData.follow_up_required && !formData.follow_up_notes && (
+                  <p className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    This field is required when follow-up is enabled
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="follow_up_assigned_user_id" className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    Assigned User
+                  </Label>
+                  <Select
+                    value={formData.follow_up_assigned_user_id?.toString() || undefined}
+                    onValueChange={(value) => {
+                      if (value === "__none__") {
+                        updateFormData({ follow_up_assigned_user_id: null });
+                      } else {
+                        updateFormData({ follow_up_assigned_user_id: value ? parseInt(value) : null });
+                      }
+                    }}
+                    disabled={isLoadingUsers}
+                  >
+                    <SelectTrigger className="border-orange-200 focus:border-orange-500">
+                      <SelectValue placeholder={isLoadingUsers ? "Loading..." : "Select user"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.full_name || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="follow_up_stage" className="flex items-center gap-1">
+                    Stage
+                  </Label>
+                  <Select
+                    value={formData.follow_up_stage || undefined}
+                    onValueChange={(value) => {
+                      if (value === "__none__") {
+                        updateFormData({ follow_up_stage: null });
+                      } else {
+                        updateFormData({ follow_up_stage: value || null });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="border-orange-200 focus:border-orange-500">
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="follow_up_date" className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    Follow-up Date
+                  </Label>
+                  <Input
+                    id="follow_up_date"
+                    type="date"
+                    value={formData.follow_up_date ? new Date(formData.follow_up_date).toISOString().split('T')[0] : ""}
+                    onChange={(e) => {
+                      const dateValue = e.target.value;
+                      updateFormData({ 
+                        follow_up_date: dateValue ? new Date(dateValue).toISOString() : null 
+                      });
+                    }}
+                    className="border-orange-200 focus:border-orange-500"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

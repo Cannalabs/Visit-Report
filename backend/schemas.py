@@ -163,6 +163,9 @@ class ShopVisitBase(BaseModel):
     sales_data: Optional[Dict[str, Any]] = {}
     follow_up_required: Optional[bool] = False
     follow_up_notes: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    follow_up_assigned_user_id: Optional[int] = None
+    follow_up_stage: Optional[str] = None
     notes: Optional[str] = None
     visit_photos: Optional[List[str]] = []
     gps_coordinates: Optional[Dict[str, Any]] = None
@@ -212,6 +215,9 @@ class ShopVisitUpdate(BaseModel):
     sales_data: Optional[Dict[str, Any]] = None
     follow_up_required: Optional[bool] = None
     follow_up_notes: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    follow_up_assigned_user_id: Optional[int] = None
+    follow_up_stage: Optional[str] = None
     notes: Optional[str] = None
     visit_photos: Optional[List[str]] = None
     gps_coordinates: Optional[Dict[str, Any]] = None

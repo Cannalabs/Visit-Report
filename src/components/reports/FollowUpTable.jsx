@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,19 +13,21 @@ import {
 } from "@/components/ui/table";
 import {
   MapPin,
-  Star,
   AlertCircle,
   User,
   Building2,
   Trash2,
   Edit,
-  Eye
+  Eye,
+  Calendar,
+  FileText
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { ShopVisit } from "@/api/entities";
+import { User as UserEntity } from "@/api/entities";
 
 const getShopTypeColor = (type) => {
   const colors = {
@@ -38,22 +40,37 @@ const getShopTypeColor = (type) => {
   return colors[type] || colors.other;
 };
 
-const getPriorityColor = (priority) => {
+const getStageColor = (stage) => {
   const colors = {
-    high: "bg-red-100 text-red-800 border-red-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-green-100 text-green-800 border-green-200"
+    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+    completed: "bg-green-100 text-green-800 border-green-200",
+    cancelled: "bg-red-100 text-red-800 border-red-200"
   };
-  return colors[priority] || colors.medium;
+  return colors[stage] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-const getScoreColor = (score) => {
-  if (score >= 80) return "text-green-600";
-  if (score >= 60) return "text-yellow-600";
-  return "text-red-600";
-};
+export default function FollowUpTable({ visits, isLoading, selectedVisits, onSelectionChange, onRefresh }) {
+  const [users, setUsers] = useState([]);
 
-export default function VisitTable({ visits, isLoading, selectedVisits, onSelectionChange, onRefresh }) {
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const userList = await UserEntity.list();
+        setUsers(userList || []);
+      } catch (error) {
+        console.error("Failed to load users:", error);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  const getUserName = (userId) => {
+    if (!userId) return null;
+    const user = users.find(u => u.id === userId);
+    return user ? (user.full_name || user.email) : null;
+  };
+
   const handleSelectAll = (checked) => {
     if (checked) {
       onSelectionChange(visits.map(v => v.id));
@@ -76,7 +93,6 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
         await ShopVisit.delete(visitId);
         if (onRefresh) onRefresh();
       } catch (error) {
-        // Failed to delete visit
         alert("Failed to delete visit report. Please try again.");
       }
     }
@@ -91,13 +107,11 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
         onSelectionChange([]);
         if (onRefresh) onRefresh();
       } catch (error) {
-        // Failed to delete visits
         alert("Failed to delete some visit reports. Please try again.");
       }
     }
   };
 
-  // Check if visit can be deleted (only drafts and non-finalized reports)
   const canDeleteVisit = (visit) => {
     return visit.is_draft || !visit.is_finalized;
   };
@@ -154,19 +168,20 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
                 </TableHead>
                 <TableHead>Shop Details</TableHead>
                 <TableHead>Visit Info</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Commercial</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Follow-up Notes</TableHead>
+                <TableHead>Assigned User</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead>Follow-up Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visits.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={8} className="text-center py-12">
                     <div className="flex flex-col items-center gap-3">
                       <Building2 className="w-12 h-12 text-gray-300" />
-                      <p className="text-gray-500">No visits found matching your criteria</p>
+                      <p className="text-gray-500">No follow-up visits found</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -194,29 +209,6 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
                           >
                             {visit.shop_type?.replace('_', ' ')}
                           </Badge>
-                          {visit.visit_status ? (
-                            visit.visit_status === "done" ? (
-                              <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">
-                                Done
-                              </Badge>
-                            ) : visit.visit_status === "appointment" ? (
-                              <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
-                                Appointment
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
-                                Draft
-                              </Badge>
-                            )
-                          ) : visit.is_draft ? (
-                            <Badge variant="outline" className="border-orange-300 text-orange-700">
-                              Draft
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-green-300 text-green-700">
-                              Submitted
-                            </Badge>
-                          )}
                         </div>
                         {visit.shop_address && (
                           <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -250,86 +242,66 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
                         <div className="text-sm text-gray-500 capitalize">
                           {visit.visit_purpose?.replace('_', ' ')}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {visit.visit_duration}min
-                        </div>
                       </div>
                     </TableCell>
 
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className={`text-lg font-bold ${getScoreColor(visit.calculated_score)}`}>
-                          {visit.calculated_score?.toFixed(1) || 'N/A'}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="w-3 h-3 text-yellow-500" />
-                          <span>{visit.overall_satisfaction}/10</span>
-                        </div>
-                        {visit.priority_level && (
-                          <Badge
-                            variant="secondary"
-                            className={getPriorityColor(visit.priority_level)}
-                          >
-                            {visit.priority_level}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium capitalize">
-                          {visit.commercial_outcome?.replace('_', ' ') || 'N/A'}
-                        </div>
-                        {visit.order_value > 0 && (
-                          <div className="text-sm text-green-600 font-semibold">
-                            €{visit.order_value.toLocaleString()}
+                      <div className="max-w-xs">
+                        {visit.follow_up_notes ? (
+                          <div className="flex items-start gap-1 text-sm text-gray-700">
+                            <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                            <span className="line-clamp-2">{visit.follow_up_notes}</span>
                           </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">No notes</span>
                         )}
                       </div>
                     </TableCell>
 
                     <TableCell>
-                      <div className="space-y-1">
-                        {visit.follow_up_required && (
-                          <Badge variant="outline" className="border-orange-300 text-orange-700">
-                            <AlertCircle className="w-3 h-3 mr-1" />
-                            Follow-up
-                          </Badge>
-                        )}
-                        {visit.follow_up_stage && (
-                          <Badge variant="secondary" className="text-xs">
-                            {visit.follow_up_stage.replace('_', ' ')}
-                          </Badge>
-                        )}
-                        {visit.follow_up_date && (
-                          <div className="text-xs text-blue-600">
+                      {visit.follow_up_assigned_user_id ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span>{getUserName(visit.follow_up_assigned_user_id) || `User ID: ${visit.follow_up_assigned_user_id}`}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Not assigned</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {visit.follow_up_stage ? (
+                        <Badge variant="secondary" className={getStageColor(visit.follow_up_stage)}>
+                          {visit.follow_up_stage.replace('_', ' ')}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Not set</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {visit.follow_up_date ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>
                             {(() => {
                               try {
                                 const date = new Date(visit.follow_up_date);
-                                return isNaN(date.getTime()) ? '' : format(date, 'MMM d, yyyy');
+                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
                               } catch (e) {
-                                return '';
+                                return 'Invalid date';
                               }
                             })()}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-400">
-                          {visit.created_date ? (() => {
-                            try {
-                              const date = new Date(visit.created_date);
-                              return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d');
-                            } catch (e) {
-                              return 'Invalid date';
-                            }
-                          })() : 'No date'}
+                          </span>
                         </div>
-                      </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Not set</span>
+                      )}
                     </TableCell>
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link to={createPageUrl(`NewVisit?id=${visit.id}`)}>
+                        <Link to={createPageUrl(`NewVisit?id=${visit.id}&section=3&highlight=followup`)}>
                           {visit.is_draft ? (
                             <Button size="sm" variant="outline" className="flex items-center gap-1">
                               <Edit className="w-3 h-3" />
@@ -364,3 +336,4 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
     </Card>
   );
 }
+

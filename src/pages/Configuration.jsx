@@ -808,6 +808,18 @@ export default function Configuration() {
                           <FileDown className="w-4 h-4 mr-2" />
                           Export
                         </Button>
+                        <Button
+                          onClick={() => {
+                            resetForm();
+                            setEditingConfig(null);
+                            setShowDialog(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Product
+                        </Button>
                       </>
                     ) : (
                       <>

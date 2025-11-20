@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShopVisit } from "@/api/entities";
+import { User } from "@/api/entities";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 
-import VisitTable from "../components/reports/VisitTable";
+import FollowUpTable from "../components/reports/FollowUpTable";
 import ExportOptions from "../components/reports/ExportOptions";
 
 export default function FollowUps() {
@@ -31,10 +32,27 @@ export default function FollowUps() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState("all");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     loadVisits();
+    loadUsers();
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      const userList = await User.list();
+      setUsers(userList || []);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+    }
+  };
+
+  const getUserName = (userId) => {
+    if (!userId) return null;
+    const user = users.find(u => u.id === userId);
+    return user ? (user.full_name || user.email) : null;
+  };
 
   useEffect(() => {
     applyFilters();
@@ -119,10 +137,6 @@ export default function FollowUps() {
       })() : '',
       'Contact Person': visit.contact_person,
       'Visit Purpose': visit.visit_purpose?.replace('_', ' '),
-      'Score': visit.calculated_score,
-      'Priority': visit.priority_level,
-      'Commercial Outcome': visit.commercial_outcome?.replace('_', ' '),
-      'Order Value': visit.order_value,
       'Follow-up Notes': visit.follow_up_notes || '',
       'Follow-up Date': visit.follow_up_date ? (() => {
         try {
@@ -132,7 +146,8 @@ export default function FollowUps() {
           return '';
         }
       })() : '',
-      'Satisfaction': visit.overall_satisfaction,
+      'Follow-up Assigned User': visit.follow_up_assigned_user_id ? (getUserName(visit.follow_up_assigned_user_id) || `User ID: ${visit.follow_up_assigned_user_id}`) : '',
+      'Follow-up Stage': visit.follow_up_stage || '',
       'Created': visit.created_date ? (() => {
         try {
           const date = new Date(visit.created_date);
@@ -176,8 +191,14 @@ export default function FollowUps() {
     navigate(`/NewVisit?id=${visitId}`);
   };
 
-  const pendingFollowUps = filteredVisits.filter(v => !v.follow_up_date);
-  const completedFollowUps = filteredVisits.filter(v => v.follow_up_date);
+  // Pending: stage is "pending" or "in_progress" or no stage set
+  const pendingFollowUps = filteredVisits.filter(v => 
+    !v.follow_up_stage || 
+    v.follow_up_stage === 'pending' || 
+    v.follow_up_stage === 'in_progress'
+  );
+  // Completed: stage is "completed"
+  const completedFollowUps = filteredVisits.filter(v => v.follow_up_stage === 'completed');
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
@@ -262,15 +283,12 @@ export default function FollowUps() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Avg Score</p>
+                    <p className="text-sm font-medium text-gray-600">In Progress</p>
                     <p className="text-2xl font-bold">
-                      {filteredVisits.length > 0
-                        ? (filteredVisits.reduce((sum, v) => sum + (v.calculated_score || 0), 0) / filteredVisits.length).toFixed(1)
-                        : "0.0"
-                      }
+                      {filteredVisits.filter(v => v.follow_up_stage === 'in_progress').length}
                     </p>
                   </div>
-                  <Star className="w-8 h-8 text-yellow-600" />
+                  <AlertCircle className="w-8 h-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
@@ -315,7 +333,7 @@ export default function FollowUps() {
         </Card>
 
         {/* Results Table */}
-        <VisitTable
+        <FollowUpTable
           visits={filteredVisits}
           isLoading={isLoading}
           selectedVisits={selectedVisits}

@@ -470,7 +470,7 @@ export default function Layout({ children, currentPageName }) {
                         >
                           <Link to={createPageUrl("Admin")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
                             <Shield className="w-4 h-4 flex-shrink-0" />
-                            {!sidebarCollapsed && <span className="text-sm font-normal">Admin</span>}
+                            {!sidebarCollapsed && <span className="text-sm font-normal">User Management</span>}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

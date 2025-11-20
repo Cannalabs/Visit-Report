@@ -93,6 +93,9 @@ class ShopVisit(Base):
     # Follow-up
     follow_up_required = Column(Boolean, default=False)
     follow_up_notes = Column(Text)
+    follow_up_date = Column(DateTime(timezone=True), nullable=True)
+    follow_up_assigned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    follow_up_stage = Column(String(50), nullable=True)  # e.g., "pending", "in_progress", "completed"
     
     # Additional
     notes = Column(Text)

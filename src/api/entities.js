@@ -214,6 +214,9 @@ export const UserProfile = {
   },
   get: async (id) => {
     return apiCall(`/user-profiles/${id}`);
+  },
+  getByUserId: async (userId) => {
+    return apiCall(`/user-profiles/user/${userId}`);
   }
 };
 
