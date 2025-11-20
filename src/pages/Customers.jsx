@@ -181,14 +181,13 @@ export default function Customers() {
   // Validation helper functions
   const validatePhone = (phone) => {
     if (!phone || phone.trim() === "") return null; // Optional field
-    // Allow numbers, spaces, +, -, (, )
-    const phoneRegex = /^[\d\s\+\-\(\)]+$/;
+    // Only allow numbers
+    const phoneRegex = /^\d+$/;
     if (!phoneRegex.test(phone)) {
-      return "Phone number should contain only numbers and valid characters (+, -, spaces, parentheses)";
+      return "Phone number should contain only numbers";
     }
-    // Check if it has at least some digits
-    const digitsOnly = phone.replace(/\D/g, "");
-    if (digitsOnly.length < 5) {
+    // Check if it has at least 5 digits
+    if (phone.length < 5) {
       return "Phone number must contain at least 5 digits";
     }
     return null;
@@ -301,7 +300,31 @@ export default function Customers() {
     const shopName = (customerData.shop_name || "").toString().trim();
     const shopType = (customerData.shop_type || "").toString().trim();
     
-    // STRICT VALIDATION - Check if required fields are empty
+    // Check for validation errors FIRST (prioritize specific field errors like email)
+    if (Object.keys(fieldErrors).length > 0) {
+      // Show specific field errors first (email, phone, etc.) before required field errors
+      const specificErrors = [];
+      const requiredErrors = [];
+      
+      // Separate specific field errors from required field errors
+      Object.keys(fieldErrors).forEach(key => {
+        if (key === 'shop_name' || key === 'shop_type') {
+          requiredErrors.push(fieldErrors[key]);
+        } else {
+          specificErrors.push(fieldErrors[key]);
+        }
+      });
+      
+      // Show specific errors first, then required field errors
+      const errorMessages = [...specificErrors, ...requiredErrors].filter(msg => msg);
+      if (errorMessages.length > 0) {
+        setError(errorMessages.join(", "));
+        setTimeout(() => setError(""), 5000);
+        return; // STOP HERE - Do not proceed
+      }
+    }
+    
+    // STRICT VALIDATION - Check if required fields are empty (only if no specific errors)
     if (!shopName || shopName.length === 0) {
       setError("Shop Name is required and cannot be empty");
       setTimeout(() => setError(""), 5000);
@@ -310,14 +333,6 @@ export default function Customers() {
     
     if (!shopType || shopType.length === 0) {
       setError("Shop Type is required and cannot be empty");
-      setTimeout(() => setError(""), 5000);
-      return; // STOP HERE - Do not proceed
-    }
-    
-    // Check for validation errors
-    if (Object.keys(fieldErrors).length > 0) {
-      const errorMessages = Object.values(fieldErrors).filter(msg => msg);
-      setError(errorMessages.join(", "));
       setTimeout(() => setError(""), 5000);
       return; // STOP HERE - Do not proceed
     }
@@ -1346,7 +1361,11 @@ export default function Customers() {
                   <Label>ZIP Code</Label>
                   <Input
                     value={customerData.zipcode}
-                    onChange={(e) => setCustomerData({...customerData, zipcode: e.target.value})}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow both numbers and characters for ZIP code
+                      setCustomerData({...customerData, zipcode: value});
+                    }}
                     placeholder="ZIP code"
                   />
                 </div>
@@ -1442,11 +1461,15 @@ export default function Customers() {
                     value={customerData.contact_phone}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Only allow numbers, spaces, +, -, (, )
-                      if (value === "" || /^[\d\s\+\-\(\)]*$/.test(value)) {
+                      // Only allow numbers
+                      if (value === "" || /^\d*$/.test(value)) {
                         setCustomerData({...customerData, contact_phone: value});
                         const error = validatePhone(value);
                         setFieldErrors({...fieldErrors, contact_phone: error || undefined});
+                      } else {
+                        // Show warning for non-numeric input
+                        setError("Phone number should contain only numbers");
+                        setTimeout(() => setError(""), 3000);
                       }
                     }}
                     placeholder="Phone number"
@@ -1580,7 +1603,28 @@ export default function Customers() {
                 )}
                 {!isFormValid() && (
                   <div className="flex items-center text-sm text-red-600 font-medium">
-                    Please fill in Shop Name and Shop Type to continue
+                    {(() => {
+                      const shopName = (customerData.shop_name || "").toString().trim();
+                      const shopType = (customerData.shop_type || "").toString().trim();
+                      const fieldErrors = validateAllFields();
+                      
+                      // If shop name or type is missing, show that message
+                      if (!shopName || shopName.length === 0 || !shopType || shopType.length === 0) {
+                        return "Please fill in Shop Name and Shop Type to continue";
+                      }
+                      
+                      // Otherwise, show specific field errors
+                      const specificErrors = Object.keys(fieldErrors)
+                        .filter(key => key !== 'shop_name' && key !== 'shop_type')
+                        .map(key => fieldErrors[key])
+                        .filter(msg => msg);
+                      
+                      if (specificErrors.length > 0) {
+                        return specificErrors[0]; // Show first specific error
+                      }
+                      
+                      return "Please fix the errors above to continue";
+                    })()}
                   </div>
                 )}
               </div>

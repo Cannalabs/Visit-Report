@@ -33,6 +33,7 @@ export default function FollowUps() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState("all");
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadVisits();
@@ -60,9 +61,43 @@ export default function FollowUps() {
 
   const loadVisits = async () => {
     try {
+      // Get current user
+      let currentUserData = null;
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        try {
+          currentUserData = JSON.parse(cachedUser);
+          setCurrentUser(currentUserData);
+        } catch (e) {
+          // Invalid cache, will fetch fresh
+        }
+      }
+      
+      // Fetch fresh user data if needed
+      if (!currentUserData) {
+        try {
+          currentUserData = await User.me();
+          if (currentUserData) {
+            setCurrentUser(currentUserData);
+            localStorage.setItem('user', JSON.stringify(currentUserData));
+          }
+        } catch (error) {
+          console.error("Failed to load current user:", error);
+        }
+      }
+      
       const data = await ShopVisit.list("-created_date", 200);
-      // Filter only visits that require follow-up
-      const followUpVisits = data.filter(visit => visit.follow_up_required === true);
+      // Filter only visits that require follow-up AND are assigned to current user OR created by current user
+      const followUpVisits = data.filter(visit => {
+        if (visit.follow_up_required !== true) return false;
+        // Show follow-ups assigned to current user OR created by current user
+        if (currentUserData) {
+          const isAssigned = visit.follow_up_assigned_user_id === currentUserData.id;
+          const isCreator = visit.created_by === currentUserData.id;
+          return isAssigned || isCreator;
+        }
+        return false;
+      });
       setVisits(followUpVisits);
     } catch (error) {
       // Error loading visits
@@ -339,6 +374,7 @@ export default function FollowUps() {
           selectedVisits={selectedVisits}
           onSelectionChange={setSelectedVisits}
           onRefresh={loadVisits}
+          currentUser={currentUser}
         />
       </div>
     </div>

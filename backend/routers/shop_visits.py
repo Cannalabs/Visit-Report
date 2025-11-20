@@ -95,56 +95,79 @@ def update_shop_visit(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    visit = db.query(ShopVisit).filter(ShopVisit.id == visit_id).first()
-    if not visit:
-        raise HTTPException(status_code=404, detail="Shop visit not found")
-    
-    # Prevent editing if status is "done" (unless only updating status itself)
-    current_status = visit.visit_status or VisitStatus.draft
-    if current_status == VisitStatus.done:
-        # Allow status change from "done" to other statuses (for admin/manager override)
+    try:
+        visit = db.query(ShopVisit).filter(ShopVisit.id == visit_id).first()
+        if not visit:
+            raise HTTPException(status_code=404, detail="Shop visit not found")
+        
+        # Get update data to check what fields are being updated
         update_data = visit_update.dict(exclude_unset=True)
-        if 'visit_status' not in update_data or update_data.get('visit_status') == VisitStatus.done:
-            raise HTTPException(
-                status_code=403, 
-                detail="Cannot edit visit report with status 'done'. Change status first to allow editing."
-            )
-    
-    # Get all update data - use exclude_unset=False to include all fields that were sent
-    # This ensures we update all fields, not just the ones that changed
-    update_data = visit_update.dict(exclude_unset=False)
-    
-    # Ensure JSON fields are properly handled
-    if 'products_discussed' in update_data and update_data['products_discussed'] is None:
-        update_data['products_discussed'] = []
-    if 'training_topics' in update_data and update_data['training_topics'] is None:
-        update_data['training_topics'] = []
-    if 'support_materials_items' in update_data and update_data['support_materials_items'] is None:
-        update_data['support_materials_items'] = []
-    if 'visit_photos' in update_data and update_data['visit_photos'] is None:
-        update_data['visit_photos'] = []
-    # Ensure sales_data is a dict, not None
-    if 'sales_data' in update_data and update_data['sales_data'] is None:
-        update_data['sales_data'] = {}
-    
-    # Update all fields that are provided
-    for field, value in update_data.items():
-        # Skip fields that shouldn't be updated via this endpoint
-        if field in ['id', 'created_at', 'created_by']:
-            continue
-        # Handle None values for optional fields
-        if value is None and field in ['draft_saved_at', 'signature_date', 'gps_coordinates', 'signature', 'signature_signer_name']:
-            setattr(visit, field, None)
-        else:
-            setattr(visit, field, value)
-    
-    # Update updated_at timestamp
-    from datetime import datetime, timezone
-    visit.updated_at = datetime.now(timezone.utc)
-    
-    db.commit()
-    db.refresh(visit)
-    return visit
+        
+        # Define follow-up fields that can be edited even when status is "done"
+        follow_up_fields = {'follow_up_notes', 'follow_up_assigned_user_id', 'follow_up_stage', 'follow_up_date'}
+        
+        # Check if update only contains follow-up fields
+        is_only_follow_up_update = update_data.keys() <= follow_up_fields
+        
+        # Prevent editing if status is "done" (unless only updating follow-up fields or status itself)
+        current_status = visit.visit_status or VisitStatus.draft
+        if current_status == VisitStatus.done:
+            # Allow follow-up field updates if user is creator or assigned user
+            if is_only_follow_up_update:
+                is_creator = visit.created_by == current_user.id
+                is_assigned = visit.follow_up_assigned_user_id == current_user.id
+                if not (is_creator or is_assigned):
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Only the creator or assigned user can update follow-up fields for completed visits."
+                    )
+            # Allow status change from "done" to other statuses (for admin/manager override)
+            elif 'visit_status' not in update_data or update_data.get('visit_status') == VisitStatus.done:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="Cannot edit visit report with status 'done'. Change status first to allow editing."
+                )
+        
+        # Ensure JSON fields are properly handled
+        if 'products_discussed' in update_data and update_data['products_discussed'] is None:
+            update_data['products_discussed'] = []
+        if 'training_topics' in update_data and update_data['training_topics'] is None:
+            update_data['training_topics'] = []
+        if 'support_materials_items' in update_data and update_data['support_materials_items'] is None:
+            update_data['support_materials_items'] = []
+        if 'visit_photos' in update_data and update_data['visit_photos'] is None:
+            update_data['visit_photos'] = []
+        # Ensure sales_data is a dict, not None
+        if 'sales_data' in update_data and update_data['sales_data'] is None:
+            update_data['sales_data'] = {}
+        
+        # Update only the fields that are provided
+        for field, value in update_data.items():
+            # Skip fields that shouldn't be updated via this endpoint
+            if field in ['id', 'created_at', 'created_by']:
+                continue
+            # Handle None values for optional fields
+            if value is None and field in ['draft_saved_at', 'signature_date', 'gps_coordinates', 'signature', 'signature_signer_name', 'follow_up_notes', 'follow_up_assigned_user_id', 'follow_up_stage', 'follow_up_date']:
+                setattr(visit, field, None)
+            else:
+                setattr(visit, field, value)
+        
+        # Update updated_at timestamp
+        from datetime import datetime, timezone
+        visit.updated_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        db.refresh(visit)
+        return visit
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 403, 404) as-is
+        raise
+    except Exception as e:
+        error_msg = f"Error updating shop visit {visit_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        # Rollback the transaction in case of error
+        db.rollback()
+        raise HTTPException(status_code=500, detail="A database error occurred. Please try again later.")
 
 @router.delete("/{visit_id}")
 def delete_shop_visit(visit_id: int, db: Session = Depends(get_db)):

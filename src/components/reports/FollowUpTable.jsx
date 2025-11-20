@@ -3,6 +3,9 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,7 +23,9 @@ import {
   Edit,
   Eye,
   Calendar,
-  FileText
+  FileText,
+  Save,
+  X
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,8 +55,11 @@ const getStageColor = (stage) => {
   return colors[stage] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-export default function FollowUpTable({ visits, isLoading, selectedVisits, onSelectionChange, onRefresh }) {
+export default function FollowUpTable({ visits, isLoading, selectedVisits, onSelectionChange, onRefresh, currentUser }) {
   const [users, setUsers] = useState([]);
+  const [editingRow, setEditingRow] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -114,6 +122,51 @@ export default function FollowUpTable({ visits, isLoading, selectedVisits, onSel
 
   const canDeleteVisit = (visit) => {
     return visit.is_draft || !visit.is_finalized;
+  };
+
+  // Check if current user can edit follow-up fields
+  const canEditFollowUp = (visit) => {
+    if (!currentUser || !visit) return false;
+    const isCreator = visit.created_by === currentUser.id;
+    const isAssignedUser = visit.follow_up_assigned_user_id === currentUser.id;
+    return isCreator || isAssignedUser;
+  };
+
+  const handleEdit = (visit) => {
+    setEditingRow(visit.id);
+    setEditData({
+      follow_up_notes: visit.follow_up_notes || "",
+      follow_up_assigned_user_id: visit.follow_up_assigned_user_id || null,
+      follow_up_stage: visit.follow_up_stage || null,
+      follow_up_date: visit.follow_up_date ? new Date(visit.follow_up_date).toISOString().split('T')[0] : ""
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditData({});
+  };
+
+  const handleSaveEdit = async (visitId) => {
+    setIsSaving(true);
+    try {
+      const updateData = {
+        follow_up_notes: editData.follow_up_notes || null,
+        follow_up_assigned_user_id: editData.follow_up_assigned_user_id || null,
+        follow_up_stage: editData.follow_up_stage || null,
+        follow_up_date: editData.follow_up_date ? new Date(editData.follow_up_date).toISOString() : null
+      };
+      
+      await ShopVisit.update(visitId, updateData);
+      setEditingRow(null);
+      setEditData({});
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      alert("Failed to update follow-up. Please try again.");
+      console.error("Error updating follow-up:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -246,83 +299,187 @@ export default function FollowUpTable({ visits, isLoading, selectedVisits, onSel
                     </TableCell>
 
                     <TableCell>
-                      <div className="max-w-xs">
-                        {visit.follow_up_notes ? (
-                          <div className="flex items-start gap-1 text-sm text-gray-700">
-                            <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
-                            <span className="line-clamp-2">{visit.follow_up_notes}</span>
+                      {editingRow === visit.id && canEditFollowUp(visit) ? (
+                        <Textarea
+                          value={editData.follow_up_notes || ""}
+                          onChange={(e) => setEditData({...editData, follow_up_notes: e.target.value})}
+                          placeholder="Enter follow-up notes..."
+                          className="min-w-[200px] max-w-xs text-sm"
+                          rows={2}
+                        />
+                      ) : (
+                        <div className="max-w-xs">
+                          {visit.follow_up_notes ? (
+                            <div className="flex items-start gap-1 text-sm text-gray-700">
+                              <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                              <span className="line-clamp-2">{visit.follow_up_notes}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">No notes</span>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
+                      {editingRow === visit.id && canEditFollowUp(visit) ? (
+                        <Select
+                          value={editData.follow_up_assigned_user_id?.toString() || "__none__"}
+                          onValueChange={(value) => {
+                            setEditData({
+                              ...editData,
+                              follow_up_assigned_user_id: value === "__none__" ? null : parseInt(value)
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-[180px] text-sm">
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            {users.map((user) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.full_name || user.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        visit.follow_up_assigned_user_id ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span>{getUserName(visit.follow_up_assigned_user_id) || `User ID: ${visit.follow_up_assigned_user_id}`}</span>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400 italic">No notes</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      {visit.follow_up_assigned_user_id ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span>{getUserName(visit.follow_up_assigned_user_id) || `User ID: ${visit.follow_up_assigned_user_id}`}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">Not assigned</span>
+                          <span className="text-sm text-gray-400 italic">Not assigned</span>
+                        )
                       )}
                     </TableCell>
 
                     <TableCell>
-                      {visit.follow_up_stage ? (
-                        <Badge variant="secondary" className={getStageColor(visit.follow_up_stage)}>
-                          {visit.follow_up_stage.replace('_', ' ')}
-                        </Badge>
+                      {editingRow === visit.id && canEditFollowUp(visit) ? (
+                        <Select
+                          value={editData.follow_up_stage || "__none__"}
+                          onValueChange={(value) => {
+                            setEditData({
+                              ...editData,
+                              follow_up_stage: value === "__none__" ? null : value
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-[150px] text-sm">
+                            <SelectValue placeholder="Select stage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">None</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
                       ) : (
-                        <span className="text-sm text-gray-400 italic">Not set</span>
+                        visit.follow_up_stage ? (
+                          <Badge variant="secondary" className={getStageColor(visit.follow_up_stage)}>
+                            {visit.follow_up_stage.replace('_', ' ')}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">Not set</span>
+                        )
                       )}
                     </TableCell>
 
                     <TableCell>
-                      {visit.follow_up_date ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span>
-                            {(() => {
-                              try {
-                                const date = new Date(visit.follow_up_date);
-                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
-                              } catch (e) {
-                                return 'Invalid date';
-                              }
-                            })()}
-                          </span>
-                        </div>
+                      {editingRow === visit.id && canEditFollowUp(visit) ? (
+                        <Input
+                          type="date"
+                          value={editData.follow_up_date || ""}
+                          onChange={(e) => setEditData({...editData, follow_up_date: e.target.value})}
+                          className="w-[150px] text-sm"
+                        />
                       ) : (
-                        <span className="text-sm text-gray-400 italic">Not set</span>
+                        visit.follow_up_date ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span>
+                              {(() => {
+                                try {
+                                  const date = new Date(visit.follow_up_date);
+                                  return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
+                                } catch (e) {
+                                  return 'Invalid date';
+                                }
+                              })()}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">Not set</span>
+                        )
                       )}
                     </TableCell>
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link to={createPageUrl(`NewVisit?id=${visit.id}&section=3&highlight=followup`)}>
-                          {visit.is_draft ? (
-                            <Button size="sm" variant="outline" className="flex items-center gap-1">
-                              <Edit className="w-3 h-3" />
-                              Edit
+                        {editingRow === visit.id && canEditFollowUp(visit) ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleSaveEdit(visit.id)}
+                              disabled={isSaving}
+                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                            >
+                              <Save className="w-3 h-3" />
+                              {isSaving ? "Saving..." : "Save"}
                             </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" className="flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              View
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEdit}
+                              disabled={isSaving}
+                              className="flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" />
+                              Cancel
                             </Button>
-                          )}
-                        </Link>
-                        {canDeleteVisit(visit) && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleDelete(visit.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          </>
+                        ) : (
+                          <>
+                            {canEditFollowUp(visit) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(visit)}
+                                className="flex items-center gap-1"
+                              >
+                                <Edit className="w-3 h-3" />
+                                Edit
+                              </Button>
+                            )}
+                            <Link to={createPageUrl(`NewVisit?id=${visit.id}&section=3&highlight=followup`)}>
+                              {visit.is_draft ? (
+                                <Button size="sm" variant="outline" className="flex items-center gap-1">
+                                  <Edit className="w-3 h-3" />
+                                  Edit
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="outline" className="flex items-center gap-1">
+                                  <Eye className="w-3 h-3" />
+                                  View
+                                </Button>
+                              )}
+                            </Link>
+                            {canDeleteVisit(visit) && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleDelete(visit.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>

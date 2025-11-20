@@ -880,10 +880,6 @@ export default function NewVisit() {
       // Removed the Customer.create logic, as customer selection/creation is handled elsewhere.
       // A visit is now always associated with an existing customer_id in formData.
 
-      if (autoSaveIntervalRef.current) {
-        clearInterval(autoSaveIntervalRef.current);
-      }
-
       setSuccess(true);
       setShowPreSubmitChecklist(false);
 
@@ -1134,6 +1130,7 @@ export default function NewVisit() {
                   formData={formData}
                   updateFormData={updateFormData}
                   selectedCustomer={selectedCustomer} // Pass selectedCustomer to ShopInfoSection
+                  currentUser={user} // Pass current user for permission checks
                   // removed suggestedContacts and onContactSelect props
                 />
                 )}

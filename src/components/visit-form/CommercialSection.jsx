@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,9 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, TrendingUp, Star, AlertCircle, User, Calendar } from "lucide-react";
 import { User as UserEntity } from "@/api/entities";
 
-export default function CommercialSection({ formData, updateFormData }) {
+export default function CommercialSection({ formData, updateFormData, currentUser }) {
   const [users, setUsers] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  
+  // Check if current user can edit follow-up fields
+  // User can edit if they are the creator of the visit OR the assigned user for the follow-up
+  const canEditFollowUp = useMemo(() => {
+    if (!currentUser || !formData) return true; // Allow editing if no user/visit data (new visit)
+    const isCreator = formData.created_by === currentUser.id;
+    const isAssignedUser = formData.follow_up_assigned_user_id === currentUser.id;
+    return isCreator || isAssignedUser;
+  }, [currentUser, formData]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -89,10 +98,24 @@ export default function CommercialSection({ formData, updateFormData }) {
                 min="0"
                 step="0.01"
                 value={formData.order_value ?? ""}
-                onChange={(e) => updateFormData({ order_value: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // type="number" already handles most validation, but we'll ensure it's valid
+                  if (value === "" || !isNaN(parseFloat(value))) {
+                    updateFormData({ order_value: parseFloat(value) || 0 });
+                  }
+                }}
+                onKeyPress={(e) => {
+                  // Prevent non-numeric characters (except decimal point)
+                  const char = String.fromCharCode(e.which);
+                  if (!/[0-9.]/.test(char)) {
+                    e.preventDefault();
+                  }
+                }}
                 placeholder="0.00"
                 className="border-green-200 focus:border-green-500"
               />
+              <p className="text-xs text-gray-500">Enter numbers only (e.g., 123.45)</p>
             </div>
           </div>
         </CardContent>
@@ -167,6 +190,14 @@ export default function CommercialSection({ formData, updateFormData }) {
 
           {formData.follow_up_required && (
             <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              {!canEditFollowUp && (
+                <Alert className="border-blue-300 bg-blue-50 mb-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    You can only edit follow-up fields if you created this visit or are assigned to it.
+                  </AlertDescription>
+                </Alert>
+              )}
               {!formData.follow_up_notes && (
                 <Alert variant="destructive" className="border-red-300 bg-red-50 mb-2">
                   <AlertCircle className="h-4 w-4 text-red-600" />
@@ -186,6 +217,7 @@ export default function CommercialSection({ formData, updateFormData }) {
                   onChange={(e) => updateFormData({ follow_up_notes: e.target.value })}
                   placeholder="Describe the required follow-up actions..."
                   className={getFieldStyle(formData.follow_up_notes, formData.follow_up_required)}
+                  disabled={!canEditFollowUp}
                 />
                 {formData.follow_up_required && !formData.follow_up_notes && (
                   <p className="text-xs text-red-600 flex items-center gap-1">
@@ -210,7 +242,7 @@ export default function CommercialSection({ formData, updateFormData }) {
                         updateFormData({ follow_up_assigned_user_id: value ? parseInt(value) : null });
                       }
                     }}
-                    disabled={isLoadingUsers}
+                    disabled={isLoadingUsers || !canEditFollowUp}
                   >
                     <SelectTrigger className="border-orange-200 focus:border-orange-500">
                       <SelectValue placeholder={isLoadingUsers ? "Loading..." : "Select user"} />
@@ -239,6 +271,7 @@ export default function CommercialSection({ formData, updateFormData }) {
                         updateFormData({ follow_up_stage: value || null });
                       }
                     }}
+                    disabled={!canEditFollowUp}
                   >
                     <SelectTrigger className="border-orange-200 focus:border-orange-500">
                       <SelectValue placeholder="Select stage" />
@@ -269,6 +302,7 @@ export default function CommercialSection({ formData, updateFormData }) {
                       });
                     }}
                     className="border-orange-200 focus:border-orange-500"
+                    disabled={!canEditFollowUp}
                   />
                 </div>
               </div>
