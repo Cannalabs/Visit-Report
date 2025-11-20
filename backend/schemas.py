@@ -47,11 +47,13 @@ class CustomerBase(BaseModel):
     zipcode: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
-    shop_timings: Optional[str] = None
+    opening_time: Optional[str] = None  # Opening time, e.g., "09:00"
+    closing_time: Optional[str] = None  # Closing time, e.g., "18:00"
     visit_notes: Optional[str] = None
     status: Optional[str] = "active"
     
@@ -91,11 +93,13 @@ class CustomerUpdate(BaseModel):
     zipcode: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
-    shop_timings: Optional[str] = None
+    opening_time: Optional[str] = None  # Opening time, e.g., "09:00"
+    closing_time: Optional[str] = None  # Closing time, e.g., "18:00"
     visit_notes: Optional[str] = None
     status: Optional[str] = None
 
@@ -107,11 +111,13 @@ class CustomerResponse(BaseModel):
     zipcode: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
-    shop_timings: Optional[str] = None
+    opening_time: Optional[str] = None  # Opening time, e.g., "09:00"
+    closing_time: Optional[str] = None  # Closing time, e.g., "18:00"
     visit_notes: Optional[str] = None
     status: Optional[str] = "active"
     created_at: datetime
@@ -129,11 +135,13 @@ class ShopVisitBase(BaseModel):
     zipcode: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
-    shop_timings: Optional[str] = None
+    opening_time: Optional[str] = None  # Opening time snapshot, e.g., "09:00"
+    closing_time: Optional[str] = None  # Closing time snapshot, e.g., "18:00"
     visit_status: Optional[VisitStatus] = VisitStatus.draft
     assigned_user_id: Optional[int] = None
     planned_visit_date: Optional[datetime] = None
@@ -176,10 +184,13 @@ class ShopVisitUpdate(BaseModel):
     zipcode: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[str] = None
     job_title: Optional[str] = None
+    opening_time: Optional[str] = None  # Opening time snapshot, e.g., "09:00"
+    closing_time: Optional[str] = None  # Closing time snapshot, e.g., "18:00"
     visit_status: Optional[VisitStatus] = None
     assigned_user_id: Optional[int] = None
     planned_visit_date: Optional[datetime] = None

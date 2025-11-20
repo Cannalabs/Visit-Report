@@ -95,7 +95,8 @@ export default function ShopInfoSection({ formData, updateFormData }) {
       contact_phone: customer.contact_phone || "",
       contact_email: customer.contact_email || "",
       job_title: customer.job_title || "",
-      shop_timings: customer.shop_timings || ""
+      opening_time: customer.opening_time || "",
+      closing_time: customer.closing_time || ""
     });
   };
 
@@ -367,7 +368,7 @@ export default function ShopInfoSection({ formData, updateFormData }) {
         </>
       )}
 
-      {formData.shop_timings && (
+      {(formData.opening_time || formData.closing_time) && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
@@ -377,8 +378,12 @@ export default function ShopInfoSection({ formData, updateFormData }) {
           </CardHeader>
           <CardContent>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900 whitespace-pre-line">
-                {formData.shop_timings}
+              <p className="text-sm text-blue-900">
+                {formData.opening_time && formData.closing_time 
+                  ? `${formData.opening_time} - ${formData.closing_time}`
+                  : formData.opening_time 
+                    ? `Opens at ${formData.opening_time}`
+                    : `Closes at ${formData.closing_time}`}
               </p>
             </div>
           </CardContent>

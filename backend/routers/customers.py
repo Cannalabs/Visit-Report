@@ -55,6 +55,19 @@ def update_customer(
         raise HTTPException(status_code=404, detail="Customer not found")
     
     update_data = customer_update.dict(exclude_unset=True)
+    
+    # Validate shop_name and shop_type only if they are being updated
+    if 'shop_name' in update_data:
+        if not update_data['shop_name'] or not str(update_data['shop_name']).strip():
+            raise HTTPException(status_code=400, detail="Shop name is required and cannot be empty")
+        update_data['shop_name'] = str(update_data['shop_name']).strip()
+    
+    if 'shop_type' in update_data:
+        if not update_data['shop_type'] or not str(update_data['shop_type']).strip():
+            raise HTTPException(status_code=400, detail="Shop type is required and cannot be empty")
+        update_data['shop_type'] = str(update_data['shop_type']).strip()
+    
+    # Update all provided fields
     for field, value in update_data.items():
         setattr(customer, field, value)
     

@@ -23,7 +23,8 @@ import {
   ChevronUp,
   FileUp,
   FileDown,
-  Download
+  Download,
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,8 +57,9 @@ export default function Customers() {
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [viewingCustomer, setViewingCustomer] = useState(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({
     shop_type: "",
@@ -83,7 +85,8 @@ export default function Customers() {
     contact_phone: "",
     contact_email: "",
     job_title: "",
-    shop_timings: "",
+    opening_time: "",
+    closing_time: "",
     visit_notes: "",
     status: "active",
     region: "",
@@ -343,7 +346,8 @@ export default function Customers() {
         contact_email: customerData.contact_email?.trim() || "",
         job_title: customerData.job_title?.trim() || "",
         region: customerData.region?.trim() || "",
-        shop_timings: customerData.shop_timings?.trim() || "",
+        opening_time: customerData.opening_time?.trim() || "",
+        closing_time: customerData.closing_time?.trim() || "",
         visit_notes: customerData.visit_notes?.trim() || "",
       };
       
@@ -381,6 +385,8 @@ export default function Customers() {
     setCustomerData(customer);
     setError("");
     setFieldErrors({});
+    // Reload shop types in case new ones were added
+    loadShopTypes();
     setShowDialog(true);
   };
 
@@ -409,7 +415,8 @@ export default function Customers() {
       contact_phone: "",
       contact_email: "",
       job_title: "",
-      shop_timings: "",
+      opening_time: "",
+      closing_time: "",
       visit_notes: "",
       status: "active",
       region: "",
@@ -517,7 +524,7 @@ export default function Customers() {
     const headers = [
       'shop_name', 'shop_type', 'shop_address', 'zipcode', 'city', 'county', 
       'region', 'contact_person', 'contact_phone', 'contact_email', 'job_title', 
-      'shop_timings', 'visit_notes', 'status'
+      'opening_time', 'closing_time', 'visit_notes', 'status'
     ];
     
     const escapeCsv = (value) => {
@@ -651,7 +658,8 @@ export default function Customers() {
             contact_phone: (item.contact_phone || item['contact phone'] || item.phone || '').trim(),
             contact_email: (item.contact_email || item['contact email'] || item.email || '').trim(),
             job_title: (item.job_title || item['job title'] || '').trim(),
-            shop_timings: (item.shop_timings || item['shop timings'] || '').trim(),
+            opening_time: (item.opening_time || item['opening time'] || item['opening_time'] || item.shop_timings || '').trim(),
+            closing_time: (item.closing_time || item['closing time'] || item['closing_time'] || '').trim(),
             visit_notes: (item.visit_notes || item['visit notes'] || '').trim(),
             status: (item.status || 'active').trim().toLowerCase() === 'inactive' ? 'inactive' : 'active'
           };
@@ -759,6 +767,8 @@ export default function Customers() {
                 setEditingCustomer(null);
                 setError("");
                 setFieldErrors({});
+                // Reload shop types in case new ones were added
+                loadShopTypes();
                 setShowDialog(true);
               }}
               className="bg-green-600 hover:bg-green-700"
@@ -952,6 +962,7 @@ export default function Customers() {
                   <TableHead>Shop Details</TableHead>
                   <TableHead>Contact Information</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Region</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -998,28 +1009,35 @@ export default function Customers() {
                         {customer.city && (
                           <div className="flex items-center gap-1">
                             <MapPin className="w-3 h-3 text-gray-400" />
-                            <span className="text-sm">
-                              {customer.city}
-                              {customer.region && (
-                                <span className="text-gray-500 ml-1">({customer.region})</span>
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {!customer.city && customer.region && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-400" />
-                            <span className="text-sm text-gray-600">{customer.region}</span>
+                            <span className="text-sm">{customer.city}</span>
                           </div>
                         )}
                         {customer.zipcode && (
                           <div className="text-sm text-gray-500">{customer.zipcode}</div>
                         )}
+                        {customer.county && (
+                          <div className="text-sm text-gray-500">{customer.county}</div>
+                        )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {customer.region ? (
+                        <span className="text-sm text-gray-700">{customer.region}</span>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(customer.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewingCustomer(customer)}
+                          title="View contact information"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -1041,7 +1059,7 @@ export default function Customers() {
                 ))}
                 {filteredCustomers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-3">
                         <Users className="w-12 h-12 text-gray-300" />
                         <p className="text-gray-500">No customers found</p>
@@ -1053,6 +1071,166 @@ export default function Customers() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* View Contact Information Dialog */}
+        <Dialog open={!!viewingCustomer} onOpenChange={(open) => !open && setViewingCustomer(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-green-600" />
+                Contact Information - {viewingCustomer?.shop_name}
+              </DialogTitle>
+              <DialogDescription>
+                View customer contact details (Read-only)
+              </DialogDescription>
+            </DialogHeader>
+            
+            {viewingCustomer && (
+              <div className="space-y-6 mt-4">
+                {/* Shop Information */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Shop Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Shop Name</Label>
+                      <div className="mt-1 text-base">{viewingCustomer.shop_name || "—"}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Shop Type</Label>
+                      <div className="mt-1">
+                        <Badge className={getShopTypeColor(viewingCustomer.shop_type)}>
+                          {viewingCustomer.shop_type?.replace('_', ' ') || "—"}
+                        </Badge>
+                      </div>
+                    </div>
+                    {viewingCustomer.shop_address && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Address</Label>
+                        <div className="mt-1 text-base">{viewingCustomer.shop_address}</div>
+                      </div>
+                    )}
+                    {(viewingCustomer.city || viewingCustomer.zipcode || viewingCustomer.county) && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Location</Label>
+                        <div className="mt-1 text-base">
+                          {[viewingCustomer.city, viewingCustomer.zipcode, viewingCustomer.county]
+                            .filter(Boolean)
+                            .join(", ") || "—"}
+                        </div>
+                      </div>
+                    )}
+                    {viewingCustomer.region && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Region</Label>
+                        <div className="mt-1 text-base">{viewingCustomer.region}</div>
+                      </div>
+                    )}
+                    {(viewingCustomer.opening_time || viewingCustomer.closing_time) && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Shop Timings</Label>
+                        <div className="mt-1 text-base">
+                          {viewingCustomer.opening_time && viewingCustomer.closing_time
+                            ? `${viewingCustomer.opening_time} - ${viewingCustomer.closing_time}`
+                            : viewingCustomer.opening_time
+                              ? `Opens at ${viewingCustomer.opening_time}`
+                              : `Closes at ${viewingCustomer.closing_time}`}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Contact Information */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Phone className="w-5 h-5" />
+                      Contact Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {viewingCustomer.contact_person && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Contact Person</Label>
+                        <div className="mt-1 text-base flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {viewingCustomer.contact_person}
+                        </div>
+                      </div>
+                    )}
+                    {viewingCustomer.job_title && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Job Title</Label>
+                        <div className="mt-1 text-base">{viewingCustomer.job_title}</div>
+                      </div>
+                    )}
+                    {viewingCustomer.contact_phone && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Phone Number</Label>
+                        <div className="mt-1 text-base flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <a href={`tel:${viewingCustomer.contact_phone}`} className="text-blue-600 hover:underline">
+                            {viewingCustomer.contact_phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {viewingCustomer.contact_email && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Email Address</Label>
+                        <div className="mt-1 text-base flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-400" />
+                          <a href={`mailto:${viewingCustomer.contact_email}`} className="text-blue-600 hover:underline">
+                            {viewingCustomer.contact_email}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {!viewingCustomer.contact_person && !viewingCustomer.contact_phone && !viewingCustomer.contact_email && (
+                      <div className="text-gray-500 text-sm">No contact information available</div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Visit Notes */}
+                {viewingCustomer.visit_notes && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg">Visit Notes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <p className="text-sm text-amber-900 whitespace-pre-line">
+                          {viewingCustomer.visit_notes}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Status */}
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Status</Label>
+                    <div className="mt-1">{getStatusBadge(viewingCustomer.status)}</div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setViewingCustomer(null);
+                      handleEdit(viewingCustomer);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Customer
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Add/Edit Customer Dialog */}
         <Dialog 
@@ -1133,11 +1311,22 @@ export default function Customers() {
                       <SelectValue placeholder="Select shop type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="growshop">Growshop</SelectItem>
-                      <SelectItem value="garden_center">Garden Center</SelectItem>
-                      <SelectItem value="nursery">Nursery</SelectItem>
-                      <SelectItem value="hydroponics_store">Hydroponics Store</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {shopTypes.length > 0 ? (
+                        shopTypes.map((type) => (
+                          <SelectItem key={type.config_value} value={type.config_value}>
+                            {type.config_name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        // Fallback to default values if shop types haven't loaded yet
+                        <>
+                          <SelectItem value="growshop">Growshop</SelectItem>
+                          <SelectItem value="garden_center">Garden Center</SelectItem>
+                          <SelectItem value="nursery">Nursery</SelectItem>
+                          <SelectItem value="hydroponics_store">Hydroponics Store</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1287,18 +1476,31 @@ export default function Customers() {
                 </div>
               </div>
 
-              <div>
-                <Label>Shop Timings</Label>
-                <Textarea
-                  value={customerData.shop_timings}
-                  onChange={(e) => setCustomerData({...customerData, shop_timings: e.target.value})}
-                  placeholder="e.g., Mon-Fri: 9:00 AM - 6:00 PM, Sat: 10:00 AM - 4:00 PM"
-                  rows={3}
-                  className="resize-none"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter working hours (optional)
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Opening Time</Label>
+                  <Input
+                    type="time"
+                    value={customerData.opening_time}
+                    onChange={(e) => setCustomerData({...customerData, opening_time: e.target.value})}
+                    placeholder="09:00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Shop opening time (optional)
+                  </p>
+                </div>
+                <div>
+                  <Label>Closing Time</Label>
+                  <Input
+                    type="time"
+                    value={customerData.closing_time}
+                    onChange={(e) => setCustomerData({...customerData, closing_time: e.target.value})}
+                    placeholder="18:00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Shop closing time (optional)
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">

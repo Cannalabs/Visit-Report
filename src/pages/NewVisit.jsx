@@ -74,7 +74,8 @@ export default function NewVisit() {
     contact_phone: "",
     contact_email: "",
     job_title: "",
-    shop_timings: "",
+    opening_time: "",
+    closing_time: "",
     visit_status: "draft", // appointment, draft, done
     assigned_user_id: null,
     planned_visit_date: null,
@@ -182,7 +183,8 @@ export default function NewVisit() {
               contact_phone: customer.contact_phone || "",
               contact_email: customer.contact_email || "",
               job_title: customer.job_title || "",
-              shop_timings: customer.shop_timings || "",
+              opening_time: customer.opening_time || "",
+              closing_time: customer.closing_time || "",
               gps_coordinates: customer.gps_coordinates || null,
             }));
           } else {

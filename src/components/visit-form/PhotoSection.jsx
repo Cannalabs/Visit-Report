@@ -31,6 +31,8 @@ export default function PhotoSection({ formData, updateFormData }) {
   const [dragOver, setDragOver] = useState(false);
   const [previewFiles, setPreviewFiles] = useState([]); // Store selected files for preview
   const [previewImage, setPreviewImage] = useState(null); // Store image URL for full preview modal
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
   
   // React Speech Recognition hook
   // Note: Hook must be called unconditionally (React rules)
@@ -51,31 +53,53 @@ export default function PhotoSection({ formData, updateFormData }) {
   const notesBeforeRecordingRef = useRef('');
   const lastTranscriptRef = useRef('');
 
+  // Debug: Log speech recognition state changes
+  useEffect(() => {
+    console.log('🎤 [Voice-to-Text] State update:', {
+      listening,
+      hasTranscript: !!transcript,
+      transcriptLength: transcript?.length || 0,
+      interimTranscriptLength: interimTranscript?.length || 0,
+      finalTranscriptLength: finalTranscript?.length || 0,
+      browserSupports: browserSupportsSpeechRecognition
+    });
+  }, [listening, transcript, interimTranscript, finalTranscript, browserSupportsSpeechRecognition]);
+
   // Save notes before recording starts
   useEffect(() => {
     if (listening && !notesBeforeRecordingRef.current) {
       // Recording just started - save current notes
+      console.log('🎤 [Voice-to-Text] Recording started');
+      console.log('🎤 [Voice-to-Text] Browser supports speech recognition:', browserSupportsSpeechRecognition);
+      console.log('🎤 [Voice-to-Text] Language set to: en-US');
       notesBeforeRecordingRef.current = formData.notes || '';
       lastTranscriptRef.current = '';
-    } else if (!listening) {
+    } else if (!listening && notesBeforeRecordingRef.current) {
       // Recording stopped - reset
+      console.log('🎤 [Voice-to-Text] Recording stopped');
       notesBeforeRecordingRef.current = '';
       lastTranscriptRef.current = '';
     }
-  }, [listening, formData.notes]);
+  }, [listening, formData.notes, browserSupportsSpeechRecognition]);
 
   // Update formData.notes in real-time as user speaks
   useEffect(() => {
     if (listening && transcript && transcript.trim() && transcript !== lastTranscriptRef.current) {
+      console.log('🎤 [Voice-to-Text] New transcript received:', transcript);
+      console.log('🎤 [Voice-to-Text] Transcript length:', transcript.length);
+      console.log('🎤 [Voice-to-Text] Interim transcript:', interimTranscript);
+      console.log('🎤 [Voice-to-Text] Final transcript:', finalTranscript);
+      
       // Get the base notes (before recording started)
       const baseNotes = notesBeforeRecordingRef.current;
       // Append current transcript
       const newNotes = baseNotes ? `${baseNotes} ${transcript.trim()}` : transcript.trim();
       
+      console.log('🎤 [Voice-to-Text] Updating notes with:', newNotes.substring(0, 100) + (newNotes.length > 100 ? '...' : ''));
       updateFormData({ notes: newNotes });
       lastTranscriptRef.current = transcript;
     }
-  }, [transcript, listening, updateFormData]);
+  }, [transcript, listening, updateFormData, interimTranscript, finalTranscript]);
 
   // Keyboard navigation for preview modal
   useEffect(() => {
@@ -344,43 +368,287 @@ export default function PhotoSection({ formData, updateFormData }) {
 
   const toggleVoiceRecording = async () => {
     if (listening) {
+      console.log('🎤 [Voice-to-Text] Stopping recording...');
+      retryCountRef.current = 0; // Reset retry count when manually stopping
       try {
         resetTranscript();
         SpeechRecognition.stopListening();
+        console.log('🎤 [Voice-to-Text] Recording stopped successfully');
       } catch (error) {
-        console.error('Error stopping speech recognition:', error);
+        console.error('🎤 [Voice-to-Text] Error stopping speech recognition:', error);
+        console.error('🎤 [Voice-to-Text] Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
       }
     } else {
+      console.log('🎤 [Voice-to-Text] Starting voice recording...');
+      console.log('🎤 [Voice-to-Text] Browser supports speech recognition:', browserSupportsSpeechRecognition);
+      
       // Check if browser supports speech recognition
       if (!browserSupportsSpeechRecognition) {
+        console.warn('🎤 [Voice-to-Text] Speech recognition not supported in this browser');
         alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
         return;
       }
 
       // Check internet connection first
+      console.log('🎤 [Voice-to-Text] Checking internet connection...');
       const hasInternet = await checkInternetConnection();
+      console.log('🎤 [Voice-to-Text] Internet connection:', hasInternet ? 'Available' : 'Not available');
+      
+      // Additional check: Try to reach Google's speech recognition service
+      if (hasInternet) {
+        try {
+          console.log('🎤 [Voice-to-Text] Testing connection to speech recognition service...');
+          // Try to fetch from a known endpoint to verify connectivity
+          const testResponse = await fetch('https://www.google.com', { 
+            method: 'HEAD', 
+            mode: 'no-cors',
+            cache: 'no-cache'
+          });
+          console.log('🎤 [Voice-to-Text] Network connectivity test completed');
+        } catch (testError) {
+          console.warn('🎤 [Voice-to-Text] Network test warning:', testError);
+        }
+      }
+      
       if (!hasInternet) {
         alert('No internet connection detected. Speech recognition requires an active internet connection to work. Please check your connection and try again.');
         return;
       }
-
-      // Try to request microphone permission explicitly (especially important for mobile)
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const hasPermission = await requestMicrophonePermission();
-        if (!hasPermission) {
+      
+      // Check if we're on HTTPS (required for speech recognition in most browsers)
+      const isHTTPS = window.location.protocol === 'https:';
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isHTTPS && !isLocalhost) {
+        console.warn('🎤 [Voice-to-Text] WARNING: Not using HTTPS. Speech recognition may not work on HTTP connections.');
+        const proceed = confirm('Speech recognition works best over HTTPS. You are currently on HTTP. Do you want to continue anyway?');
+        if (!proceed) {
           return;
         }
       }
 
+      // Try to request microphone permission explicitly (especially important for mobile)
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        console.log('🎤 [Voice-to-Text] Requesting microphone permission...');
+        const hasPermission = await requestMicrophonePermission();
+        console.log('🎤 [Voice-to-Text] Microphone permission:', hasPermission ? 'Granted' : 'Denied');
+        if (!hasPermission) {
+          console.warn('🎤 [Voice-to-Text] Microphone permission denied, cannot start recording');
+          return;
+        }
+      } else {
+        console.warn('🎤 [Voice-to-Text] navigator.mediaDevices.getUserMedia not available');
+      }
+
       try {
+        retryCountRef.current = 0; // Reset retry count when starting fresh
+        console.log('🎤 [Voice-to-Text] Starting SpeechRecognition with options:', {
+          continuous: true,
+          interimResults: true,
+          language: 'en-US'
+        });
+        
+        // Check if SpeechRecognition is properly initialized
+        console.log('🎤 [Voice-to-Text] SpeechRecognition object:', {
+          available: !!SpeechRecognition,
+          startListening: typeof SpeechRecognition.startListening,
+          stopListening: typeof SpeechRecognition.stopListening,
+          getRecognition: typeof SpeechRecognition.getRecognition
+        });
+        
+        // Try to get the underlying recognition object for direct event access
+        let recognition = null;
+        try {
+          // Try react-speech-recognition's getRecognition method
+          if (SpeechRecognition.getRecognition) {
+            recognition = SpeechRecognition.getRecognition();
+            console.log('🎤 [Voice-to-Text] Got recognition object via getRecognition():', !!recognition);
+          }
+          
+          // Fallback: Try to access window's SpeechRecognition directly
+          if (!recognition) {
+            const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognitionAPI) {
+              console.log('🎤 [Voice-to-Text] Found native SpeechRecognition API:', {
+                SpeechRecognition: !!window.SpeechRecognition,
+                webkitSpeechRecognition: !!window.webkitSpeechRecognition
+              });
+              // Note: We can't create a new instance here as react-speech-recognition manages it
+              // But we can check if it's available
+            } else {
+              console.warn('🎤 [Voice-to-Text] Native SpeechRecognition API not found in window');
+            }
+          }
+          
+          if (recognition) {
+            console.log('🎤 [Voice-to-Text] Got recognition object:', !!recognition);
+            
+            // Add event listeners for debugging
+            if (recognition) {
+              recognition.onstart = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onstart event fired');
+              };
+              
+              recognition.onresult = (event) => {
+                console.log('🎤 [Voice-to-Text] Recognition.onresult event fired');
+                console.log('🎤 [Voice-to-Text] Result event:', {
+                  resultIndex: event.resultIndex,
+                  resultsLength: event.results.length,
+                  isFinal: event.results[event.resultIndex]?.isFinal,
+                  transcript: event.results[event.resultIndex]?.[0]?.transcript
+                });
+                for (let i = 0; i < event.results.length; i++) {
+                  console.log(`🎤 [Voice-to-Text] Result[${i}]:`, {
+                    transcript: event.results[i][0].transcript,
+                    confidence: event.results[i][0].confidence,
+                    isFinal: event.results[i].isFinal
+                  });
+                }
+              };
+              
+              recognition.onerror = (event) => {
+                console.error('🎤 [Voice-to-Text] Recognition.onerror event fired:', {
+                  error: event.error,
+                  message: event.message,
+                  type: event.type
+                });
+                
+                // Handle specific error types
+                if (event.error === 'network') {
+                  console.error('🎤 [Voice-to-Text] NETWORK ERROR - Speech recognition service cannot be reached');
+                  console.error('🎤 [Voice-to-Text] Possible causes:');
+                  console.error('  - No internet connection');
+                  console.error('  - Firewall/proxy blocking speech recognition API');
+                  console.error('  - Speech recognition service is down');
+                  console.error('  - Browser blocking the connection');
+                  console.error('🎤 [Voice-to-Text] Service URI:', recognition.serviceURI || 'default (browser managed)');
+                  
+                  // Try to retry if we haven't exceeded max retries
+                  if (retryCountRef.current < maxRetries) {
+                    retryCountRef.current += 1;
+                    console.log(`🎤 [Voice-to-Text] Retrying... (Attempt ${retryCountRef.current}/${maxRetries})`);
+                    
+                    // Wait a bit before retrying
+                    setTimeout(() => {
+                      try {
+                        console.log('🎤 [Voice-to-Text] Retrying speech recognition...');
+                        SpeechRecognition.stopListening();
+                        setTimeout(() => {
+                          SpeechRecognition.startListening({ 
+                            continuous: true, 
+                            interimResults: true, 
+                            language: 'en-US' 
+                          });
+                        }, 500);
+                      } catch (retryError) {
+                        console.error('🎤 [Voice-to-Text] Retry failed:', retryError);
+                        alert('Network error: Cannot connect to speech recognition service after multiple attempts. Please check your internet connection and try again later.');
+                        retryCountRef.current = 0;
+                      }
+                    }, 1000 * retryCountRef.current); // Exponential backoff
+                  } else {
+                    console.error('🎤 [Voice-to-Text] Max retries reached. Giving up.');
+                    retryCountRef.current = 0;
+                    alert('Network error: Cannot connect to speech recognition service after multiple attempts. Please check your internet connection and try again. If the problem persists, the speech recognition service may be temporarily unavailable.');
+                  }
+                } else if (event.error === 'no-speech') {
+                  console.warn('🎤 [Voice-to-Text] No speech detected - user may not be speaking or microphone may not be picking up audio');
+                  retryCountRef.current = 0; // Reset retry count for non-network errors
+                } else if (event.error === 'audio-capture') {
+                  console.error('🎤 [Voice-to-Text] Audio capture error - microphone may not be working');
+                  retryCountRef.current = 0;
+                } else if (event.error === 'not-allowed') {
+                  console.error('🎤 [Voice-to-Text] Permission denied - microphone access not allowed');
+                  retryCountRef.current = 0;
+                } else {
+                  console.error('🎤 [Voice-to-Text] Unknown error:', event.error);
+                  retryCountRef.current = 0;
+                }
+              };
+              
+              recognition.onend = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onend event fired');
+                // If we're still supposed to be listening but recognition ended due to error,
+                // and we haven't exceeded retries, the retry logic in onerror will handle it
+                if (listening && retryCountRef.current < maxRetries) {
+                  console.log('🎤 [Voice-to-Text] Recognition ended unexpectedly, but retry may be in progress');
+                } else if (!listening) {
+                  // Normal end - reset retry count
+                  retryCountRef.current = 0;
+                }
+              };
+              
+              recognition.onaudiostart = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onaudiostart event fired - Audio capture started');
+              };
+              
+              recognition.onaudioend = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onaudioend event fired - Audio capture ended');
+              };
+              
+              recognition.onsoundstart = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onsoundstart event fired - Sound detected');
+              };
+              
+              recognition.onsoundend = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onsoundend event fired - Sound ended');
+              };
+              
+              recognition.onspeechstart = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onspeechstart event fired - Speech detected');
+              };
+              
+              recognition.onspeechend = () => {
+                console.log('🎤 [Voice-to-Text] Recognition.onspeechend event fired - Speech ended');
+              };
+              
+              recognition.onnomatch = () => {
+                console.warn('🎤 [Voice-to-Text] Recognition.onnomatch event fired - No speech match found');
+              };
+            }
+          }
+        } catch (getRecognitionError) {
+          console.warn('🎤 [Voice-to-Text] Could not get recognition object:', getRecognitionError);
+        }
+        
         // Start listening - options are set in the hook configuration
+        // Note: Some browsers may require HTTPS for speech recognition to work
+        console.log('🎤 [Voice-to-Text] Protocol check:', {
+          protocol: window.location.protocol,
+          isHTTPS: window.location.protocol === 'https:',
+          hostname: window.location.hostname,
+          isLocalhost: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        });
+        
         SpeechRecognition.startListening({ 
           continuous: true, 
           interimResults: true, 
           language: 'en-US' 
         });
+        console.log('🎤 [Voice-to-Text] SpeechRecognition.startListening() called successfully');
+        
+        // Log recognition state after starting
+        setTimeout(() => {
+          if (recognition) {
+            console.log('🎤 [Voice-to-Text] Recognition state after start:', {
+              continuous: recognition.continuous,
+              interimResults: recognition.interimResults,
+              lang: recognition.lang,
+              serviceURI: recognition.serviceURI
+            });
+          }
+        }, 100);
       } catch (error) {
-        console.error('Error starting speech recognition:', error);
+        console.error('🎤 [Voice-to-Text] Error starting speech recognition:', error);
+        console.error('🎤 [Voice-to-Text] Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          code: error.code
+        });
         let errorMessage = 'Failed to start voice recording. ';
         if (error.message) {
           errorMessage += error.message;
@@ -678,11 +946,13 @@ export default function PhotoSection({ formData, updateFormData }) {
                 const newValue = e.target.value;
                 // If user is typing, stop listening to avoid conflicts
                 if (listening) {
+                  console.log('🎤 [Voice-to-Text] User started typing, stopping voice recording');
                   try {
                     SpeechRecognition.stopListening();
                     resetTranscript();
+                    console.log('🎤 [Voice-to-Text] Voice recording stopped due to user input');
                   } catch (err) {
-                    console.error('Error stopping recognition on user input:', err);
+                    console.error('🎤 [Voice-to-Text] Error stopping recognition on user input:', err);
                   }
                 }
                 updateFormData({ notes: newValue });

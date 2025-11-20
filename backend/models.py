@@ -24,11 +24,13 @@ class Customer(Base):
     zipcode = Column(String(20))
     city = Column(String(100))
     county = Column(String(100))
+    region = Column(String(100))  # Sales region
     contact_person = Column(String(255))
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     job_title = Column(String(100))
-    shop_timings = Column(Text)  # Working hours, e.g., "Mon-Fri: 9:00 AM - 6:00 PM"
+    opening_time = Column(String(10))  # Opening time, e.g., "09:00"
+    closing_time = Column(String(10))  # Closing time, e.g., "18:00"
     visit_notes = Column(Text)  # Notes for next visit, e.g., "Bring new samples on next visit"
     status = Column(String(20), default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -49,11 +51,13 @@ class ShopVisit(Base):
     zipcode = Column(String(20))
     city = Column(String(100))
     county = Column(String(100))
+    region = Column(String(100))  # Sales region snapshot
     contact_person = Column(String(255))
     contact_phone = Column(String(50))
     contact_email = Column(String(255))
     job_title = Column(String(100))
-    shop_timings = Column(Text)  # Working hours snapshot
+    opening_time = Column(String(10))  # Opening time snapshot, e.g., "09:00"
+    closing_time = Column(String(10))  # Closing time snapshot, e.g., "18:00"
     
     # Visit status and workflow
     visit_status = Column(SQLEnum(VisitStatus), default=VisitStatus.draft)
