@@ -8,14 +8,14 @@ export default function ReportFilters({ filters, onFiltersChange, shopTypes = []
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="space-y-2">
-        <Label>Date Range</Label>
+        <Label className="text-sm font-medium">Date Range</Label>
         <Select
           value={filters.dateRange}
           onValueChange={(value) => updateFilter('dateRange', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -28,12 +28,12 @@ export default function ReportFilters({ filters, onFiltersChange, shopTypes = []
       </div>
 
       <div className="space-y-2">
-        <Label>Shop Type</Label>
+        <Label className="text-sm font-medium">Shop Type</Label>
         <Select
           value={filters.shopType}
           onValueChange={(value) => updateFilter('shopType', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -58,12 +58,12 @@ export default function ReportFilters({ filters, onFiltersChange, shopTypes = []
       </div>
 
       <div className="space-y-2">
-        <Label>Priority Level</Label>
+        <Label className="text-sm font-medium">Priority Level</Label>
         <Select
           value={filters.priority}
           onValueChange={(value) => updateFilter('priority', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -76,12 +76,12 @@ export default function ReportFilters({ filters, onFiltersChange, shopTypes = []
       </div>
 
       <div className="space-y-2">
-        <Label>Follow-up Status</Label>
+        <Label className="text-sm font-medium">Follow-up Status</Label>
         <Select
           value={filters.followUp}
           onValueChange={(value) => updateFilter('followUp', value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
