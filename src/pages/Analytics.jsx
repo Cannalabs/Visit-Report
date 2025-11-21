@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart, CartesianGrid } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { format, subMonths, startOfMonth, subYears } from 'date-fns';
 import { 
   Target,
@@ -22,32 +24,48 @@ import {
 // Helper to format currency
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(value);
 
-// Custom Tooltip for Charts
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-        <p className="font-semibold text-gray-900 mb-2 text-sm">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={`item-${index}`} className="text-sm text-gray-700" style={{ color: entry.color }}>
-            {`${entry.name}: ${entry.formatter ? entry.formatter(entry.value) : entry.value}`}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
 
 // Common chart styling props
 const chartAxisStyle = {
-  tick: { fill: '#6B7280', fontSize: 12 },
-  label: { fill: '#374151', fontSize: 12, fontWeight: 500 }
+  tick: { fill: '#6B7280', fontSize: 12, fontWeight: 500 },
+  label: { fill: '#374151', fontSize: 12, fontWeight: 600 }
 };
 
 const chartGridStyle = {
   stroke: '#E5E7EB',
-  strokeWidth: 1
+  strokeWidth: 1,
+  strokeDasharray: '3 3'
+};
+
+// Enhanced color palette with beautiful gradients
+const chartColors = {
+  primary: '#10B981', // Emerald green
+  secondary: '#3B82F6', // Blue
+  accent: '#8B5CF6', // Purple
+  warning: '#F59E0B', // Amber
+  success: '#22C55E', // Green
+  info: '#06B6D4', // Cyan
+  danger: '#EF4444', // Red
+  gradient: {
+    green: ['#10B981', '#059669', '#047857'],
+    blue: ['#3B82F6', '#2563EB', '#1D4ED8'],
+    purple: ['#8B5CF6', '#7C3AED', '#6D28D9'],
+    orange: ['#F59E0B', '#D97706', '#B45309'],
+    emerald: ['#10B981', '#34D399', '#6EE7B7'],
+    indigo: ['#6366F1', '#818CF8', '#A5B4FC'],
+    rose: ['#F43F5E', '#FB7185', '#FDA4AF']
+  }
+};
+
+// Chart background gradients
+const chartBackgrounds = {
+  sales: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%)',
+  score: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)',
+  regional: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%)',
+  product: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #e9d5ff 100%)',
+  comparison: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%)',
+  forecast: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 50%, #f5d0fe 100%)',
+  drilldown: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 50%, #99f6e4 100%)'
 };
 
 
@@ -80,9 +98,16 @@ export default function Analytics() {
   }, []);
 
   const filteredVisits = visits.filter(visit => {
-    const visitDate = new Date(visit.visit_date);
+    if (!visit.visit_date && !visit.created_date && !visit.created_at) return false;
+    try {
+      const dateToUse = visit.visit_date || visit.created_date || visit.created_at;
+      const visitDate = new Date(dateToUse);
+      if (isNaN(visitDate.getTime())) return false;
     const rangeStart = subMonths(new Date(), timeRange);
     return visitDate >= rangeStart;
+    } catch (e) {
+      return false;
+    }
   });
 
   // Calculate KPIs
@@ -152,8 +177,15 @@ export default function Analytics() {
     return acc;
   }, {});
   
+  const PIE_COLORS = [
+    chartColors.primary,    // Emerald green
+    chartColors.secondary,  // Blue
+    chartColors.accent,      // Purple
+    chartColors.warning,    // Amber
+    chartColors.info        // Cyan
+  ];
+  
   const chartableProductData = Object.values(productData).sort((a, b) => b.sales - a.sales).slice(0, 5);
-  const PIE_COLORS = ['#2E7D32', '#4CAF50', '#81C784', '#FFC107', '#FF9800'];
 
   // Comparison Data (Month-over-Month or Year-over-Year)
   const getComparisonData = () => {
@@ -222,16 +254,18 @@ export default function Analytics() {
     const result = [];
     for (let i = 0; i < monthlyData.length + 3; i++) {
       const forecast = slope * i + intercept;
-      const margin = forecast * 0.2;
+      const margin = Math.abs(forecast * 0.2);
+      const isForecastPeriod = i >= monthlyData.length;
+      const isLastActualPeriod = i === monthlyData.length - 1;
       
       result.push({
         period: i < monthlyData.length 
           ? monthlyData[i].month 
           : `Forecast ${i - monthlyData.length + 1}`,
-        actual: i < monthlyData.length ? monthlyData[i].sales : null,
-        forecast: i >= monthlyData.length - 1 ? Math.max(0, forecast) : null,
-        upperBound: i >= monthlyData.length - 1 ? Math.max(0, forecast + margin) : null,
-        lowerBound: i >= monthlyData.length - 1 ? Math.max(0, forecast - margin) : null
+        actual: i < monthlyData.length ? monthlyData[i].sales : undefined,
+        forecast: (isForecastPeriod || isLastActualPeriod) ? Math.max(0, forecast) : undefined,
+        upperBound: (isForecastPeriod || isLastActualPeriod) ? Math.max(0, forecast + margin) : undefined,
+        lowerBound: (isForecastPeriod || isLastActualPeriod) ? Math.max(0, forecast - margin) : undefined
       });
     }
     
@@ -293,13 +327,91 @@ export default function Analytics() {
   // Heatmap Data (Visits by Day of Week and Hour)
   const getHeatmapData = () => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayMap = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 0: 'Sun' };
     const hours = ['9-12', '12-15', '15-18', '18-21'];
     
-    return days.map(day => ({
-      label: day,
-      columns: hours,
-      values: hours.map(() => Math.floor(Math.random() * 30) + 5) // Mock data
-    }));
+    // Initialize heatmap data structure
+    const heatmapData = {};
+    days.forEach(day => {
+      heatmapData[day] = {
+        label: day,
+        columns: hours,
+        values: hours.map(() => 0)
+      };
+    });
+    
+    // Process real visit data - use visit_date or created_date as fallback
+    filteredVisits.forEach(visit => {
+      // Try visit_date first, then created_date/created_at as fallback
+      let dateToUse = visit.visit_date || visit.created_date || visit.created_at;
+      if (!dateToUse) return;
+      
+      try {
+        const visitDate = new Date(dateToUse);
+        if (isNaN(visitDate.getTime())) return;
+        
+        // Get day of week (0 = Sunday, 1 = Monday, etc.)
+        const dayOfWeek = visitDate.getDay();
+        const dayLabel = dayMap[dayOfWeek];
+        if (!dayLabel || !heatmapData[dayLabel]) return;
+        
+        // Get hour of day
+        let hour = visitDate.getHours();
+        let minutes = visitDate.getMinutes();
+        
+        // If hour is 0 and minutes is 0, it might be a date-only field
+        // Try to use created_date/created_at which likely has a time component
+        if (hour === 0 && minutes === 0 && !visit.visit_date && (visit.created_date || visit.created_at)) {
+          const fallbackDate = new Date(visit.created_date || visit.created_at);
+          if (!isNaN(fallbackDate.getTime())) {
+            hour = fallbackDate.getHours();
+            minutes = fallbackDate.getMinutes();
+          }
+        }
+        
+        // If still no time info, distribute evenly or use a default
+        // For now, if hour is 0 and it's likely a date-only field, use created_date time
+        if (hour === 0 && minutes === 0 && visit.created_date) {
+          const createdDate = new Date(visit.created_date);
+          if (!isNaN(createdDate.getTime()) && (createdDate.getHours() !== 0 || createdDate.getMinutes() !== 0)) {
+            hour = createdDate.getHours();
+            minutes = createdDate.getMinutes();
+          }
+        }
+        
+        // Determine time slot
+        let timeSlotIndex = -1;
+        if (hour >= 9 && hour < 12) {
+          timeSlotIndex = 0; // 9-12
+        } else if (hour >= 12 && hour < 15) {
+          timeSlotIndex = 1; // 12-15
+        } else if (hour >= 15 && hour < 18) {
+          timeSlotIndex = 2; // 15-18
+        } else if (hour >= 18 && hour < 21) {
+          timeSlotIndex = 3; // 18-21
+        } else {
+          // For hours outside 9-21, map to nearest slot
+          if (hour < 9) {
+            timeSlotIndex = 0; // Early morning -> 9-12
+          } else if (hour >= 21) {
+            timeSlotIndex = 3; // Late evening -> 18-21
+          } else {
+            // If hour is 0 (midnight) and no time info, distribute to middle slot (12-15)
+            timeSlotIndex = 1; // Default to 12-15 for unknown times
+          }
+        }
+        
+        // Increment count if we have a valid time slot
+        if (timeSlotIndex >= 0 && timeSlotIndex < hours.length && heatmapData[dayLabel]) {
+          heatmapData[dayLabel].values[timeSlotIndex]++;
+        }
+      } catch (e) {
+        // Skip invalid dates
+        console.debug('Invalid date in heatmap:', dateToUse, e);
+      }
+    });
+    
+    return Object.values(heatmapData);
   };
 
   if (isLoading) {
@@ -325,7 +437,7 @@ export default function Analytics() {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-500" />
+              <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
               <Select value={timeRange.toString()} onValueChange={(val) => setTimeRange(parseInt(val))}>
                 <SelectTrigger className="w-48 border-gray-200">
                   <SelectValue />
@@ -421,206 +533,287 @@ export default function Analytics() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="col-span-1 lg:col-span-2 border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Visit & Sales Trends</CardTitle>
-                </CardHeader>
+              <Card className="col-span-1 lg:col-span-2 border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.sales }}>
+                <CardHeader className="border-b border-emerald-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    Visit & Sales Trends
+                  </CardTitle>
+            </CardHeader>
                 <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
                   {chartableSalesData && chartableSalesData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ChartContainer
+                      config={{
+                        sales: {
+                          label: "Total Sales",
+                          color: "#10B981",
+                        },
+                      }}
+                      className="h-full w-full"
+                    >
+                      <AreaChart data={chartableSalesData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--color-sales)" stopOpacity={1}/>
+                            <stop offset="95%" stopColor="var(--color-sales)" stopOpacity={0.2}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
                           dataKey="month" 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                         />
                         <YAxis 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                           tickFormatter={(value) => {
                             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                             if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                             return value.toString();
                           }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend 
+                        <ChartTooltip 
+                          cursor={false} 
+                          content={<ChartTooltipContent 
+                            formatter={(value, name) => {
+                              const label = name === 'sales' ? 'Total Sales' : name;
+                              return `${label}: ${formatCurrency(value)}`;
+                            }}
+                          />} 
+                        />
+                        <ChartLegend 
+                          content={<ChartLegendContent />} 
                           wrapperStyle={{ paddingTop: '20px' }}
-                          iconType="line"
-                          formatter={(value) => `→ ${value}`}
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="sales" 
-                          name="Total Sales" 
-                          stroke="#2E7D32" 
-                          strokeWidth={2.5}
-                          dot={{ fill: '#2E7D32', r: 4 }}
+                        <Area
+                          dataKey="sales"
+                          type="monotone"
+                          fill="url(#fillSales)"
+                          fillOpacity={0.6}
+                          stroke="var(--color-sales)"
+                          strokeWidth={4}
+                          dot={{ fill: "var(--color-sales)", r: 4 }}
                           activeDot={{ r: 6 }}
-                          formatter={(val) => formatCurrency(val)} 
+                          connectNulls={false}
                         />
-                      </LineChart>
-                    </ResponsiveContainer>
+                      </AreaChart>
+                    </ChartContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       <p>No data available</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-              
-              <Card className="col-span-1 lg:col-span-2 border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Efficiency Score Trend</CardTitle>
-                </CardHeader>
+            </CardContent>
+          </Card>
+          
+              <Card className="col-span-1 lg:col-span-2 border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.score }}>
+                <CardHeader className="border-b border-amber-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-600" />
+                    Efficiency Score Trend
+                  </CardTitle>
+            </CardHeader>
                 <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
                   {chartableSalesData && chartableSalesData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ChartContainer
+                      config={{
+                        avgScore: {
+                          label: "Average Score",
+                          color: "#F59E0B",
+                        },
+                      }}
+                      className="h-full w-full"
+                    >
+                      <AreaChart data={chartableSalesData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="fillScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--color-avgScore)" stopOpacity={1}/>
+                            <stop offset="95%" stopColor="var(--color-avgScore)" stopOpacity={0.2}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
                           dataKey="month" 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                         />
                         <YAxis 
-                          domain={[0, 100]} 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          domain={[0, 100]}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                         />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend 
+                        <ChartTooltip 
+                          cursor={false} 
+                          content={<ChartTooltipContent 
+                            formatter={(value, name) => {
+                              const label = name === 'avgScore' ? 'Average Score' : name;
+                              return `${label}: ${value.toFixed(1)}`;
+                            }}
+                          />} 
+                        />
+                        <ChartLegend 
+                          content={<ChartLegendContent />} 
                           wrapperStyle={{ paddingTop: '20px' }}
-                          iconType="circle"
-                          formatter={(value) => `→ ${value}`}
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="avgScore" 
-                          name="Average Score" 
-                          stroke="#FF9800" 
-                          strokeWidth={2.5}
-                          dot={{ fill: '#FF9800', r: 4 }}
+                        <Area
+                          dataKey="avgScore"
+                          type="monotone"
+                          fill="url(#fillScore)"
+                          fillOpacity={0.6}
+                          stroke="var(--color-avgScore)"
+                          strokeWidth={4}
+                          dot={{ fill: "var(--color-avgScore)", r: 4 }}
                           activeDot={{ r: 6 }}
-                          formatter={(val) => val.toFixed(1)} 
+                          connectNulls={false}
                         />
-                      </LineChart>
-                    </ResponsiveContainer>
+                      </AreaChart>
+                    </ChartContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       <p>No data available</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
 
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Regional Performance</CardTitle>
-                </CardHeader>
+              <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.regional }}>
+                <CardHeader className="border-b border-blue-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                    Regional Performance
+                  </CardTitle>
+            </CardHeader>
                 <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
                   {chartableRegionalData && chartableRegionalData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ChartContainer
+                      config={{
+                        sales: {
+                          label: "Sales",
+                          color: "#10B981",
+                        },
+                        visits: {
+                          label: "Visits",
+                          color: "#3B82F6",
+                        },
+                      }}
+                      className="h-full w-full"
+                    >
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
                           dataKey="region" 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                         />
                         <YAxis 
-                          tick={chartAxisStyle.tick}
-                          label={chartAxisStyle.label}
-                          axisLine={{ stroke: '#D1D5DB' }}
+                          yAxisId="left"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
                           tickFormatter={(value) => {
                             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                             if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                             return value.toString();
                           }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend 
-                          wrapperStyle={{ paddingTop: '20px' }}
-                          iconType="square"
-                        />
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(value, name) => {
+                          const label = name === 'sales' ? 'Sales' : name === 'visits' ? 'Visits' : name;
+                          const formattedValue = name === 'sales' ? formatCurrency(value) : value;
+                          return `${label}: ${formattedValue}`;
+                        }} />} />
+                        <ChartLegend content={<ChartLegendContent />} />
                         <Bar 
+                          yAxisId="right"
                           dataKey="sales" 
-                          name="Sales" 
-                          fill="#2E7D32" 
-                          radius={[4, 4, 0, 0]}
-                          formatter={(val) => formatCurrency(val)} 
+                          fill="var(--color-sales)" 
+                          radius={[8, 8, 0, 0]}
                         />
                         <Bar 
+                          yAxisId="left"
                           dataKey="visits" 
-                          name="Visits" 
-                          fill="#81C784" 
-                          radius={[4, 4, 0, 0]}
+                          fill="var(--color-visits)" 
+                          radius={[8, 8, 0, 0]}
                         />
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       <p>No data available</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
 
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Product Sales Distribution</CardTitle>
-                </CardHeader>
+              <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.product }}>
+                <CardHeader className="border-b border-purple-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Store className="w-5 h-5 text-purple-600" />
+                    Product Sales Distribution
+                  </CardTitle>
+            </CardHeader>
                 <CardContent className="h-80 flex items-center pt-6">
                   {chartableProductData && chartableProductData.length > 0 ? (
                     <>
-                      <ResponsiveContainer width="50%" height="100%">
+                      <ChartContainer
+                        config={chartableProductData.reduce((acc, entry, index) => {
+                          acc[entry.name] = {
+                            label: entry.name,
+                            color: PIE_COLORS[index % PIE_COLORS.length],
+                          };
+                          return acc;
+                        }, {})}
+                        className="h-full w-1/2"
+                      >
                         <PieChart>
+                          <ChartLegend
+                            content={<ChartLegendContent nameKey="name" />}
+                            className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
+                          />
                           <Pie 
-                            data={chartableProductData} 
+                            data={chartableProductData.map((entry) => ({
+                              ...entry,
+                              fill: `var(--color-${entry.name})`
+                            }))} 
                             dataKey="sales" 
-                            nameKey="name" 
-                            cx="50%" 
-                            cy="50%" 
-                            outerRadius={85} 
-                            innerRadius={0}
-                            fill="#8884d8"
-                            paddingAngle={2}
-                          >
-                            {chartableProductData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                stroke="#fff"
-                                strokeWidth={2}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            formatter={(val) => formatCurrency(val)}
-                            contentStyle={{
-                              backgroundColor: 'white',
-                              border: '1px solid #E5E7EB',
-                              borderRadius: '8px',
-                              padding: '8px 12px'
-                            }}
+                            nameKey="name"
+                          />
+                          <ChartTooltip 
+                            cursor={false} 
+                            content={<ChartTooltipContent 
+                              formatter={(value, name, props) => {
+                                const label = props.payload?.name || name || 'Sales';
+                                return `${label}: ${formatCurrency(value)}`;
+                              }}
+                              nameKey="name"
+                            />} 
                           />
                         </PieChart>
-                      </ResponsiveContainer>
+                      </ChartContainer>
                       <div className="w-1/2 space-y-3 pl-6">
                         {chartableProductData.map((entry, index) => (
-                           <div key={entry.name} className="flex items-center justify-between text-sm py-1">
-                             <div className="flex items-center">
-                               <div 
-                                 className="w-3.5 h-3.5 rounded-full mr-2.5 border border-gray-200" 
-                                 style={{backgroundColor: PIE_COLORS[index % PIE_COLORS.length]}}
-                               ></div>
-                               <span className="text-gray-700 font-medium">{entry.name}</span>
-                             </div>
-                             <span className="font-semibold text-gray-900">{formatCurrency(entry.sales)}</span>
-                           </div>
+                          <div key={entry.name} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200">
+                            <div className="flex items-center">
+                              <div 
+                                className="w-4 h-4 rounded-full mr-3 border-2 border-white shadow-sm" 
+                                style={{backgroundColor: PIE_COLORS[index % PIE_COLORS.length]}}
+                              ></div>
+                              <span className="text-gray-700 font-semibold">{entry.name}</span>
+                            </div>
+                            <span className="font-bold text-gray-900">{formatCurrency(entry.sales)}</span>
+                          </div>
                         ))}
                       </div>
                     </>
@@ -629,75 +822,102 @@ export default function Analytics() {
                       <p>No data available</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
           </TabsContent>
 
           {/* Comparison Tab */}
           <TabsContent value="comparison" className="space-y-6">
-            <Card className="border-gray-200 shadow-sm">
-              <CardHeader className="border-b border-gray-100 pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900">
+            <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.comparison }}>
+              <CardHeader className="border-b border-cyan-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cyan-600" />
                   Sales Comparison ({comparisonMode === 'mom' ? 'Month-over-Month' : 'Year-over-Year'})
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
                 {getComparisonData() && getComparisonData().length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getComparisonData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.9}/>
-                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0.6}/>
-                      </linearGradient>
-                      <linearGradient id="previousGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#9CA3AF" stopOpacity={0.9}/>
-                        <stop offset="95%" stopColor="#9CA3AF" stopOpacity={0.6}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="period" 
-                      tick={chartAxisStyle.tick}
-                      label={chartAxisStyle.label}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                    />
-                    <YAxis 
-                      tick={chartAxisStyle.tick}
-                      label={chartAxisStyle.label}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                      tickFormatter={(value) => {
-                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                        if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                        return value.toString();
-                      }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend 
-                      wrapperStyle={{ paddingTop: '20px' }}
-                      iconType="square"
-                      formatter={(value) => {
-                        if (value === 'Current Period') return `→ ${value}`;
-                        if (value === 'Previous Period') return `← ${value}`;
-                        return value;
-                      }}
-                    />
-                    <Bar 
-                      dataKey="current" 
-                      name="Current Period" 
-                      fill="url(#currentGradient)" 
-                      radius={[4, 4, 0, 0]}
-                      formatter={(val) => formatCurrency(val)} 
-                    />
-                    <Bar 
-                      dataKey="previous" 
-                      name="Previous Period" 
-                      fill="url(#previousGradient)" 
-                      radius={[4, 4, 0, 0]}
-                      formatter={(val) => formatCurrency(val)} 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                  <ChartContainer
+                    config={{
+                      current: {
+                        label: "Current Period",
+                        color: "#3B82F6",
+                      },
+                      previous: {
+                        label: "Previous Period",
+                        color: "#9CA3AF",
+                      },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <AreaChart data={getComparisonData()} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="fillCurrent" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-current)" stopOpacity={1}/>
+                          <stop offset="95%" stopColor="var(--color-current)" stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="fillPrevious" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--color-previous)" stopOpacity={1}/>
+                          <stop offset="95%" stopColor="var(--color-previous)" stopOpacity={0.2}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis 
+                        dataKey="period" 
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <YAxis 
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                          return value.toString();
+                        }}
+                      />
+                      <ChartTooltip 
+                        cursor={false} 
+                        content={<ChartTooltipContent 
+                          formatter={(value, name) => {
+                            const label = name === 'current' ? 'Current Period' : name === 'previous' ? 'Previous Period' : name || 'Value';
+                            return `${label}: ${formatCurrency(value || 0)}`;
+                          }}
+                        />} 
+                      />
+                      <ChartLegend 
+                        content={<ChartLegendContent />} 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        iconType="line"
+                      />
+                      <Area
+                        dataKey="previous"
+                        type="monotone"
+                        fill="url(#fillPrevious)"
+                        fillOpacity={0.6}
+                        stroke="var(--color-previous)"
+                        strokeWidth={3}
+                        strokeDasharray="5 5"
+                        dot={{ fill: "var(--color-previous)", r: 4 }}
+                        activeDot={{ r: 6 }}
+                        connectNulls={false}
+                      />
+                      <Area
+                        dataKey="current"
+                        type="monotone"
+                        fill="url(#fillCurrent)"
+                        fillOpacity={0.6}
+                        stroke="var(--color-current)"
+                        strokeWidth={4}
+                        dot={{ fill: "var(--color-current)", r: 4 }}
+                        activeDot={{ r: 6 }}
+                        connectNulls={false}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     <p>No data available</p>
@@ -727,32 +947,100 @@ export default function Analytics() {
                 </CardContent>
               </Card>
 
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-gray-600" />
+              <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.sales }}>
+                <CardHeader className="border-b border-emerald-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-emerald-600" />
                     Visit Intensity by Day & Time
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {getHeatmapData().map((day, idx) => (
-                      <div key={idx} className="flex items-center gap-4">
-                        <div className="w-12 text-sm font-medium text-gray-700">{day.label}</div>
-                        <div className="flex gap-2 flex-1">
-                          {day.values.map((value, vIdx) => (
-                            <div 
-                              key={vIdx} 
-                              className="flex-1 h-8 rounded flex items-center justify-center text-xs font-medium text-white"
-                              style={{ backgroundColor: `rgba(46, 125, 50, ${Math.min(value / 30, 1)})` }}
-                            >
-                              {value}
-                            </div>
-                          ))}
+                  <TooltipProvider delayDuration={0}>
+                    <div className="space-y-3">
+                      {/* Time slot headers */}
+                      {getHeatmapData().length > 0 && (
+                        <div className="flex items-center gap-4 mb-2">
+                          <div className="w-12 text-sm font-medium text-gray-500"></div>
+                          <div className="flex gap-2 flex-1">
+                            {getHeatmapData()[0].columns.map((timeSlot, tIdx) => (
+                              <div 
+                                key={tIdx} 
+                                className="flex-1 text-xs font-semibold text-gray-600 text-center"
+                              >
+                                {timeSlot}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                      {/* Day rows with values */}
+                      {getHeatmapData().map((day, idx) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <div className="w-12 text-sm font-medium text-gray-700">{day.label}</div>
+                          <div className="flex gap-2 flex-1">
+                            {day.values.map((value, vIdx) => {
+                              const timeSlot = day.columns[vIdx];
+                              // Calculate max value for intensity scaling
+                              const maxValue = Math.max(...day.values, 1); // At least 1 to avoid division by zero
+                              const intensity = maxValue > 0 ? Math.min(value / maxValue, 1) : 0;
+                              
+                              // Color gradient from light green to dark green based on intensity
+                              const getHeatmapColor = (intensity, hasValue) => {
+                                if (!hasValue || intensity === 0) {
+                                  return 'rgba(229, 231, 235, 0.3)'; // Very light gray for zero values
+                                }
+                                if (intensity < 0.3) return `rgba(34, 197, 94, ${0.4 + intensity * 0.3})`; // Light green
+                                if (intensity < 0.6) return `rgba(16, 185, 129, ${0.6 + intensity * 0.2})`; // Medium green
+                                return `rgba(5, 150, 105, ${0.8 + intensity * 0.2})`; // Dark green
+                              };
+                              
+                              const hasValue = value > 0;
+                              const color = getHeatmapColor(intensity, hasValue);
+                              
+                              return (
+                                <Tooltip key={vIdx} delayDuration={0}>
+                                  <TooltipTrigger asChild>
+                                    <div 
+                                      className={`flex-1 h-8 rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer hover:scale-105 hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-white/30 ${
+                                        hasValue ? 'text-white' : 'text-gray-400'
+                                      }`}
+                                      style={{ 
+                                        backgroundColor: color,
+                                        boxShadow: hasValue && intensity > 0.5 ? `0 2px 8px rgba(5, 150, 105, ${intensity * 0.5})` : 'none'
+                                      }}
+                                    >
+                                      {value}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-gradient-to-br from-gray-900 to-gray-800 text-white px-5 py-4 rounded-xl shadow-2xl border-2 border-emerald-500/30 backdrop-blur-sm z-50">
+                                    <div className="space-y-2 min-w-[160px]">
+                                      <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                                        <div>
+                                          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Weekday</p>
+                                          <p className="font-bold text-base text-emerald-400 uppercase tracking-wide">{day.label}</p>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-400 font-medium">Time:</span>
+                                          <span className="text-sm font-semibold text-white">{timeSlot}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1 border-t border-gray-700">
+                                          <span className="text-xs text-gray-400 font-medium">Value:</span>
+                                          <span className="text-lg font-bold text-emerald-400">{value} visits</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             </div>
@@ -760,80 +1048,132 @@ export default function Analytics() {
 
           {/* Forecast Tab */}
           <TabsContent value="forecast" className="space-y-6">
-            <Card className="border-gray-200 shadow-sm">
-              <CardHeader className="border-b border-gray-100 pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900">Sales Forecast (Next 3 Months)</CardTitle>
+            <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.forecast }}>
+              <CardHeader className="border-b border-purple-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  Sales Forecast (Next 3 Months)
+                </CardTitle>
                 <p className="text-sm text-gray-600 mt-1">Based on historical trends and linear regression</p>
               </CardHeader>
               <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
                 {getForecastData() && getForecastData().length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={getForecastData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <XAxis 
-                      dataKey="period" 
-                      tick={chartAxisStyle.tick}
-                      label={chartAxisStyle.label}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                    />
-                    <YAxis 
-                      tick={chartAxisStyle.tick}
-                      label={chartAxisStyle.label}
-                      axisLine={{ stroke: '#D1D5DB' }}
-                      tickFormatter={(value) => {
-                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                        if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                        return value.toString();
-                      }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend 
-                      wrapperStyle={{ paddingTop: '20px' }}
-                      iconType="line"
-                      formatter={(value) => `→ ${value}`}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="actual" 
-                      name="Actual Data" 
-                      stroke="#8B5CF6" 
-                      strokeWidth={2.5}
-                      dot={{ fill: '#8B5CF6', r: 4 }}
-                      activeDot={{ r: 6 }}
-                      formatter={(val) => val ? formatCurrency(val) : ''} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="forecast" 
-                      name="Forecast" 
-                      stroke="#FF9800" 
-                      strokeWidth={2.5}
-                      strokeDasharray="5 5"
-                      dot={{ fill: '#FF9800', r: 4 }}
-                      activeDot={{ r: 6 }}
-                      formatter={(val) => val ? formatCurrency(val) : ''} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="upperBound" 
-                      name="Upper Range" 
-                      stroke="#81C784" 
-                      strokeWidth={1.5}
-                      strokeDasharray="3 3"
-                      dot={false}
-                      formatter={(val) => val ? formatCurrency(val) : ''} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="lowerBound" 
-                      name="Lower Range" 
-                      stroke="#81C784" 
-                      strokeWidth={1.5}
-                      strokeDasharray="3 3"
-                      dot={false}
-                      formatter={(val) => val ? formatCurrency(val) : ''} 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                  <ChartContainer
+                    config={{
+                      actual: {
+                        label: "Actual Data",
+                        color: "#8B5CF6",
+                      },
+                      forecast: {
+                        label: "Forecast",
+                        color: "#F59E0B",
+                      },
+                      upperBound: {
+                        label: "Upper Range",
+                        color: "#22C55E",
+                      },
+                      lowerBound: {
+                        label: "Lower Range",
+                        color: "#EF4444",
+                      },
+                    }}
+                    className="h-full w-full"
+                  >
+                    <ComposedChart data={getForecastData()} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="fillForecast" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={1}/>
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="fillActual" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={1}/>
+                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.2}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis 
+                        dataKey="period" 
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <YAxis 
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                          return value.toString();
+                        }}
+                      />
+                      <ChartTooltip 
+                        cursor={false} 
+                        content={<ChartTooltipContent 
+                          formatter={(value, name) => {
+                            const labels = {
+                              actual: 'Actual Data',
+                              forecast: 'Forecast',
+                              upperBound: 'Upper Range',
+                              lowerBound: 'Lower Range'
+                            };
+                            const label = labels[name] || name || 'Value';
+                            return `${label}: ${formatCurrency(value || 0)}`;
+                          }}
+                        />} 
+                      />
+                      <ChartLegend 
+                        content={<ChartLegendContent />} 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        iconType="line"
+                      />
+                      <Area
+                        dataKey="actual"
+                        type="monotone"
+                        fill="url(#fillActual)"
+                        fillOpacity={0.4}
+                        stroke="#8B5CF6"
+                        strokeWidth={4}
+                        dot={{ fill: "#8B5CF6", r: 4 }}
+                        activeDot={{ r: 6 }}
+                        connectNulls={false}
+                      />
+                      <Area
+                        dataKey="forecast"
+                        type="monotone"
+                        fill="url(#fillForecast)"
+                        fillOpacity={0.3}
+                        stroke="#F59E0B"
+                        strokeWidth={4}
+                        strokeDasharray="5 5"
+                        dot={{ fill: "#F59E0B", r: 4 }}
+                        activeDot={{ r: 6 }}
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="upperBound"
+                        stroke="#22C55E"
+                        strokeWidth={4}
+                        strokeDasharray="8 4"
+                        dot={{ fill: "#22C55E", r: 5, strokeWidth: 2 }}
+                        activeDot={{ r: 7 }}
+                        connectNulls={true}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="lowerBound"
+                        stroke="#EF4444"
+                        strokeWidth={4}
+                        strokeDasharray="8 4"
+                        dot={{ fill: "#EF4444", r: 5, strokeWidth: 2 }}
+                        activeDot={{ r: 7 }}
+                        connectNulls={true}
+                        isAnimationActive={false}
+                      />
+                    </ComposedChart>
+                  </ChartContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     <p>No data available</p>
@@ -938,53 +1278,74 @@ export default function Analytics() {
             </Card>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-gray-600" />
+              <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.drilldown }}>
+                <CardHeader className="border-b border-teal-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-teal-600" />
                     Regional Distribution
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 h-80" style={{ minHeight: '320px' }}>
                   {chartableRegionalData && chartableRegionalData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="region" 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                      />
-                      <YAxis 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                          return value.toString();
-                        }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
-                        iconType="square"
-                      />
-                      <Bar 
-                        dataKey="visits" 
-                        name="Visits" 
-                        fill="#8B5CF6" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar 
-                        dataKey="sales" 
-                        name="Sales (€K)" 
-                        fill="#06B6D4" 
-                        radius={[4, 4, 0, 0]}
-                        formatter={(val) => (val / 1000).toFixed(1)} 
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                    <ChartContainer
+                      config={{
+                        visits: {
+                          label: "Visits",
+                          color: "#8B5CF6",
+                        },
+                        sales: {
+                          label: "Sales (€K)",
+                          color: "#06B6D4",
+                        },
+                      }}
+                      className="h-full w-full"
+                    >
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis 
+                          dataKey="region" 
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) => {
+                            if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                            if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                            return value.toString();
+                          }}
+                        />
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(value, name) => {
+                          const label = name === 'sales' ? 'Sales' : name === 'visits' ? 'Visits' : name;
+                          const formattedValue = name === 'sales' ? formatCurrency(value) : value;
+                          return `${label}: ${formattedValue}`;
+                        }} />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar 
+                          yAxisId="left"
+                          dataKey="visits" 
+                          fill="var(--color-visits)" 
+                          radius={[8, 8, 0, 0]}
+                        />
+                        <Bar 
+                          yAxisId="right"
+                          dataKey="sales" 
+                          fill="var(--color-sales)" 
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       <p>No data available</p>
@@ -993,30 +1354,53 @@ export default function Analytics() {
                 </CardContent>
               </Card>
 
-              <Card className="border-gray-200 shadow-sm">
-                <CardHeader className="border-b border-gray-100 pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Key Insights</CardTitle>
+              <Card className="border-0 shadow-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #e9d5ff 100%)' }}>
+                <CardHeader className="border-b border-purple-200/30 pb-4 bg-white/50 backdrop-blur-sm">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                    Key Insights
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    {getDrillDownData().slice(0, 3).map((item, idx) => (
-                      <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-semibold text-gray-900">{item.name}</span>
-                          <Badge className={`${item.growth > 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
-                            {item.growth > 0 ? '+' : ''}{item.growth?.toFixed(1)}%
-                          </Badge>
+                    {getDrillDownData().slice(0, 3).map((item, idx) => {
+                      const insightColors = [
+                        { bg: 'from-purple-50 via-violet-50 to-indigo-100', border: 'border-purple-300', icon: 'bg-gradient-to-br from-purple-500 to-violet-600', text: 'text-purple-700', value: 'text-purple-900', accent: 'text-purple-600' },
+                        { bg: 'from-violet-50 via-purple-50 to-fuchsia-100', border: 'border-violet-300', icon: 'bg-gradient-to-br from-violet-500 to-purple-600', text: 'text-violet-700', value: 'text-violet-900', accent: 'text-violet-600' },
+                        { bg: 'from-indigo-50 via-purple-50 to-violet-100', border: 'border-indigo-300', icon: 'bg-gradient-to-br from-indigo-500 to-purple-600', text: 'text-indigo-700', value: 'text-indigo-900', accent: 'text-indigo-600' }
+                      ];
+                      const colorScheme = insightColors[idx % insightColors.length];
+                      
+                      return (
+                        <div key={idx} className={`p-5 bg-gradient-to-br ${colorScheme.bg} rounded-xl border-2 ${colorScheme.border} shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]`}>
+                          <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-12 h-12 ${colorScheme.icon} rounded-xl flex items-center justify-center shadow-lg transform hover:rotate-6 transition-transform`}>
+                                <Store className="w-6 h-6 text-white" />
+                              </div>
+                              <span className={`font-bold text-lg ${colorScheme.text}`}>{item.name}</span>
+                            </div>
+                            <Badge className={`${item.growth > 0 ? 'bg-green-100 text-green-700 border-green-300 shadow-sm font-bold px-3 py-1' : 'bg-red-100 text-red-700 border-red-300 shadow-sm font-bold px-3 py-1'}`}>
+                              {item.growth > 0 ? '+' : ''}{item.growth?.toFixed(1)}%
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between items-center pt-3 border-t-2 border-white/60">
+                            <div className="flex items-center gap-2">
+                              <Users className={`w-5 h-5 ${colorScheme.accent}`} />
+                              <span className={`text-sm font-bold ${colorScheme.text}`}>{item.visits} visits</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className={`w-5 h-5 ${colorScheme.accent}`} />
+                              <span className={`font-bold text-lg ${colorScheme.value}`}>{formatCurrency(item.revenue)}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>{item.visits} visits</span>
-                          <span className="font-semibold text-gray-900">{formatCurrency(item.revenue)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      );
+                    })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
           </TabsContent>
         </Tabs>
 

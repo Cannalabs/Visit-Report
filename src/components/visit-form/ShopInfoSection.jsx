@@ -483,60 +483,63 @@ export default function ShopInfoSection({ formData, updateFormData }) {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="visit_date" className="flex items-center gap-1">
                 Visit Date {formData.visit_status !== "appointment" && renderRequiredAsterisk()}
               </Label>
-            <Input
-              id="visit_date"
-              type="date"
-              value={
-                formData.visit_status === "appointment" && formData.planned_visit_date
-                  ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
-                  : (formData.visit_date || "")
-              }
-              onChange={(e) => updateFormData({ visit_date: e.target.value })}
-              className={getFieldStyle(
-                formData.visit_status === "appointment" && formData.planned_visit_date
-                  ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
-                  : formData.visit_date,
-                formData.visit_status !== "appointment"
-              )}
-              disabled={formData.visit_status === "appointment"}
-            />
-            {formData.visit_status === "appointment" && formData.planned_visit_date && (
-              <p className="text-xs text-blue-600 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Visit date matches planned visit date
-              </p>
-            )}
-            {formData.visit_status === "appointment" && !formData.planned_visit_date && (
-              <p className="text-xs text-blue-600 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Set planned visit date above to auto-fill visit date
-              </p>
-            )}
-            {formData.visit_status !== "appointment" && !formData.visit_date && (
-              <p className="text-xs text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                This field is required
-              </p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="visit_duration">Duration (minutes)</Label>
-            <Input
-              id="visit_duration"
-              type="number"
-              min="1"
-              value={formData.visit_duration ?? ""}
-              onChange={(e) => updateFormData({ visit_duration: parseInt(e.target.value) || 0 })}
-              className="border-green-200 focus:border-green-500"
-            />
-          </div>
-          
-          <div className="space-y-2">
+              <Input
+                id="visit_date"
+                type="date"
+                value={
+                  formData.visit_status === "appointment" && formData.planned_visit_date
+                    ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
+                    : (formData.visit_date || "")
+                }
+                onChange={(e) => updateFormData({ visit_date: e.target.value })}
+                className={getFieldStyle(
+                  formData.visit_status === "appointment" && formData.planned_visit_date
+                    ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
+                    : formData.visit_date,
+                  formData.visit_status !== "appointment"
+                )}
+                disabled={formData.visit_status === "appointment"}
+              />
+              <div className="min-h-[20px]">
+                {formData.visit_status === "appointment" && formData.planned_visit_date && (
+                  <p className="text-xs text-blue-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Visit date matches planned visit date
+                  </p>
+                )}
+                {formData.visit_status === "appointment" && !formData.planned_visit_date && (
+                  <p className="text-xs text-blue-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Set planned visit date above to auto-fill visit date
+                  </p>
+                )}
+                {formData.visit_status !== "appointment" && !formData.visit_date && (
+                  <p className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    This field is required
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="visit_duration">Duration (minutes)</Label>
+              <Input
+                id="visit_duration"
+                type="number"
+                min="1"
+                value={formData.visit_duration ?? ""}
+                onChange={(e) => updateFormData({ visit_duration: parseInt(e.target.value) || 0 })}
+                className="h-9 border-green-200 focus:border-green-500"
+              />
+              <div className="min-h-[20px]"></div>
+            </div>
+            
+            <div className="space-y-2 flex flex-col">
             <Label htmlFor="visit_purpose" className="flex items-center gap-1">
               Visit Purpose {renderRequiredAsterisk()}
             </Label>
@@ -579,12 +582,14 @@ export default function ShopInfoSection({ formData, updateFormData }) {
                 )}
               </SelectContent>
             </Select>
-            {!formData.visit_purpose && (
-              <p className="text-xs text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                This field is required
-              </p>
-            )}
+            <div className="min-h-[20px]">
+              {!formData.visit_purpose && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  This field is required
+                </p>
+              )}
+            </div>
           </div>
           </div>
         </CardContent>

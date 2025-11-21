@@ -62,7 +62,7 @@ export default function CommercialSection({ formData, updateFormData, currentUse
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="commercial_outcome" className="flex items-center gap-1">
                 Commercial Result {renderRequiredAsterisk()}
               </Label>
@@ -82,15 +82,17 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                   <SelectItem value="no_outcome">No Commercial Outcome</SelectItem>
                 </SelectContent>
               </Select>
-              {!formData.commercial_outcome && (
-                <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3 h-3" />
-                  This field is required
-                </p>
-              )}
+              <div className="min-h-[20px]">
+                {!formData.commercial_outcome && (
+                  <p className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    This field is required
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="order_value">Order Value (€)</Label>
               <Input
                 id="order_value"
@@ -113,9 +115,11 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                   }
                 }}
                 placeholder="0.00"
-                className="border-green-200 focus:border-green-500"
+                className="h-9 border-green-200 focus:border-green-500"
               />
-              <p className="text-xs text-gray-500">Enter numbers only (e.g., 123.45)</p>
+              <div className="min-h-[20px]">
+                <p className="text-xs text-gray-500">Enter numbers only (e.g., 123.45)</p>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -169,23 +169,37 @@ export default function Layout({ children, currentPageName }) {
   const checkServerHealth = async () => {
     try {
       // Get base URL - auto-detect based on current hostname
-      let baseUrl = 'http://localhost:8000';
+      let baseUrl = 'http://localhost:8002';
       let healthPath = '/health';
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         const protocol = window.location.protocol;
         const port = window.location.port;
+        const origin = window.location.origin;
         
-        // If accessing through nginx (port 8003 or 80, or any port that's not 8002), use relative path and /api/health
+        // Vite dev server (port 5173) - use relative path to go through Vite proxy
+        if (port === '5173' || origin.includes(':5173')) {
+          baseUrl = '';
+          healthPath = '/api/health';
+        }
+        // If accessing through nginx (port 8003 or 80, or empty port), use relative path and /api/health
         // This covers both production (nginx) and development scenarios
-        if (port === '8003' || port === '80' || port === '' || (hostname !== 'localhost' && hostname !== '127.0.0.1' && port !== '8002')) {
+        else if (port === '8003' || port === '80' || port === '' || 
+            origin.includes(':8003') || 
+            (hostname !== 'localhost' && hostname !== '127.0.0.1' && port !== '8002')) {
           // Accessing through nginx frontend - use relative path
           baseUrl = '';
           healthPath = '/api/health';
         } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          // Local development - direct backend access
-          baseUrl = 'http://localhost:8000';
-          healthPath = '/health';
+          // Local development - direct backend access on port 8002
+          if (port === '8002') {
+            baseUrl = 'http://localhost:8002';
+            healthPath = '/health';
+          } else {
+            // Not on port 8002, likely through Vite dev server or nginx, use relative path
+            baseUrl = '';
+            healthPath = '/api/health';
+          }
         } else {
           // Network IP with direct backend port
           baseUrl = `${protocol}//${hostname}:8002`;
@@ -362,7 +376,7 @@ export default function Layout({ children, currentPageName }) {
 
       <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-green-50/30 to-gray-50">
         <Sidebar className={`border-r border-gray-200/60 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-          <SidebarHeader className={`border-b border-gray-100/60 py-3 flex flex-row items-center bg-gradient-to-r from-green-50/30 to-transparent ${sidebarCollapsed ? 'px-2 justify-center' : 'px-4 gap-2.5'}`}>
+          <SidebarHeader className={`border-b border-gray-100/60 py-3 flex flex-row items-center bg-gradient-to-r from-green-50/30 to-transparent ${sidebarCollapsed ? 'px-2 justify-center' : 'px-4 relative'}`}>
             <Button
               variant="ghost"
               size="icon"
@@ -371,7 +385,7 @@ export default function Layout({ children, currentPageName }) {
             >
               <Menu className="w-4 h-4" />
             </Button>
-            <Link to={createPageUrl("Dashboard")} className={`flex items-center transition-opacity duration-300 ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
+            <Link to={createPageUrl("Dashboard")} className={`flex items-center transition-opacity duration-300 absolute left-1/2 transform -translate-x-1/2 mt-3 ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
               {companyLogo ? (
                 <img
                   src={companyLogo}
@@ -593,15 +607,15 @@ export default function Layout({ children, currentPageName }) {
 
         <main className="flex-1 flex flex-col">
           {/* Mobile header */}
-          <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/60 px-4 py-3 md:hidden shadow-sm">
+          <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/60 px-4 py-3 md:hidden shadow-sm relative">
             <div className="flex items-center justify-between">
               <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
-              <div className="flex items-center gap-2">
+              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 {companyLogo ? (
                   <img
                     src={companyLogo}
                     alt={companyName}
-                    className="h-8"
+                    className="h-8 mx-auto"
                     onError={(e) => {
                       e.target.style.display = 'none';
                     }}
@@ -610,9 +624,11 @@ export default function Layout({ children, currentPageName }) {
                   <img
                     src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
                     alt="CANNA Logo"
-                    className="h-8"
+                    className="h-8 mx-auto"
                   />
                 )}
+              </div>
+              <div className="flex items-center">
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   serverHealth.status === 'healthy' 
                     ? 'bg-green-500' 
