@@ -10,14 +10,12 @@ import {
   Settings,
   User,
   Shield,
-  ChevronLeft,
-  ChevronRight,
+  Menu,
   Users,
   LogOut,
   HelpCircle,
   TrendingUp,
-  AlertCircle,
-  Menu
+  AlertCircle
 } from "lucide-react";
 import {
   Sidebar,
@@ -362,97 +360,114 @@ export default function Layout({ children, currentPageName }) {
         }
       `}</style>
 
-      <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
-        <Sidebar className={`border-r border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
-          <SidebarHeader className="border-b border-gray-100 dark:border-gray-900 p-3 !flex-row flex items-center gap-3 justify-start">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-green-50/30 to-gray-50">
+        <Sidebar className={`border-r border-gray-200/60 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+          <SidebarHeader className={`border-b border-gray-100/60 py-3 flex flex-row items-center bg-gradient-to-r from-green-50/30 to-transparent ${sidebarCollapsed ? 'px-2 justify-center' : 'px-4 gap-2.5'}`}>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200 h-9 w-9 flex-shrink-0"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hover:bg-green-50 h-8 w-8 flex-shrink-0"
             >
-              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <Menu className="w-4 h-4" />
             </Button>
-            {!sidebarCollapsed && (
-              <Link to={createPageUrl("Dashboard")} className="flex items-center flex-shrink-0">
-                {companyLogo ? (
-                  <img
-                    src={companyLogo}
-                    alt={companyName}
-                    className="h-7 w-auto object-contain"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                    {companyName}
-                  </div>
-                )}
-              </Link>
-            )}
-            {sidebarCollapsed && (
-              <Link to={createPageUrl("Dashboard")} className="flex items-center flex-shrink-0">
-                {companyLogo ? (
-                  <img
-                    src={companyLogo}
-                    alt={companyName}
-                    className="h-7 w-7 object-contain"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {companyName.charAt(0)}
-                  </div>
-                )}
-              </Link>
-            )}
+            <Link to={createPageUrl("Dashboard")} className={`flex items-center transition-opacity duration-300 ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
+              {companyLogo ? (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-12"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <img
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
+                  alt="CANNA Logo"
+                  className="h-12"
+                />
+              )}
+            </Link>
           </SidebarHeader>
 
-          <SidebarContent className="p-2">
+          <SidebarContent className={`${sidebarCollapsed ? 'px-2' : 'px-4'} py-4`}>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
-                  {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        className={`
-                          hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
-                          ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
-                          ${location.pathname === item.url 
-                            ? 'text-white' 
-                            : 'text-gray-600 dark:text-gray-400'}
-                        `}
-                        style={location.pathname === item.url ? { backgroundColor: '#0f766e' } : {}}
-                      >
-                        <Link to={item.url} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                          <item.icon className="w-4 h-4 flex-shrink-0" />
-                          {!sidebarCollapsed && <span className="text-sm font-normal">{item.title}</span>}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                <SidebarMenu className="space-y-3">
+                  {navigationItems.map((item, index) => {
+                    const gradients = [
+                      { from: 'from-emerald-500', via: 'via-green-500', to: 'to-teal-500', text: 'text-white', bg: 'bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50', hoverBg: 'hover:from-emerald-100 hover:via-green-100 hover:to-teal-100', icon: 'text-emerald-600', border: 'border-emerald-300' },
+                      { from: 'from-blue-500', via: 'via-indigo-500', to: 'to-violet-500', text: 'text-white', bg: 'bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50', hoverBg: 'hover:from-blue-100 hover:via-indigo-100 hover:to-violet-100', icon: 'text-blue-600', border: 'border-blue-300' },
+                      { from: 'from-purple-500', via: 'via-fuchsia-500', to: 'to-pink-500', text: 'text-white', bg: 'bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50', hoverBg: 'hover:from-purple-100 hover:via-fuchsia-100 hover:to-pink-100', icon: 'text-purple-600', border: 'border-purple-300' },
+                      { from: 'from-orange-500', via: 'via-amber-500', to: 'to-yellow-500', text: 'text-white', bg: 'bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50', hoverBg: 'hover:from-orange-100 hover:via-amber-100 hover:to-yellow-100', icon: 'text-orange-600', border: 'border-orange-300' },
+                      { from: 'from-cyan-500', via: 'via-sky-500', to: 'to-blue-500', text: 'text-white', bg: 'bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50', hoverBg: 'hover:from-cyan-100 hover:via-sky-100 hover:to-blue-100', icon: 'text-cyan-600', border: 'border-cyan-300' }
+                    ];
+                    const gradient = gradients[index % gradients.length];
+                    const isActive = location.pathname === item.url;
+                    
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          className={`
+                            ${isActive 
+                              ? sidebarCollapsed
+                                ? `bg-white ${gradient.icon} shadow-sm`
+                                : `bg-gradient-to-r ${gradient.from} ${gradient.via} ${gradient.to} ${gradient.text} shadow-lg scale-105 border-2 border-transparent`
+                              : sidebarCollapsed 
+                                ? `bg-white text-gray-700`
+                                : `${gradient.bg} text-gray-700 ${gradient.hoverBg} hover:shadow-md hover:scale-[1.02] border border-gray-200/60`
+                            }
+                            ${sidebarCollapsed 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              : 'rounded-2xl py-2.5 px-3 h-8'
+                            }
+                            transition-all duration-300 relative overflow-hidden flex items-center
+                          `}
+                        >
+                          <Link to={item.url} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
+                            <div className="relative z-10 flex items-center justify-center">
+                              <item.icon className={`w-5 h-5 ${isActive && !sidebarCollapsed ? 'text-white' : gradient.icon} transition-transform duration-300`} />
+                            </div>
+                            {!sidebarCollapsed && <span className={`font-semibold ${isActive ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>{item.title}</span>}
+                            {isActive && !sidebarCollapsed && (
+                              <div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse relative z-10" />
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                   {isAdmin && (
                     <>
+                      <div className="pt-3 mt-3 border-t border-gray-200/50">
+                        <p className={`text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3 ${sidebarCollapsed ? 'hidden' : ''}`}>Admin</p>
+                      </div>
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
                           className={`
-                            hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
-                            ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
-                            ${location.pathname === createPageUrl("Configuration") 
-                              ? 'text-white' 
-                              : 'text-gray-600 dark:text-gray-400'}
+                            ${location.pathname === createPageUrl("Configuration")
+                              ? sidebarCollapsed
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 text-white shadow-lg scale-105 border-2 border-transparent'
+                              : sidebarCollapsed
+                                ? 'bg-white text-gray-700'
+                                : 'bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 text-gray-700 hover:from-blue-100 hover:via-indigo-100 hover:to-violet-100 hover:shadow-md hover:scale-[1.02] border border-gray-200/60'
+                            }
+                            ${sidebarCollapsed 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              : 'rounded-2xl py-2.5 px-3 h-8'
+                            }
+                            transition-all duration-300 relative overflow-hidden flex items-center
                           `}
-                          style={location.pathname === createPageUrl("Configuration") ? { backgroundColor: '#0f766e' } : {}}
                         >
-                          <Link to={createPageUrl("Configuration")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                            <Settings className="w-4 h-4 flex-shrink-0" />
-                            {!sidebarCollapsed && <span className="text-sm font-normal">Configuration</span>}
+                          <Link to={createPageUrl("Configuration")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
+                            <div className="relative z-10 flex items-center justify-center">
+                              <Settings className={`w-5 h-5 ${location.pathname === createPageUrl("Configuration") && !sidebarCollapsed ? 'text-white' : 'text-blue-600'} transition-transform duration-300`} />
+                            </div>
+                            {!sidebarCollapsed && <span className={`font-semibold ${location.pathname === createPageUrl("Configuration") ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>Configuration</span>}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -460,17 +475,26 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuButton
                           asChild
                           className={`
-                            hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-md py-2
-                            ${sidebarCollapsed ? 'px-0 justify-center' : 'px-3'}
-                            ${location.pathname === createPageUrl("Admin") 
-                              ? 'text-white' 
-                              : 'text-gray-600 dark:text-gray-400'}
+                            ${location.pathname === createPageUrl("Admin")
+                              ? sidebarCollapsed
+                                ? 'bg-white text-rose-600 shadow-sm'
+                                : 'bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 text-white shadow-lg scale-105 border-2 border-transparent'
+                              : sidebarCollapsed
+                                ? 'bg-white text-gray-700'
+                                : 'bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 text-gray-700 hover:from-rose-100 hover:via-red-100 hover:to-orange-100 hover:shadow-md hover:scale-[1.02] border border-gray-200/60'
+                            }
+                            ${sidebarCollapsed 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              : 'rounded-2xl py-2.5 px-3 h-8'
+                            }
+                            transition-all duration-300 relative overflow-hidden flex items-center
                           `}
-                          style={location.pathname === createPageUrl("Admin") ? { backgroundColor: '#0f766e' } : {}}
                         >
-                          <Link to={createPageUrl("Admin")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                            <Shield className="w-4 h-4 flex-shrink-0" />
-                            {!sidebarCollapsed && <span className="text-sm font-normal">User Management</span>}
+                          <Link to={createPageUrl("Admin")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
+                            <div className="relative z-10 flex items-center justify-center">
+                              <Shield className={`w-5 h-5 ${location.pathname === createPageUrl("Admin") && !sidebarCollapsed ? 'text-white' : 'text-rose-600'} transition-transform duration-300`} />
+                            </div>
+                            {!sidebarCollapsed && <span className={`font-semibold ${location.pathname === createPageUrl("Admin") ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>Admin Panel</span>}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -481,10 +505,10 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-gray-100 dark:border-gray-900 p-3 space-y-2">
-            {/* Server Health Indicator */}
-            {!sidebarCollapsed ? (
-              <div className="px-2 py-1.5 rounded-md bg-gray-50 dark:bg-gray-900 space-y-1">
+          <SidebarFooter className={`border-t border-gray-100/60 py-3 bg-gradient-to-r from-gray-50/30 to-transparent ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
+            {/* Server Health Indicator - Hidden but functional */}
+            {!sidebarCollapsed && (
+              <div className="px-2 py-1.5 rounded-md bg-gray-50/50 space-y-1 mb-2 opacity-0 h-0 overflow-hidden">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
                     serverHealth.status === 'healthy' 
@@ -493,18 +517,14 @@ export default function Layout({ children, currentPageName }) {
                       ? 'bg-yellow-500' 
                       : 'bg-red-500'
                   }`} />
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-xs text-gray-600">
                     {serverHealth.status === 'healthy' ? 'Online' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Offline'}
                   </span>
                 </div>
-                {serverHealth.lastUpdated && (
-                  <div className="text-[10px] text-gray-500 dark:text-gray-500 ml-4">
-                    {serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-1">
+            )}
+            {sidebarCollapsed && (
+              <div className="flex flex-col items-center gap-1 mb-2 opacity-0 h-0 overflow-hidden">
                 <div 
                   className={`w-2 h-2 rounded-full ${
                     serverHealth.status === 'healthy' 
@@ -515,31 +535,27 @@ export default function Layout({ children, currentPageName }) {
                   }`} 
                   title={`Server ${serverHealth.status === 'healthy' ? 'Up' : serverHealth.status === 'unhealthy' ? 'Degraded' : 'Down'}${serverHealth.lastUpdated ? ` - ${serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : ''}`}
                 />
-                {serverHealth.lastUpdated && (
-                  <div className="text-[9px] text-gray-500 dark:text-gray-500">
-                    {serverHealth.lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </div>
-                )}
               </div>
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md">
-                  <div className="flex items-center gap-2.5 w-full">
-                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className={`${sidebarCollapsed ? 'flex justify-center' : ''}`}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className={`${sidebarCollapsed ? 'w-10 h-10 p-0 rounded-full flex items-center justify-center flex-shrink-0' : 'w-full justify-start p-0 h-auto hover:bg-gradient-to-r hover:from-green-50 hover:to-green-50/50 rounded-xl'} transition-all duration-200`}>
+                    <div className={`flex items-center justify-center ${sidebarCollapsed ? 'w-10 h-10' : 'gap-2.5 w-full p-1.5'}`}>
+                      <div className={`w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center ${sidebarCollapsed ? '' : 'ring-2 ring-emerald-200 ring-offset-2'}`}>
                       {user?.avatar_url ? (
                         <img src={user.avatar_url} alt="Profile" className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <User className="w-4 h-4 text-gray-500" />
+                        <User className="w-5 h-5 text-white" />
                       )}
                     </div>
                     {!sidebarCollapsed && (
                       <div className="flex-1 min-w-0 text-left">
-                        <p className="text-sm text-gray-900 dark:text-gray-100 truncate font-medium">
+                        <p className="font-medium text-gray-900 text-sm truncate">
                           {user?.full_name || 'User'}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate capitalize">
+                        <p className="text-xs text-gray-500 truncate capitalize">
                           {user?.role || 'Sales Rep'}
                         </p>
                       </div>
@@ -547,46 +563,55 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link to={createPageUrl("Settings")} className="flex items-center gap-2">
+              <DropdownMenuContent 
+                align={sidebarCollapsed ? "center" : "end"} 
+                side={sidebarCollapsed ? "top" : "bottom"}
+                className={sidebarCollapsed ? "w-auto p-2 rounded-full min-w-[48px]" : "w-56"}
+              >
+                <DropdownMenuItem asChild className={sidebarCollapsed ? "rounded-full" : ""}>
+                  <Link to={createPageUrl("Settings")} className={`flex items-center ${sidebarCollapsed 
+                    ? `justify-center w-10 h-10 p-0 rounded-full ${location.pathname === createPageUrl("Settings") ? 'bg-black text-white' : 'hover:bg-gray-100'}` 
+                    : 'gap-2'}`}>
                     <Settings className="w-4 h-4" />
-                    Settings
+                    {!sidebarCollapsed && <span>Settings</span>}
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2">
+                <DropdownMenuItem className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10 p-0 rounded-full hover:bg-gray-100' : 'gap-2'} ${sidebarCollapsed ? 'rounded-full' : ''}`}>
                   <HelpCircle className="w-4 h-4" />
-                  Help
+                  {!sidebarCollapsed && <span>Help</span>}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <DropdownMenuSeparator className={sidebarCollapsed ? "my-1" : ""} />
+                <DropdownMenuItem onClick={handleLogout} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10 p-0 rounded-full hover:bg-red-50' : 'gap-2'} ${sidebarCollapsed ? 'rounded-full' : ''} text-red-600`}>
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  {!sidebarCollapsed && <span>Sign Out</span>}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
           {/* Mobile header */}
-          <header className="bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 px-4 py-2.5 md:hidden">
+          <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/60 px-4 py-3 md:hidden shadow-sm">
             <div className="flex items-center justify-between">
-              <SidebarTrigger className="hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-md transition-colors" />
+              <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
               <div className="flex items-center gap-2">
                 {companyLogo ? (
                   <img
                     src={companyLogo}
                     alt={companyName}
-                    className="h-7 w-auto object-contain"
+                    className="h-8"
                     onError={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                    {companyName}
-                  </div>
+                  <img
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
+                    alt="CANNA Logo"
+                    className="h-8"
+                  />
                 )}
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   serverHealth.status === 'healthy' 
@@ -600,7 +625,7 @@ export default function Layout({ children, currentPageName }) {
           </header>
 
           {/* Main content */}
-          <div id="page-content" className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+          <div id="page-content" className="flex-1 overflow-auto scrollbar-thin">
             {children}
           </div>
         </main>
