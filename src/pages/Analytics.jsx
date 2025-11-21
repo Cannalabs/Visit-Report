@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { format, subMonths, startOfMonth, subYears } from 'date-fns';
 import { 
   Target,
@@ -425,48 +425,49 @@ export default function Analytics() {
                 <CardHeader className="border-b border-gray-100 pb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900">Visit & Sales Trends</CardTitle>
                 </CardHeader>
-                <CardContent className="h-80 pt-6">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#81C784" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#81C784" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis 
-                        dataKey="month" 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                      />
-                      <YAxis 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                          return value.toString();
-                        }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
-                        iconType="circle"
-                        formatter={(value) => `→ ${value}`}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="sales" 
-                        name="Total Sales" 
-                        stroke="#2E7D32" 
-                        strokeWidth={2}
-                        fill="url(#salesGradient)" 
-                        formatter={(val) => formatCurrency(val)} 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                  {chartableSalesData && chartableSalesData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <XAxis 
+                          dataKey="month" 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                        />
+                        <YAxis 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickFormatter={(value) => {
+                            if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                            if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                            return value.toString();
+                          }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          iconType="line"
+                          formatter={(value) => `→ ${value}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="sales" 
+                          name="Total Sales" 
+                          stroke="#2E7D32" 
+                          strokeWidth={2.5}
+                          dot={{ fill: '#2E7D32', r: 4 }}
+                          activeDot={{ r: 6 }}
+                          formatter={(val) => formatCurrency(val)} 
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               
@@ -474,39 +475,45 @@ export default function Analytics() {
                 <CardHeader className="border-b border-gray-100 pb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900">Efficiency Score Trend</CardTitle>
                 </CardHeader>
-                <CardContent className="h-80 pt-6">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="month" 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                      />
-                      <YAxis 
-                        domain={[0, 100]} 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
-                        iconType="circle"
-                        formatter={(value) => `→ ${value}`}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="avgScore" 
-                        name="Average Score" 
-                        stroke="#FF9800" 
-                        strokeWidth={2.5}
-                        dot={{ fill: '#FF9800', r: 4 }}
-                        activeDot={{ r: 6 }}
-                        formatter={(val) => val.toFixed(1)} 
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                  {chartableSalesData && chartableSalesData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartableSalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <XAxis 
+                          dataKey="month" 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                        />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          iconType="circle"
+                          formatter={(value) => `→ ${value}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="avgScore" 
+                          name="Average Score" 
+                          stroke="#FF9800" 
+                          strokeWidth={2.5}
+                          dot={{ fill: '#FF9800', r: 4 }}
+                          activeDot={{ r: 6 }}
+                          formatter={(val) => val.toFixed(1)} 
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -514,45 +521,51 @@ export default function Analytics() {
                 <CardHeader className="border-b border-gray-100 pb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900">Regional Performance</CardTitle>
                 </CardHeader>
-                <CardContent className="h-80 pt-6">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="region" 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                      />
-                      <YAxis 
-                        tick={chartAxisStyle.tick}
-                        label={chartAxisStyle.label}
-                        axisLine={{ stroke: '#D1D5DB' }}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-                          return value.toString();
-                        }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
-                        iconType="square"
-                      />
-                      <Bar 
-                        dataKey="sales" 
-                        name="Sales" 
-                        fill="#2E7D32" 
-                        radius={[4, 4, 0, 0]}
-                        formatter={(val) => formatCurrency(val)} 
-                      />
-                      <Bar 
-                        dataKey="visits" 
-                        name="Visits" 
-                        fill="#81C784" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                  {chartableRegionalData && chartableRegionalData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <XAxis 
+                          dataKey="region" 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                        />
+                        <YAxis 
+                          tick={chartAxisStyle.tick}
+                          label={chartAxisStyle.label}
+                          axisLine={{ stroke: '#D1D5DB' }}
+                          tickFormatter={(value) => {
+                            if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                            if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                            return value.toString();
+                          }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          iconType="square"
+                        />
+                        <Bar 
+                          dataKey="sales" 
+                          name="Sales" 
+                          fill="#2E7D32" 
+                          radius={[4, 4, 0, 0]}
+                          formatter={(val) => formatCurrency(val)} 
+                        />
+                        <Bar 
+                          dataKey="visits" 
+                          name="Visits" 
+                          fill="#81C784" 
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -561,53 +574,61 @@ export default function Analytics() {
                   <CardTitle className="text-lg font-semibold text-gray-900">Product Sales Distribution</CardTitle>
                 </CardHeader>
                 <CardContent className="h-80 flex items-center pt-6">
-                  <ResponsiveContainer width="50%" height="100%">
-                    <PieChart>
-                      <Pie 
-                        data={chartableProductData} 
-                        dataKey="sales" 
-                        nameKey="name" 
-                        cx="50%" 
-                        cy="50%" 
-                        outerRadius={85} 
-                        innerRadius={0}
-                        fill="#8884d8"
-                        paddingAngle={2}
-                      >
-                        {chartableProductData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            stroke="#fff"
-                            strokeWidth={2}
+                  {chartableProductData && chartableProductData.length > 0 ? (
+                    <>
+                      <ResponsiveContainer width="50%" height="100%">
+                        <PieChart>
+                          <Pie 
+                            data={chartableProductData} 
+                            dataKey="sales" 
+                            nameKey="name" 
+                            cx="50%" 
+                            cy="50%" 
+                            outerRadius={85} 
+                            innerRadius={0}
+                            fill="#8884d8"
+                            paddingAngle={2}
+                          >
+                            {chartableProductData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                stroke="#fff"
+                                strokeWidth={2}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(val) => formatCurrency(val)}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #E5E7EB',
+                              borderRadius: '8px',
+                              padding: '8px 12px'
+                            }}
                           />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="w-1/2 space-y-3 pl-6">
+                        {chartableProductData.map((entry, index) => (
+                           <div key={entry.name} className="flex items-center justify-between text-sm py-1">
+                             <div className="flex items-center">
+                               <div 
+                                 className="w-3.5 h-3.5 rounded-full mr-2.5 border border-gray-200" 
+                                 style={{backgroundColor: PIE_COLORS[index % PIE_COLORS.length]}}
+                               ></div>
+                               <span className="text-gray-700 font-medium">{entry.name}</span>
+                             </div>
+                             <span className="font-semibold text-gray-900">{formatCurrency(entry.sales)}</span>
+                           </div>
                         ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(val) => formatCurrency(val)}
-                        contentStyle={{
-                          backgroundColor: 'white',
-                          border: '1px solid #E5E7EB',
-                          borderRadius: '8px',
-                          padding: '8px 12px'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="w-1/2 space-y-3 pl-6">
-                    {chartableProductData.map((entry, index) => (
-                       <div key={entry.name} className="flex items-center justify-between text-sm py-1">
-                         <div className="flex items-center">
-                           <div 
-                             className="w-3.5 h-3.5 rounded-full mr-2.5 border border-gray-200" 
-                             style={{backgroundColor: PIE_COLORS[index % PIE_COLORS.length]}}
-                           ></div>
-                           <span className="text-gray-700 font-medium">{entry.name}</span>
-                         </div>
-                         <span className="font-semibold text-gray-900">{formatCurrency(entry.sales)}</span>
-                       </div>
-                    ))}
-                  </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -621,9 +642,10 @@ export default function Analytics() {
                   Sales Comparison ({comparisonMode === 'mom' ? 'Month-over-Month' : 'Year-over-Year'})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-80 pt-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getComparisonData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                {getComparisonData() && getComparisonData().length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getComparisonData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#2563EB" stopOpacity={0.9}/>
@@ -676,6 +698,11 @@ export default function Analytics() {
                     />
                   </BarChart>
                 </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <p>No data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -738,9 +765,10 @@ export default function Analytics() {
                 <CardTitle className="text-lg font-semibold text-gray-900">Sales Forecast (Next 3 Months)</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">Based on historical trends and linear regression</p>
               </CardHeader>
-              <CardContent className="h-80 pt-6">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={getForecastData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                {getForecastData() && getForecastData().length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={getForecastData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <XAxis 
                       dataKey="period" 
                       tick={chartAxisStyle.tick}
@@ -806,6 +834,11 @@ export default function Analytics() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <p>No data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -912,9 +945,10 @@ export default function Analytics() {
                     Regional Distribution
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6 h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CardContent className="pt-6 h-80" style={{ minHeight: '320px' }}>
+                  {chartableRegionalData && chartableRegionalData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <XAxis 
                         dataKey="region" 
                         tick={chartAxisStyle.tick}
@@ -951,6 +985,11 @@ export default function Analytics() {
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      <p>No data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
