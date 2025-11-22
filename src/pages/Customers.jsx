@@ -103,7 +103,7 @@ export default function Customers() {
 
   const loadShopTypes = async () => {
     try {
-      const configs = await Configuration.list({ config_type: "shop_types", is_active: true });
+      const configs = await Configuration.list({ config_type: "shop_types", is_active: true }).catch(() => []);
       const sorted = configs.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       setShopTypes(sorted);
     } catch (error) {
@@ -117,7 +117,7 @@ export default function Customers() {
 
   const loadCustomers = async () => {
     try {
-      const data = await Customer.list("-created_date");
+      const data = await Customer.list("-created_date").catch(() => []);
       setCustomers(data);
     } catch (err) {
       setError("Failed to load customers");

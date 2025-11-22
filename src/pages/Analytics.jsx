@@ -81,18 +81,31 @@ export default function Analytics() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [visitData, customerData, userData] = await Promise.all([
-          ShopVisit.list('-created_date', 500),
-          Customer.list(),
-          User.list()
-        ]);
-        setVisits(visitData);
-        setCustomers(customerData);
-        setUsers(userData);
+        // Fetch visits first (most important data) to show page faster
+        const visitData = await ShopVisit.list('-created_date', 500).catch(() => []);
+        setVisits(visitData || []);
+        setIsLoading(false); // Show page as soon as visits are loaded
+        
+        // Fetch customers and users in background (less critical)
+        Promise.all([
+          Customer.list().catch(() => []),
+          User.list().catch(() => [])
+        ]).then(([customerData, userData]) => {
+          setCustomers(customerData || []);
+          setUsers(userData || []);
+        }).catch(error => {
+          console.error("Failed to fetch secondary data:", error);
+          setCustomers([]);
+          setUsers([]);
+        });
       } catch (error) {
         console.error("Failed to fetch analytics data:", error);
+        // Set empty arrays on error to prevent crashes
+        setVisits([]);
+        setCustomers([]);
+        setUsers([]);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     fetchData();
   }, []);
@@ -162,6 +175,171 @@ export default function Analytics() {
   }, {});
 
   const chartableRegionalData = Object.values(regionalData);
+
+  // Country name to ISO code mapping (normalized)
+  const normalizeCountryName = (name) => {
+    if (!name) return null;
+    const normalized = name.trim();
+    const lower = normalized.toLowerCase();
+    
+    // Handle common variations
+    if (lower === 'ind' || lower === 'india' || lower.includes('india')) return 'India';
+    if (lower === 'europe' || lower.includes('europe')) return 'Europe'; // Will need special handling
+    if (lower === 'asia' || lower.includes('asia')) return 'Asia'; // Will need special handling
+    if (lower === 'uk' || lower === 'united kingdom' || lower.includes('united kingdom')) return 'United Kingdom';
+    if (lower === 'usa' || lower === 'us' || lower === 'united states' || lower.includes('united states')) return 'United States';
+    if (lower === 'netherlands' || lower.includes('netherlands') || lower.includes('holland')) return 'Netherlands';
+    if (lower === 'germany' || lower.includes('germany') || lower.includes('deutschland')) return 'Germany';
+    if (lower === 'france' || lower.includes('france')) return 'France';
+    if (lower === 'spain' || lower.includes('spain') || lower.includes('espana')) return 'Spain';
+    if (lower === 'italy' || lower.includes('italy') || lower.includes('italia')) return 'Italy';
+    if (lower === 'belgium' || lower.includes('belgium')) return 'Belgium';
+    if (lower === 'switzerland' || lower.includes('switzerland')) return 'Switzerland';
+    if (lower === 'austria' || lower.includes('austria')) return 'Austria';
+    if (lower === 'portugal' || lower.includes('portugal')) return 'Portugal';
+    if (lower === 'poland' || lower.includes('poland')) return 'Poland';
+    if (lower === 'czech republic' || lower.includes('czech')) return 'Czech Republic';
+    if (lower === 'denmark' || lower.includes('denmark')) return 'Denmark';
+    if (lower === 'sweden' || lower.includes('sweden')) return 'Sweden';
+    if (lower === 'norway' || lower.includes('norway')) return 'Norway';
+    if (lower === 'finland' || lower.includes('finland')) return 'Finland';
+    if (lower === 'ireland' || lower.includes('ireland')) return 'Ireland';
+    if (lower === 'greece' || lower.includes('greece')) return 'Greece';
+    if (lower === 'hungary' || lower.includes('hungary')) return 'Hungary';
+    if (lower === 'romania' || lower.includes('romania')) return 'Romania';
+    if (lower === 'bulgaria' || lower.includes('bulgaria')) return 'Bulgaria';
+    if (lower === 'croatia' || lower.includes('croatia')) return 'Croatia';
+    if (lower === 'slovakia' || lower.includes('slovakia')) return 'Slovakia';
+    if (lower === 'slovenia' || lower.includes('slovenia')) return 'Slovenia';
+    if (lower === 'estonia' || lower.includes('estonia')) return 'Estonia';
+    if (lower === 'latvia' || lower.includes('latvia')) return 'Latvia';
+    if (lower === 'lithuania' || lower.includes('lithuania')) return 'Lithuania';
+    if (lower === 'luxembourg' || lower.includes('luxembourg')) return 'Luxembourg';
+    if (lower === 'malta' || lower.includes('malta')) return 'Malta';
+    if (lower === 'cyprus' || lower.includes('cyprus')) return 'Cyprus';
+    
+    return normalized; // Return as-is if no match
+  };
+
+  const countryToISO = {
+    'India': 'IND',
+    'Netherlands': 'NLD',
+    'Germany': 'DEU',
+    'France': 'FRA',
+    'United Kingdom': 'GBR',
+    'UK': 'GBR',
+    'United States': 'USA',
+    'USA': 'USA',
+    'US': 'USA',
+    'Spain': 'ESP',
+    'Italy': 'ITA',
+    'Belgium': 'BEL',
+    'Switzerland': 'CHE',
+    'Austria': 'AUT',
+    'Portugal': 'PRT',
+    'Poland': 'POL',
+    'Czech Republic': 'CZE',
+    'Denmark': 'DNK',
+    'Sweden': 'SWE',
+    'Norway': 'NOR',
+    'Finland': 'FIN',
+    'Ireland': 'IRL',
+    'Greece': 'GRC',
+    'Hungary': 'HUN',
+    'Romania': 'ROU',
+    'Bulgaria': 'BGR',
+    'Croatia': 'HRV',
+    'Slovakia': 'SVK',
+    'Slovenia': 'SVN',
+    'Estonia': 'EST',
+    'Latvia': 'LVA',
+    'Lithuania': 'LTU',
+    'Luxembourg': 'LUX',
+    'Malta': 'MLT',
+    'Cyprus': 'CYP'
+  };
+
+  // Country/Region Map Data - Group by region (treating regions as countries)
+  const getCountryMapData = () => {
+    const countryData = {};
+    
+    filteredVisits.forEach(visit => {
+      const customer = customers.find(c => c.id === visit.customer_id);
+      // Use region as country identifier, or infer from city/county
+      let country = customer?.region || 'Unknown';
+      
+      // Normalize country name FIRST before processing
+      const normalized = normalizeCountryName(country);
+      country = normalized || country;
+      
+      // If region is not available or still unknown, try to infer from city/county
+      if ((country === 'Unknown' || !countryToISO[country]) && customer?.city) {
+        // Simple mapping - in production, you'd have a proper country mapping
+        const cityLower = customer.city.toLowerCase();
+        if (cityLower.includes('amsterdam') || cityLower.includes('rotterdam') || cityLower.includes('netherlands') || cityLower.includes('holland')) {
+          country = 'Netherlands';
+        } else if (cityLower.includes('berlin') || cityLower.includes('munich') || cityLower.includes('germany') || cityLower.includes('frankfurt')) {
+          country = 'Germany';
+        } else if (cityLower.includes('paris') || cityLower.includes('lyon') || cityLower.includes('france')) {
+          country = 'France';
+        } else if (cityLower.includes('london') || cityLower.includes('manchester') || cityLower.includes('uk') || cityLower.includes('united kingdom') || cityLower.includes('birmingham')) {
+          country = 'United Kingdom';
+        } else if (cityLower.includes('madrid') || cityLower.includes('barcelona') || cityLower.includes('spain') || cityLower.includes('valencia')) {
+          country = 'Spain';
+        } else if (cityLower.includes('rome') || cityLower.includes('milan') || cityLower.includes('italy') || cityLower.includes('naples')) {
+          country = 'Italy';
+        } else if (cityLower.includes('brussels') || cityLower.includes('belgium')) {
+          country = 'Belgium';
+        } else if (cityLower.includes('zurich') || cityLower.includes('geneva') || cityLower.includes('switzerland')) {
+          country = 'Switzerland';
+        } else if (cityLower.includes('vienna') || cityLower.includes('austria')) {
+          country = 'Austria';
+        } else if (cityLower.includes('lisbon') || cityLower.includes('portugal')) {
+          country = 'Portugal';
+        } else if (cityLower.includes('mumbai') || cityLower.includes('delhi') || cityLower.includes('bangalore') || cityLower.includes('chennai') || cityLower.includes('kolkata') || cityLower.includes('hyderabad') || cityLower.includes('pune') || cityLower.includes('india')) {
+          country = 'India';
+        } else {
+          country = country || customer.city; // Use city as fallback
+        }
+      }
+      
+      if (!countryData[country]) {
+        countryData[country] = {
+          country,
+          isoCode: countryToISO[country] || null,
+          sales: 0,
+          visits: 0,
+          customers: new Set(),
+          cities: new Set()
+        };
+      }
+      
+      countryData[country].sales += visit.order_value || 0;
+      countryData[country].visits += 1;
+      if (customer) {
+        countryData[country].customers.add(customer.id);
+        if (customer.city) countryData[country].cities.add(customer.city);
+      }
+    });
+    
+    return Object.values(countryData).map(data => {
+      // Ensure country name is normalized and ISO code is set
+      const normalizedCountry = normalizeCountryName(data.country) || data.country;
+      const isoCode = countryToISO[normalizedCountry] || data.isoCode;
+      
+      return {
+        country: normalizedCountry, // Use normalized name
+        isoCode: isoCode,
+        sales: data.sales,
+        visits: data.visits,
+        customers: data.customers.size,
+        cities: data.cities.size,
+        avgSalesPerVisit: data.visits > 0 ? data.sales / data.visits : 0
+      };
+    }).sort((a, b) => b.sales - a.sales);
+  };
+
+  const countryMapData = getCountryMapData();
 
   // Product Sales Distribution
   const productData = filteredVisits.reduce((acc, visit) => {
@@ -688,7 +866,7 @@ export default function Analytics() {
                     Regional Performance
                   </CardTitle>
             </CardHeader>
-                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                <CardContent className="h-80 pt-6 pb-0" style={{ minHeight: '320px' }}>
                   {chartableRegionalData && chartableRegionalData.length > 0 ? (
                     <ChartContainer
                       config={{
@@ -703,7 +881,7 @@ export default function Analytics() {
                       }}
                       className="h-full w-full"
                     >
-                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
                           dataKey="region" 
@@ -1285,7 +1463,7 @@ export default function Analytics() {
                     Regional Distribution
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6 h-80" style={{ minHeight: '320px' }}>
+                <CardContent className="pt-6 pb-0 h-80" style={{ minHeight: '320px' }}>
                   {chartableRegionalData && chartableRegionalData.length > 0 ? (
                     <ChartContainer
                       config={{
@@ -1300,7 +1478,7 @@ export default function Analytics() {
                       }}
                       className="h-full w-full"
                     >
-                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <BarChart data={chartableRegionalData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis 
                           dataKey="region" 
@@ -1361,9 +1539,11 @@ export default function Analytics() {
                     Key Insights
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {getDrillDownData().slice(0, 3).map((item, idx) => {
+                <CardContent className="pt-6 pb-0">
+                  <div 
+                    className="space-y-4 max-h-[250px] overflow-y-auto pr-2"
+                  >
+                    {getDrillDownData().map((item, idx) => {
                       const insightColors = [
                         { bg: 'from-purple-50 via-violet-50 to-indigo-100', border: 'border-purple-300', icon: 'bg-gradient-to-br from-purple-500 to-violet-600', text: 'text-purple-700', value: 'text-purple-900', accent: 'text-purple-600' },
                         { bg: 'from-violet-50 via-purple-50 to-fuchsia-100', border: 'border-violet-300', icon: 'bg-gradient-to-br from-violet-500 to-purple-600', text: 'text-violet-700', value: 'text-violet-900', accent: 'text-violet-600' },

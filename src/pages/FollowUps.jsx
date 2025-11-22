@@ -42,7 +42,7 @@ export default function FollowUps() {
 
   const loadUsers = async () => {
     try {
-      const userList = await User.list();
+      const userList = await User.list().catch(() => []);
       setUsers(userList || []);
     } catch (error) {
       console.error("Failed to load users:", error);

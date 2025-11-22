@@ -121,7 +121,7 @@ export default function Configuration() {
 
   const loadConfigurations = async () => {
     try {
-      const data = await ConfigEntity.list("display_order");
+      const data = await ConfigEntity.list("display_order").catch(() => []);
       setConfigs(data);
     } catch (err) {
       setError("Failed to load configurations");

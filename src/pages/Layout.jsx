@@ -87,9 +87,14 @@ export default function Layout({ children, currentPageName }) {
   const isAdmin = user?.role === 'admin';
 
   React.useEffect(() => {
-    loadUser();
-    loadCompanySettings();
-    checkServerHealth(); // Initial health check
+    // Run all initial loads in parallel for better performance
+    Promise.all([
+      loadUser(),
+      loadCompanySettings(),
+      checkServerHealth() // Initial health check
+    ]).catch(err => {
+      console.error("Error loading initial data:", err);
+    });
     
     // Listen for the global user update event
     const handleUserUpdate = (event) => {
@@ -102,10 +107,10 @@ export default function Layout({ children, currentPageName }) {
 
     window.addEventListener('message', handleUserUpdate);
 
-    // Set up health check interval (every 5 seconds)
+    // Set up health check interval (every 30 seconds instead of 5 to reduce load)
     const healthInterval = setInterval(() => {
       checkServerHealth();
-    }, 5000);
+    }, 30000);
 
     return () => {
       window.removeEventListener('message', handleUserUpdate);
@@ -144,7 +149,7 @@ export default function Layout({ children, currentPageName }) {
 
   const loadCompanySettings = async () => {
     try {
-      const configs = await ConfigEntity.list();
+      const configs = await ConfigEntity.list().catch(() => []);
       const companyConfigs = configs.filter(c => c.config_type === "company_settings");
       
       // Extract company logo and name

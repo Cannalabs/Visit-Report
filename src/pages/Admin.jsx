@@ -186,7 +186,7 @@ export default function Admin() {
       }
 
       // Check if email already exists in Users
-      const existingUsers = await User.list();
+      const existingUsers = await User.list().catch(() => []);
       const userExists = existingUsers.find(user => user.email === newUserData.email);
       if (userExists) {
         setError("A user with this email already exists in the system");
@@ -433,10 +433,10 @@ export default function Admin() {
       }
 
       const [userList, freshUserData, auditData, profileData] = await Promise.all([
-        User.list(),
+        User.list().catch(() => []),
         User.me().catch(() => currentUserData), // Fallback to cached if API fails
         AuditLog.list("-created_date", 100),
-        UserProfile.list()
+        UserProfile.list().catch(() => [])
       ]);
 
       // Use fresh user data if available, otherwise use cached

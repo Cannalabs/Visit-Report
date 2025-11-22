@@ -69,21 +69,25 @@ export default function Dashboard() {
         }
       }
 
-      const [visitsData, freshUserData] = await Promise.all([
-        ShopVisit.list("-created_date", 100).catch((err) => {
-          return []; // Return empty array on error
-        }),
-        User.me().catch(() => userData) // Fallback to cached if API fails
-      ]);
+      // Fetch visits first (critical data) to show page faster
+      const visitsData = await ShopVisit.list("-created_date", 100).catch((err) => {
+        return []; // Return empty array on error
+      });
       
       // Ensure visitsData is an array
       const visits = Array.isArray(visitsData) ? visitsData : [];
       setVisits(visits);
+      setIsLoading(false); // Show page as soon as visits are loaded
       
-      if (freshUserData) {
-        setUser(freshUserData);
-        localStorage.setItem('user', JSON.stringify(freshUserData));
-      }
+      // Fetch user data in background (less critical, already have cached)
+      User.me().then((freshUserData) => {
+        if (freshUserData) {
+          setUser(freshUserData);
+          localStorage.setItem('user', JSON.stringify(freshUserData));
+        }
+      }).catch(() => {
+        // Already have cached user, so this is fine
+      });
     } catch (error) {
       setVisits([]); // Set empty array on error
     }

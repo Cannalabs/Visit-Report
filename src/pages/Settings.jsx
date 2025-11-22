@@ -84,7 +84,7 @@ export default function Settings() {
             profile = await UserProfile.getByUserId(currentUser.id);
           } catch (error) {
             // If getByUserId fails, try listing and finding
-            const profileList = await UserProfile.list();
+            const profileList = await UserProfile.list().catch(() => []);
             profile = profileList.find(p => p.user_id === currentUser.id);
           }
           

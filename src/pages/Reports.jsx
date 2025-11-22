@@ -83,7 +83,7 @@ export default function Reports() {
 
   const loadShopTypes = async () => {
     try {
-      const configs = await Configuration.list({ config_type: "shop_types", is_active: true });
+      const configs = await Configuration.list({ config_type: "shop_types", is_active: true }).catch(() => []);
       // Sort by display_order
       const sorted = configs.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       setShopTypes(sorted);
