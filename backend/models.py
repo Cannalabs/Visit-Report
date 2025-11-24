@@ -23,7 +23,7 @@ class Customer(Base):
     shop_address = Column(Text)
     zipcode = Column(String(20))
     city = Column(String(100))
-    county = Column(String(100))
+    country = Column(String(100))
     region = Column(String(100))  # Sales region
     contact_person = Column(String(255))
     contact_phone = Column(String(50))
@@ -50,7 +50,7 @@ class ShopVisit(Base):
     shop_address = Column(Text)
     zipcode = Column(String(20))
     city = Column(String(100))
-    county = Column(String(100))
+    country = Column(String(100))
     region = Column(String(100))  # Sales region snapshot
     contact_person = Column(String(255))
     contact_phone = Column(String(50))

@@ -214,6 +214,12 @@ def run_migrations():
         except Exception as e:
             logger.error(f"✗ Error checking table {model.__tablename__}: {e}")
     
+    # Migrate county to country for Customer and ShopVisit tables
+    try:
+        migrate_county_to_country(engine)
+    except Exception as e:
+        logger.error(f"✗ Error during county to country migration: {e}")
+    
     if not migrations_applied:
         logger.info("✓ Database schema is up to date, no migrations needed")
     
@@ -222,4 +228,30 @@ def run_migrations():
     logger.info("=" * 60)
     
     return migrations_applied
+
+def migrate_county_to_country(engine: Engine):
+    """Migrate county column to country column for Customer and ShopVisit tables."""
+    tables_to_migrate = ['customers', 'shop_visits']
+    
+    for table_name in tables_to_migrate:
+        try:
+            # Check if county column exists and country column doesn't exist
+            if column_exists(engine, table_name, 'county') and not column_exists(engine, table_name, 'country'):
+                logger.info(f"Migrating 'county' to 'country' in table '{table_name}'...")
+                
+                with engine.connect() as conn:
+                    # Copy data from county to country
+                    conn.execute(text(f'UPDATE "{table_name}" SET country = county WHERE county IS NOT NULL'))
+                    conn.commit()
+                    logger.info(f"✓ Copied data from 'county' to 'country' in table '{table_name}'")
+            
+            # Drop county column if it exists and country column exists
+            if column_exists(engine, table_name, 'county') and column_exists(engine, table_name, 'country'):
+                logger.info(f"Dropping 'county' column from table '{table_name}'...")
+                with engine.connect() as conn:
+                    conn.execute(text(f'ALTER TABLE "{table_name}" DROP COLUMN IF EXISTS "county"'))
+                    conn.commit()
+                    logger.info(f"✓ Dropped 'county' column from table '{table_name}'")
+        except Exception as e:
+            logger.warning(f"Could not migrate county to country for table '{table_name}': {e}")
 
