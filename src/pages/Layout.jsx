@@ -472,11 +472,9 @@ function LayoutContent({ children, currentPageName }) {
                   }}
                 />
               ) : (
-                <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
-                  alt="CANNA Logo"
-                  className="h-12"
-                />
+                <div className="h-12 flex items-center justify-center">
+                  <span className="text-lg font-bold text-green-600">{companyName}</span>
+                </div>
               )}
             </Link>
           </SidebarHeader>
@@ -713,11 +711,9 @@ function LayoutContent({ children, currentPageName }) {
                     }}
                   />
                 ) : (
-                  <img
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
-                    alt="CANNA Logo"
-                    className="h-7 sm:h-8 mx-auto max-w-[120px] sm:max-w-[150px] object-contain"
-                  />
+                  <div className="h-7 sm:h-8 flex items-center justify-center">
+                    <span className="text-sm sm:text-base font-bold text-green-600">{companyName}</span>
+                  </div>
                 )}
               </div>
               <div className="flex items-center flex-shrink-0">

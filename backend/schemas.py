@@ -46,7 +46,7 @@ class CustomerBase(BaseModel):
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
-    county: Optional[str] = None
+    country: Optional[str] = None
     region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -92,7 +92,7 @@ class CustomerUpdate(BaseModel):
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
-    county: Optional[str] = None
+    country: Optional[str] = None
     region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -110,7 +110,7 @@ class CustomerResponse(BaseModel):
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
-    county: Optional[str] = None
+    country: Optional[str] = None
     region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -134,7 +134,7 @@ class ShopVisitBase(BaseModel):
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
-    county: Optional[str] = None
+    country: Optional[str] = None
     region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -186,7 +186,7 @@ class ShopVisitUpdate(BaseModel):
     shop_address: Optional[str] = None
     zipcode: Optional[str] = None
     city: Optional[str] = None
-    county: Optional[str] = None
+    country: Optional[str] = None
     region: Optional[str] = None  # Sales region
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
