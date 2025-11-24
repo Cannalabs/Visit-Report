@@ -59,12 +59,12 @@ export default function FormProgress({ sections, currentSection, onSectionClick,
   };
 
   return (
-    <Card className="mb-8 p-4">
-      <div className="flex items-center justify-between">
+    <Card className="mb-4 md:mb-8 p-2 md:p-4 overflow-x-auto w-full max-w-full">
+      <div className="flex items-center min-w-max lg:min-w-0 lg:w-full" style={{ width: '100%' }}>
         {sections.map((section, index) => (
           <React.Fragment key={index}>
             <motion.div
-              className={`flex items-center gap-2 transition-colors duration-200 ${
+              className={`flex items-center gap-1 md:gap-2 transition-colors duration-200 flex-shrink-0 ${
                 disabled 
                   ? 'cursor-not-allowed opacity-60' 
                   : 'cursor-pointer'
@@ -79,17 +79,17 @@ export default function FormProgress({ sections, currentSection, onSectionClick,
               whileHover={disabled ? {} : { scale: 1.05 }}
             >
               {index < currentSection ? (
-                <CheckCircle className="w-6 h-6" />
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5 flex-shrink-0" />
               ) : (
-                <Circle className={`w-6 h-6 ${index === currentSection ? 'fill-current' : ''}`} />
+                <Circle className={`w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5 flex-shrink-0 ${index === currentSection ? 'fill-current' : ''}`} />
               )}
-              <span className="font-medium text-sm hidden md:inline">
+              <span className="font-medium text-xs md:text-xs lg:text-xs hidden lg:inline whitespace-nowrap">
                 {section.title}
               </span>
             </motion.div>
             
             {index < sections.length - 1 && (
-              <div className={`flex-1 h-px mx-4 ${
+              <div className={`flex-1 h-px mx-1 md:mx-1.5 lg:mx-1 xl:mx-1.5 min-w-[20px] lg:min-w-0 ${
                 index < currentSection ? 'bg-green-500' : 'bg-gray-300'
               }`} />
             )}

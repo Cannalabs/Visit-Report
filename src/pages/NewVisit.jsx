@@ -976,78 +976,89 @@ export default function NewVisit() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-0 to-green-0" id="page-content">
-      <div className="max-w-4xl mx-auto p-4 md:p-8">
+      <div className="max-w-4xl mx-auto p-3 sm:p-4 md:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-8"
+          className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 mb-4 md:mb-8"
         >
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Dashboard"))}
-            className="border-green-200 hover:bg-green-50"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">{visitId ? "Edit Visit Report" : "New Visit Report"}</h1>
-            <div className="flex items-center gap-4 mt-1">
-              <p className="text-gray-600">Document your shop visit details</p>
-              {formData.visit_status && (
-                <Badge 
-                  variant="outline" 
-                  className={
-                    formData.visit_status === "done" 
-                      ? "border-green-300 text-green-700 bg-green-50"
-                      : formData.visit_status === "appointment"
-                      ? "border-blue-300 text-blue-700 bg-blue-50"
-                      : "border-orange-300 text-orange-700 bg-orange-50"
-                  }
-                >
-                  {formData.visit_status === "done" && <CheckCircle className="w-3 h-3 mr-1" />}
-                  {formData.visit_status === "appointment" && "Appointment"}
-                  {formData.visit_status === "draft" && "Draft"}
-                  {formData.visit_status === "done" && "Done"}
-                </Badge>
-              )}
-              {/* Backward compatibility: show old is_draft badges if visit_status is not set */}
-              {!formData.visit_status && formData.is_draft === false && visitId && (
-                <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Submitted
-                </Badge>
-              )}
-              {!formData.visit_status && formData.is_draft === true && (
-                <Badge variant="outline" className="border-orange-300 text-orange-700">
-                  Draft
-                </Badge>
-              )}
-              {lastSaved && (
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Clock className="w-3 h-3" />
-                  <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
-                  {isDraftSaving && <span className="text-blue-600">(Saving...)</span>}
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+              className="border-green-200 hover:bg-green-50 flex-shrink-0 h-9 w-9 md:h-10 md:w-10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">{visitId ? "Edit Visit Report" : "New Visit Report"}</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4 mt-1">
+                <p className="text-sm md:text-base text-gray-600">Document your shop visit details</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {formData.visit_status && (
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        formData.visit_status === "done" 
+                          ? "border-green-300 text-green-700 bg-green-50 text-xs"
+                          : formData.visit_status === "appointment"
+                          ? "border-blue-300 text-blue-700 bg-blue-50 text-xs"
+                          : "border-orange-300 text-orange-700 bg-orange-50 text-xs"
+                      }
+                    >
+                      {formData.visit_status === "done" && <CheckCircle className="w-3 h-3 mr-1" />}
+                      {formData.visit_status === "appointment" && "Appointment"}
+                      {formData.visit_status === "draft" && "Draft"}
+                      {formData.visit_status === "done" && "Done"}
+                    </Badge>
+                  )}
+                  {/* Backward compatibility: show old is_draft badges if visit_status is not set */}
+                  {!formData.visit_status && formData.is_draft === false && visitId && (
+                    <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50 text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Submitted
+                    </Badge>
+                  )}
+                  {!formData.visit_status && formData.is_draft === true && (
+                    <Badge variant="outline" className="border-orange-300 text-orange-700 text-xs">
+                      Draft
+                    </Badge>
+                  )}
+                  {lastSaved && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Clock className="w-3 h-3 flex-shrink-0" />
+                      <span className="hidden sm:inline">Last saved: </span>
+                      <span>{lastSaved.toLocaleTimeString()}</span>
+                      {isDraftSaving && <span className="text-blue-600">(Saving...)</span>}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             {visitId && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false || formData.visit_status === "appointment") && (
               <Button 
                 onClick={saveDraft} 
                 variant="outline" 
-                className="border-green-200 hover:bg-green-50"
+                size="sm"
+                className="border-green-200 hover:bg-green-50 text-xs sm:text-sm"
                 disabled={isDraftSaving}
               >
-                <Save className="w-4 h-4 mr-2" />
-                {isDraftSaving ? "Saving..." : "Save"}
+                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isDraftSaving ? "Saving..." : "Save"}</span>
               </Button>
             )}
-            <Button onClick={handleDownloadPdf} variant="outline" className="border-green-200 hover:bg-green-50">
-              <Download className="w-4 h-4 mr-2" />
-              Download PDF
+            <Button 
+              onClick={handleDownloadPdf} 
+              variant="outline" 
+              size="sm"
+              className="border-green-200 hover:bg-green-50 text-xs sm:text-sm"
+            >
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Download PDF</span>
             </Button>
           </div>
         </motion.div>
@@ -1103,12 +1114,12 @@ export default function NewVisit() {
             transition={{ duration: 0.3 }}
           >
             <Card className="shadow-lg border-green-100 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-emerald-50">
-                <CardTitle className="text-xl font-bold text-green-800">
+              <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 px-4 md:px-6 py-3 md:py-4">
+                <CardTitle className="text-lg md:text-xl font-bold text-green-800">
                   {sections[currentSection].title}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 {(formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false && visitId)) ? (
                   <div className="space-y-4">
                     <Alert className="bg-blue-50 border-blue-200">
@@ -1140,17 +1151,17 @@ export default function NewVisit() {
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between mt-8">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-4 md:mt-8">
           <Button
             variant="outline"
             onClick={previousSection}
             disabled={currentSection === 0}
-            className="border-green-200 hover:bg-green-50"
+            className="border-green-200 hover:bg-green-50 w-full sm:w-auto text-sm md:text-base"
           >
             Previous
           </Button>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
             {!formData.visit_status && formData.is_draft === false && visitId ? (
               <>
             {currentSection < sections.length - 1 ? (
@@ -1158,14 +1169,14 @@ export default function NewVisit() {
                     onClick={() => {
                       setCurrentSection(currentSection + 1);
                     }}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm md:text-base"
                   >
                     Next Section
                   </Button>
                 ) : (
                   <Alert className="flex-1 bg-yellow-50 border-yellow-200">
                     <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-yellow-800">
+                    <AlertDescription className="text-yellow-800 text-sm">
                       This report has been submitted and cannot be edited.
                     </AlertDescription>
                   </Alert>
@@ -1174,7 +1185,7 @@ export default function NewVisit() {
             ) : currentSection < sections.length - 1 ? (
               <Button
                 onClick={handleNextSection}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm md:text-base"
               >
                 Next Section
               </Button>
@@ -1182,10 +1193,11 @@ export default function NewVisit() {
               <Button
                 onClick={validateChecklist}
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm md:text-base"
               >
-                <Save className="w-4 h-4 mr-2" />
-                {isSubmitting ? 'Submitting...' : (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false) ? "Visit Report Submitted" : "Submit Visit Report")}
+                <Save className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isSubmitting ? 'Submitting...' : (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false) ? "Visit Report Submitted" : "Submit Visit Report")}</span>
+                <span className="sm:hidden">{isSubmitting ? 'Submitting...' : 'Submit'}</span>
               </Button>
             )}
           </div>

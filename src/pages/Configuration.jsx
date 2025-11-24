@@ -530,23 +530,23 @@ export default function Configuration() {
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-start"
+          className="flex flex-col md:flex-row justify-between items-start gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Settings className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+              <Settings className="w-6 h-6 md:w-8 md:h-8 text-blue-600 flex-shrink-0" />
               Configuration
             </h1>
-            <div className="flex items-center gap-4 mt-2 flex-wrap">
-              <p className="text-gray-600">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-1 md:mt-2">
+              <p className="text-sm md:text-base text-gray-600">
                 Manage system configurations and dropdown options
               </p>
-              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+              <div className="flex items-center gap-2 text-xs md:text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
                 <Save className="w-4 h-4" />
                 <span>Auto-save enabled</span>
               </div>
@@ -573,8 +573,45 @@ export default function Configuration() {
 
         {/* Configuration Tabs */}
         <Card>
-          <CardHeader>
-            <div className="flex flex-wrap gap-2">
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4">
+            {/* Mobile Dropdown */}
+            <div className="md:hidden mb-4">
+              <Select value={activeTab} onValueChange={(value) => {
+                setActiveTab(value);
+                resetForm();
+              }}>
+                <SelectTrigger className="w-full border-gray-200 h-10">
+                  <SelectValue>
+                    {(() => {
+                      const config = configTypes[activeTab];
+                      const IconComponent = config?.icon;
+                      return (
+                        <div className="flex items-center gap-2">
+                          {IconComponent && <IconComponent className="w-4 h-4" />}
+                          <span>{config?.label || 'Select Configuration'}</span>
+                        </div>
+                      );
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(configTypes).map(([key, config]) => {
+                    const IconComponent = config.icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="w-4 h-4" />
+                          <span>{config.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop Tabs */}
+            <div className="hidden md:flex flex-wrap gap-2">
               {Object.entries(configTypes).map(([key, config]) => {
                 const IconComponent = config.icon;
                 return (
@@ -594,30 +631,31 @@ export default function Configuration() {
               })}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             {activeTab === "company_settings" ? (
               // Company Settings Form View
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 md:mb-6 pb-4 border-b border-gray-200">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{configTypes[activeTab].label}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{configTypes[activeTab].description}</p>
+                    <h3 className="text-lg md:text-xl font-semibold text-gray-900">{configTypes[activeTab].label}</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mt-1">{configTypes[activeTab].description}</p>
                   </div>
                   <Button
                     onClick={handleCompanySettingsSave}
-                    className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+                    className="bg-blue-600 hover:bg-blue-700 shadow-sm w-full sm:w-auto text-sm md:text-base"
                     size="default"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Settings
+                    <Save className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Save Settings</span>
+                    <span className="sm:hidden">Save</span>
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   {/* Logo Upload Section */}
                   <div className="md:col-span-2">
-                    <Label className="text-base font-semibold mb-3 block">Company Logo</Label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-green-400 transition-colors">
+                    <Label className="text-sm md:text-base font-semibold mb-3 block">Company Logo</Label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 p-3 md:p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-green-400 transition-colors">
                       {companySettings.company_logo && (
                         <div className="relative flex-shrink-0">
                           <img
@@ -673,7 +711,7 @@ export default function Configuration() {
 
                   {/* Company Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="company_name" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="company_name" className="text-xs md:text-sm font-medium text-gray-700">
                       Company Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -681,7 +719,7 @@ export default function Configuration() {
                       value={companySettings.company_name}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, company_name: e.target.value }))}
                       placeholder="Enter company name"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
 
@@ -696,13 +734,13 @@ export default function Configuration() {
                       value={companySettings.company_email}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, company_email: e.target.value }))}
                       placeholder="company@example.com"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
 
                   {/* Company Address */}
                   <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="company_address" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="company_address" className="text-xs md:text-sm font-medium text-gray-700">
                       Company Address
                     </Label>
                     <Textarea
@@ -711,7 +749,7 @@ export default function Configuration() {
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, company_address: e.target.value }))}
                       placeholder="Enter full company address"
                       rows={3}
-                      className="resize-none"
+                      className="text-sm md:text-base resize-none"
                     />
                   </div>
 
@@ -726,7 +764,7 @@ export default function Configuration() {
                       value={companySettings.company_phone}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, company_phone: e.target.value }))}
                       placeholder="+1 (555) 123-4567"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
 
@@ -741,13 +779,13 @@ export default function Configuration() {
                       value={companySettings.company_website}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, company_website: e.target.value }))}
                       placeholder="https://www.example.com"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
 
                   {/* Tax ID */}
                   <div className="space-y-2">
-                    <Label htmlFor="tax_id" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="tax_id" className="text-xs md:text-sm font-medium text-gray-700">
                       Tax ID / VAT Number
                     </Label>
                     <Input
@@ -755,13 +793,13 @@ export default function Configuration() {
                       value={companySettings.tax_id}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, tax_id: e.target.value }))}
                       placeholder="Enter tax ID"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
 
                   {/* Registration Number */}
                   <div className="space-y-2">
-                    <Label htmlFor="registration_number" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="registration_number" className="text-xs md:text-sm font-medium text-gray-700">
                       Registration Number
                     </Label>
                     <Input
@@ -769,7 +807,7 @@ export default function Configuration() {
                       value={companySettings.registration_number}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, registration_number: e.target.value }))}
                       placeholder="Enter registration number"
-                      className="h-10"
+                      className="text-sm md:text-base h-9 md:h-10"
                     />
                   </div>
                 </div>
@@ -777,12 +815,12 @@ export default function Configuration() {
             ) : (
               // Regular Table View for other config types
               <>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{configTypes[activeTab].label}</h3>
-                    <p className="text-sm text-gray-600">{configTypes[activeTab].description}</p>
+                    <h3 className="text-base md:text-lg font-semibold">{configTypes[activeTab].label}</h3>
+                    <p className="text-xs md:text-sm text-gray-600 mt-1">{configTypes[activeTab].description}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {activeTab === "canna_products" ? (
                       <>
                         <input
@@ -796,17 +834,21 @@ export default function Configuration() {
                           variant="outline"
                           onClick={() => document.getElementById('import-products')?.click()}
                           size="sm"
+                          className="text-xs sm:text-sm flex-1 sm:flex-none"
                         >
-                          <FileUp className="w-4 h-4 mr-2" />
-                          Import
+                          <FileUp className="w-3.5 h-3.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Import</span>
+                          <span className="sm:hidden">Import</span>
                         </Button>
                         <Button
                           variant="outline"
                           onClick={handleExportProducts}
                           size="sm"
+                          className="text-xs sm:text-sm flex-1 sm:flex-none"
                         >
-                          <FileDown className="w-4 h-4 mr-2" />
-                          Export
+                          <FileDown className="w-3.5 h-3.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Export</span>
+                          <span className="sm:hidden">Export</span>
                         </Button>
                         <Button
                           onClick={() => {
@@ -814,11 +856,12 @@ export default function Configuration() {
                             setEditingConfig(null);
                             setShowDialog(true);
                           }}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm flex-1 sm:flex-none"
                           size="sm"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Product
+                          <Plus className="w-3.5 h-3.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Add Product</span>
+                          <span className="sm:hidden">Add</span>
                         </Button>
                       </>
                     ) : (
@@ -827,8 +870,10 @@ export default function Configuration() {
                           variant="outline"
                           onClick={() => addDefaultItems(activeTab)}
                           size="sm"
+                          className="text-xs sm:text-sm flex-1 sm:flex-none"
                         >
-                          Add Defaults
+                          <span className="hidden sm:inline">Add Defaults</span>
+                          <span className="sm:hidden">Defaults</span>
                         </Button>
                         <Button
                           onClick={() => {
@@ -836,95 +881,184 @@ export default function Configuration() {
                             setEditingConfig(null);
                             setShowDialog(true);
                           }}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm flex-1 sm:flex-none"
                           size="sm"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Item
+                          <Plus className="w-3.5 h-3.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Add Item</span>
+                          <span className="sm:hidden">Add</span>
                         </Button>
                       </>
                     )}
                   </div>
                 </div>
 
-                <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {getFilteredConfigs().map((config) => (
-                  <TableRow key={config.id}>
-                    <TableCell className="font-medium">{config.config_name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{config.config_value}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={config.is_active}
-                          onCheckedChange={() => toggleActive(config)}
-                        />
-                        <span className={config.is_active ? "text-green-600" : "text-gray-400"}>
-                          {config.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{config.display_order || 0}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {getFilteredConfigs().length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-16">
+                      <Settings className="w-14 h-14 text-gray-300" />
+                      <p className="text-gray-500 font-medium text-sm">No configuration items found</p>
+                      {activeTab === "canna_products" ? (
                         <Button
-                          size="sm"
+                          onClick={() => document.getElementById('import-products')?.click()}
                           variant="outline"
-                          onClick={() => handleEdit(config)}
+                          className="text-sm"
                         >
-                          <Edit className="w-3 h-3" />
+                          <FileUp className="w-4 h-4 mr-2" />
+                          Import Products
                         </Button>
+                      ) : (
                         <Button
-                          size="sm"
+                          onClick={() => addDefaultItems(activeTab)}
                           variant="outline"
-                          onClick={() => handleDelete(config.id)}
-                          className="border-red-200 hover:bg-red-50 text-red-600"
+                          className="text-sm"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          Add Default Items
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {getFilteredConfigs().length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <div className="flex flex-col items-center gap-3">
-                        <Settings className="w-12 h-12 text-gray-300" />
-                        <p className="text-gray-500">No configuration items found</p>
-                        {activeTab === "canna_products" ? (
-                          <Button
-                            onClick={() => document.getElementById('import-products')?.click()}
-                            variant="outline"
-                          >
-                            <FileUp className="w-4 h-4 mr-2" />
-                            Import Products
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => addDefaultItems(activeTab)}
-                            variant="outline"
-                          >
-                            Add Default Items
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                      )}
+                    </div>
+                  ) : (
+                    getFilteredConfigs().map((config) => (
+                      <Card key={config.id} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-gray-900 text-base truncate">
+                                  {config.config_name}
+                                </div>
+                                <div className="mt-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {config.config_value}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <Switch
+                                  checked={config.is_active}
+                                  onCheckedChange={() => toggleActive(config)}
+                                  className="flex-shrink-0"
+                                />
+                                <span className={`text-xs ${config.is_active ? "text-green-600" : "text-gray-400"}`}>
+                                  {config.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Order and Actions */}
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                              <div className="text-xs text-gray-500">
+                                Order: {config.display_order || 0}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEdit(config)}
+                                  className="h-8 text-xs"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDelete(config.id)}
+                                  className="border-red-200 hover:bg-red-50 text-red-600 h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Order</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getFilteredConfigs().map((config) => (
+                        <TableRow key={config.id}>
+                          <TableCell className="font-medium">{config.config_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{config.config_value}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={config.is_active}
+                                onCheckedChange={() => toggleActive(config)}
+                              />
+                              <span className={config.is_active ? "text-green-600" : "text-gray-400"}>
+                                {config.is_active ? "Active" : "Inactive"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{config.display_order || 0}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(config)}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(config.id)}
+                                className="border-red-200 hover:bg-red-50 text-red-600"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {getFilteredConfigs().length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-3">
+                              <Settings className="w-12 h-12 text-gray-300" />
+                              <p className="text-gray-500">No configuration items found</p>
+                              {activeTab === "canna_products" ? (
+                                <Button
+                                  onClick={() => document.getElementById('import-products')?.click()}
+                                  variant="outline"
+                                >
+                                  <FileUp className="w-4 h-4 mr-2" />
+                                  Import Products
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={() => addDefaultItems(activeTab)}
+                                  variant="outline"
+                                >
+                                  Add Default Items
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </>
             )}
           </CardContent>

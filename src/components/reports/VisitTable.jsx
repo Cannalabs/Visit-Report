@@ -127,7 +127,7 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
     <Card className="border-gray-200 shadow-sm">
       <CardContent className="p-0">
         {selectedVisits.length > 0 && (
-          <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-3 bg-blue-50 border-b border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <span className="text-sm font-medium text-blue-900">
               {selectedVisits.length} visit(s) selected
             </span>
@@ -135,14 +135,176 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
               variant="destructive" 
               size="sm" 
               onClick={handleBulkDelete}
-              className="flex items-center gap-2 h-8"
+              className="flex items-center gap-2 h-8 w-full sm:w-auto text-sm"
             >
               <Trash2 className="w-4 h-4" />
               Delete Selected
             </Button>
           </div>
         )}
-        <div className="overflow-x-auto">
+        
+        {/* Mobile & Tablet Card View */}
+        <div className="lg:hidden p-4 space-y-3">
+          {visits.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <Building2 className="w-14 h-14 text-gray-300" />
+              <p className="text-gray-500 font-medium text-sm">No visits found matching your criteria</p>
+            </div>
+          ) : (
+            visits.map((visit) => (
+              <Card key={visit.id} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedVisits.includes(visit.id)}
+                      onCheckedChange={(checked) => handleSelectOne(visit.id, checked)}
+                      disabled={!canDeleteVisit(visit)}
+                      className="mt-1 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <Link to={createPageUrl(`NewVisit?id=${visit.id}`)} className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 hover:text-green-600 transition-colors text-base truncate">
+                            {visit.shop_name}
+                          </div>
+                        </Link>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <div className="text-xs text-gray-500">
+                            {visit.visit_date ? (() => {
+                              try {
+                                const date = new Date(visit.visit_date);
+                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d');
+                              } catch (e) {
+                                return 'Invalid date';
+                              }
+                            })() : 'No date'}
+                          </div>
+                          <div className="text-xs text-gray-500 capitalize">
+                            {visit.visit_purpose?.replace('_', ' ')}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {visit.visit_duration}min
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Badges */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="secondary"
+                          className={`${getShopTypeColor(visit.shop_type)} text-xs font-medium px-2 py-0.5`}
+                        >
+                          {visit.shop_type?.replace('_', ' ')}
+                        </Badge>
+                        {visit.visit_status ? (
+                          visit.visit_status === "done" ? (
+                            <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50 text-xs font-medium px-2 py-0.5">
+                              Done
+                            </Badge>
+                          ) : visit.visit_status === "appointment" ? (
+                            <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50 text-xs font-medium px-2 py-0.5">
+                              Appointment
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 text-xs font-medium px-2 py-0.5">
+                              Draft
+                            </Badge>
+                          )
+                        ) : visit.is_draft ? (
+                          <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 text-xs font-medium px-2 py-0.5">
+                            Draft
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50 text-xs font-medium px-2 py-0.5">
+                            Submitted
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Details */}
+                      <div className="space-y-1.5">
+                        {visit.shop_address && (
+                          <div className="flex items-start gap-1.5 text-sm text-gray-600">
+                            <MapPin className="w-3.5 h-3.5 mt-0.5 text-gray-400 flex-shrink-0" />
+                            <span className="line-clamp-1">{visit.shop_address}</span>
+                          </div>
+                        )}
+                        {visit.contact_person && (
+                          <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                            <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span>{visit.contact_person}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Score and Satisfaction */}
+                      <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
+                        <div>
+                          <div className={`text-lg font-bold ${getScoreColor(visit.calculated_score)}`}>
+                            {visit.calculated_score?.toFixed(1) || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                            <span>{visit.overall_satisfaction}/10</span>
+                          </div>
+                        </div>
+                        {visit.commercial_outcome && (
+                          <div className="flex-1">
+                            <div className="text-xs text-gray-500 capitalize">
+                              {visit.commercial_outcome?.replace('_', ' ')}
+                            </div>
+                            {visit.order_value > 0 && (
+                              <div className="text-sm text-green-600 font-bold">
+                                €{visit.order_value.toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {visit.follow_up_required && (
+                          <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 text-xs font-medium px-2 py-0.5">
+                            <AlertCircle className="w-3 h-3 mr-1 inline" />
+                            Follow-up
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                        <Link to={createPageUrl(`NewVisit?id=${visit.id}`)}>
+                          {visit.is_draft ? (
+                            <Button size="sm" variant="outline" className="flex items-center gap-1.5 h-8 px-3 border-gray-200 hover:bg-gray-50 text-xs">
+                              <Edit className="w-3.5 h-3.5" />
+                              Edit
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="flex items-center gap-1.5 h-8 px-3 border-gray-200 hover:bg-gray-50 text-xs">
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </Button>
+                          )}
+                        </Link>
+                        {canDeleteVisit(visit) && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleDelete(visit.id)}
+                            className="h-8 w-8 p-0 border-gray-200 text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden lg:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50/50 hover:bg-gray-50/50 border-b border-gray-200">

@@ -76,6 +76,7 @@ export default function Analytics() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState(6);
   const [comparisonMode, setComparisonMode] = useState('mom'); // mom = month-over-month, yoy = year-over-year
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -598,15 +599,15 @@ export default function Analytics() {
 
   return (
     <div className="p-4 md:p-8 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-            <p className="text-gray-600 mt-2">Advanced insights and performance metrics</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">Advanced insights and performance metrics</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
             <Select value={comparisonMode} onValueChange={setComparisonMode}>
-              <SelectTrigger className="w-48 border-gray-200">
+              <SelectTrigger className="w-full sm:w-48 border-gray-200 text-sm md:text-base h-9 md:h-10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -615,9 +616,9 @@ export default function Analytics() {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
+              <Calendar className="w-4 h-4 md:w-5 md:h-5 text-gray-500 flex-shrink-0" />
               <Select value={timeRange.toString()} onValueChange={(val) => setTimeRange(parseInt(val))}>
-                <SelectTrigger className="w-48 border-gray-200">
+                <SelectTrigger className="w-full sm:w-48 border-gray-200 text-sm md:text-base h-9 md:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -632,93 +633,116 @@ export default function Analytics() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
           <Card className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100 border-green-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-green-700">Total Visits</CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                <Target className="h-5 w-5 text-white" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 md:px-6 pt-4 md:pt-6">
+              <CardTitle className="text-xs md:text-sm font-semibold text-green-700">Total Visits</CardTitle>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                <Target className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-900">{totalVisits}</div>
+            <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+              <div className="text-2xl md:text-3xl font-bold text-green-900">{totalVisits}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-100 border-blue-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-blue-700">Avg Sales / Visit</CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                <TrendingUp className="h-5 w-5 text-white" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 md:px-6 pt-4 md:pt-6">
+              <CardTitle className="text-xs md:text-sm font-semibold text-blue-700">Avg Sales / Visit</CardTitle>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-900">{formatCurrency(avgSalesPerVisit)}</div>
+            <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+              <div className="text-2xl md:text-3xl font-bold text-blue-900">{formatCurrency(avgSalesPerVisit)}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-50 via-fuchsia-50 to-pink-100 border-purple-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-purple-700">Total Sales</CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md">
-                <Users className="h-5 w-5 text-white" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 md:px-6 pt-4 md:pt-6">
+              <CardTitle className="text-xs md:text-sm font-semibold text-purple-700">Total Sales</CardTitle>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-400 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                <Users className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-900">{formatCurrency(totalSales)}</div>
+            <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+              <div className="text-2xl md:text-3xl font-bold text-purple-900">{formatCurrency(totalSales)}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 border-amber-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-amber-700">Avg Performance</CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
-                <Star className="h-5 w-5 text-white" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 md:px-6 pt-4 md:pt-6">
+              <CardTitle className="text-xs md:text-sm font-semibold text-amber-700">Avg Performance</CardTitle>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                <Star className="h-4 w-4 md:h-5 md:w-5 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-900">{avgPerformanceScore.toFixed(1)}/100</div>
+            <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+              <div className="text-2xl md:text-3xl font-bold text-amber-900">{avgPerformanceScore.toFixed(1)}/100</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Advanced Analytics Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-gray-50 border border-gray-200 h-11">
-            <TabsTrigger 
-              value="overview" 
-              className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
-            >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger 
-              value="comparison" 
-              className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
-            >
-              Comparisons
-            </TabsTrigger>
-            <TabsTrigger 
-              value="forecast" 
-              className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
-            >
-              Forecasting
-            </TabsTrigger>
-            <TabsTrigger 
-              value="drilldown" 
-              className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
-            >
-              Drill-Down
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          {/* Mobile Dropdown */}
+          <div className="md:hidden">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full border-gray-200 h-10">
+                <SelectValue>
+                  {activeTab === 'overview' && 'Overview'}
+                  {activeTab === 'comparison' && 'Comparisons'}
+                  {activeTab === 'forecast' && 'Forecasting'}
+                  {activeTab === 'drilldown' && 'Drill-Down'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">Overview</SelectItem>
+                <SelectItem value="comparison">Comparisons</SelectItem>
+                <SelectItem value="forecast">Forecasting</SelectItem>
+                <SelectItem value="drilldown">Drill-Down</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden md:block">
+            <TabsList className="bg-gray-50 border border-gray-200 h-11">
+              <TabsTrigger 
+                value="overview" 
+                className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger 
+                value="comparison" 
+                className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
+              >
+                Comparisons
+              </TabsTrigger>
+              <TabsTrigger 
+                value="forecast" 
+                className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
+              >
+                Forecasting
+              </TabsTrigger>
+              <TabsTrigger 
+                value="drilldown" 
+                className="data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:border-b-2 data-[state=active]:border-green-500 px-6"
+              >
+                Drill-Down
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="overview" className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <Card className="col-span-1 lg:col-span-2 border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.sales }}>
-                <CardHeader className="border-b border-emerald-200/30 pb-4 bg-white/50 backdrop-blur-sm">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                <CardHeader className="border-b border-emerald-200/30 pb-3 md:pb-4 bg-white/50 backdrop-blur-sm px-4 md:px-6 pt-4 md:pt-6">
+                  <CardTitle className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 flex-shrink-0" />
                     Visit & Sales Trends
                   </CardTitle>
             </CardHeader>
-                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                <CardContent className="h-64 sm:h-80 pt-4 md:pt-6 px-4 md:px-6 pb-4 md:pb-6" style={{ minHeight: '256px' }}>
                   {chartableSalesData && chartableSalesData.length > 0 ? (
                     <ChartContainer
                       config={{
@@ -788,13 +812,13 @@ export default function Analytics() {
           </Card>
           
               <Card className="col-span-1 lg:col-span-2 border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.score }}>
-                <CardHeader className="border-b border-amber-200/30 pb-4 bg-white/50 backdrop-blur-sm">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-600" />
+                <CardHeader className="border-b border-amber-200/30 pb-3 md:pb-4 bg-white/50 backdrop-blur-sm px-4 md:px-6 pt-4 md:pt-6">
+                  <CardTitle className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0" />
                     Efficiency Score Trend
                   </CardTitle>
             </CardHeader>
-                <CardContent className="h-80 pt-6" style={{ minHeight: '320px' }}>
+                <CardContent className="h-64 sm:h-80 pt-4 md:pt-6 px-4 md:px-6 pb-4 md:pb-6" style={{ minHeight: '256px' }}>
                   {chartableSalesData && chartableSalesData.length > 0 ? (
                     <ChartContainer
                       config={{
@@ -860,13 +884,13 @@ export default function Analytics() {
           </Card>
 
               <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.regional }}>
-                <CardHeader className="border-b border-blue-200/30 pb-4 bg-white/50 backdrop-blur-sm">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-blue-600" />
+                <CardHeader className="border-b border-blue-200/30 pb-3 md:pb-4 bg-white/50 backdrop-blur-sm px-4 md:px-6 pt-4 md:pt-6">
+                  <CardTitle className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" />
                     Regional Performance
                   </CardTitle>
             </CardHeader>
-                <CardContent className="h-80 pt-6 pb-0" style={{ minHeight: '320px' }}>
+                <CardContent className="h-64 sm:h-80 pt-4 md:pt-6 pb-0 px-4 md:px-6" style={{ minHeight: '256px' }}>
                   {chartableRegionalData && chartableRegionalData.length > 0 ? (
                     <ChartContainer
                       config={{
@@ -937,12 +961,12 @@ export default function Analytics() {
 
               <Card className="border-0 shadow-xl overflow-hidden" style={{ background: chartBackgrounds.product }}>
                 <CardHeader className="border-b border-purple-200/30 pb-4 bg-white/50 backdrop-blur-sm">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Store className="w-5 h-5 text-purple-600" />
+                  <CardTitle className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Store className="w-4 h-4 md:w-5 md:h-5 text-purple-600 flex-shrink-0" />
                     Product Sales Distribution
                   </CardTitle>
             </CardHeader>
-                <CardContent className="h-80 flex items-center pt-6">
+                <CardContent className="h-auto md:h-80 flex flex-col md:flex-row items-center pt-4 md:pt-6 px-4 md:px-6 pb-4 md:pb-6 gap-4 md:gap-0">
                   {chartableProductData && chartableProductData.length > 0 ? (
                     <>
                       <ChartContainer
@@ -953,7 +977,7 @@ export default function Analytics() {
                           };
                           return acc;
                         }, {})}
-                        className="h-full w-1/2"
+                        className="h-64 md:h-full w-full md:w-1/2"
                       >
                         <PieChart>
                           <ChartLegend
@@ -980,24 +1004,24 @@ export default function Analytics() {
                           />
                         </PieChart>
                       </ChartContainer>
-                      <div className="w-1/2 space-y-3 pl-6">
+                      <div className="w-full md:w-1/2 space-y-2 md:space-y-3 md:pl-6">
                         {chartableProductData.map((entry, index) => (
-                          <div key={entry.name} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200">
-                            <div className="flex items-center">
+                          <div key={entry.name} className="flex items-center justify-between text-xs md:text-sm py-2 px-3 rounded-lg hover:bg-white/50 transition-all duration-200">
+                            <div className="flex items-center min-w-0 flex-1">
                               <div 
-                                className="w-4 h-4 rounded-full mr-3 border-2 border-white shadow-sm" 
+                                className="w-3 h-3 md:w-4 md:h-4 rounded-full mr-2 md:mr-3 border-2 border-white shadow-sm flex-shrink-0" 
                                 style={{backgroundColor: PIE_COLORS[index % PIE_COLORS.length]}}
                               ></div>
-                              <span className="text-gray-700 font-semibold">{entry.name}</span>
+                              <span className="text-gray-700 font-semibold truncate">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-gray-900">{formatCurrency(entry.sales)}</span>
+                            <span className="font-bold text-gray-900 ml-2 flex-shrink-0">{formatCurrency(entry.sales)}</span>
                           </div>
                         ))}
                       </div>
                     </>
                   ) : (
-                    <div className="flex items-center justify-center w-full h-full text-gray-500">
-                      <p>No data available</p>
+                    <div className="flex items-center justify-center w-full h-full text-gray-500 py-8 md:py-0">
+                      <p className="text-sm md:text-base">No data available</p>
                     </div>
                   )}
             </CardContent>

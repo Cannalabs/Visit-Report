@@ -1,36 +1,109 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { User } from "@/api/entities";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, Lock } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, Configuration as ConfigEntity } from '@/api/entities';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  LogIn, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff,
+  Building2,
+  Loader2,
+  HelpCircle
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import loginBackground from '@/assets/photo-1520018627052-cade17c11af8.jpeg';
+
+const DEFAULT_COMPANY_NAME = 'Visit Report';
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [companyLogo, setCompanyLogo] = useState(null);
+  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if already authenticated
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      navigate('/Dashboard', { replace: true });
+    } else {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  // Load company logo and name from database
+  useEffect(() => {
+    const loadCompanyInfo = async () => {
+      try {
+        const configs = await ConfigEntity.list().catch(() => []);
+        const companyConfigs = configs.filter(c => c.config_type === "company_settings");
+        
+        // Extract company logo and name
+        const logoConfig = companyConfigs.find(c => c.config_value === "company_logo");
+        const nameConfig = companyConfigs.find(c => c.config_value === "company_name");
+        
+        if (logoConfig && logoConfig.config_name) {
+          setCompanyLogo(logoConfig.config_name);
+        }
+        
+        if (nameConfig && nameConfig.config_name) {
+          setCompanyName(nameConfig.config_name);
+        }
+      } catch (error) {
+        // Keep default if loading fails
+      }
+    };
+    loadCompanyInfo();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setIsLoggingIn(true);
 
     try {
       // Hardcoded bootstrap admin user (frontend only, for initial access)
-      // This allows accessing the admin panel in production to create real users
-      // Note: API calls that require authentication may fail with this user
-      // since it doesn't have a valid backend token. Use this to access the UI,
-      // then create a real admin user through the backend (DB script, etc.)
-      // and use that real admin to create more users through the UI.
       const HARDCODED_ADMIN_EMAIL = "admin@canna.com";
       const HARDCODED_ADMIN_PASSWORD = "admin123";
       
-      if (email.toLowerCase().trim() === HARDCODED_ADMIN_EMAIL && password === HARDCODED_ADMIN_PASSWORD) {
+      if (formData.email.toLowerCase().trim() === HARDCODED_ADMIN_EMAIL && formData.password === HARDCODED_ADMIN_PASSWORD) {
         // Create mock admin user object
         const hardcodedUser = {
           id: 0,
@@ -45,106 +118,249 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(hardcodedUser));
         
         // Create a dummy token (not used for API calls, but needed for ProtectedRoute)
-        // We'll need to handle API calls differently for this user
         const dummyToken = "hardcoded_admin_token_" + Date.now();
         localStorage.setItem('access_token', dummyToken);
         localStorage.setItem('is_hardcoded_admin', 'true');
         
-        // Navigate to dashboard
-        navigate("/Dashboard", { replace: true });
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          navigate("/Dashboard", { replace: true });
+        }, 1000);
         return;
       }
       
       // Regular backend authentication for all other users
-      const user = await User.signIn({ email, password });
+      const user = await User.signIn({ email: formData.email, password: formData.password });
       
       // Clear hardcoded admin flag if using real auth
       localStorage.removeItem('is_hardcoded_admin');
       
-      // User info is already stored in signIn
-      // Navigate to dashboard after successful login
       if (user) {
-        navigate("/Dashboard", { replace: true });
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          navigate("/Dashboard", { replace: true });
+        }, 1000);
       }
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.message || 'Invalid email or password');
     } finally {
-      setIsLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          backgroundImage: `url(${loginBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        <div className="flex items-center space-x-2 bg-white/90 px-4 py-2 rounded-lg shadow-lg">
+          <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="text-4xl font-bold text-green-600">CANNA</div>
+    <div 
+      className="min-h-screen flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${loginBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Enhanced overlay with gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/30 to-black/40"></div>
+      
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-500/10 rounded-full blur-3xl"></div>
+      
+      {/* Logo at the very top */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+        {companyLogo ? (
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/20 rounded-full blur-xl"></div>
+            <img
+              src={companyLogo}
+              alt="Company Logo"
+              className="w-auto object-contain max-w-xs relative z-10 drop-shadow-lg"
+              style={{ height: '8rem' }}
+              onError={(e) => {
+                setCompanyLogo(null);
+              }}
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to your account to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-xl"></div>
+            <div className="flex items-center justify-center relative z-10 bg-white/10 backdrop-blur-sm p-3 sm:p-4 rounded-full border border-white/20">
+              <Building2 className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  disabled={isLoading}
-                />
+          </div>
+        )}
+      </div>
+      
+      <div className="max-w-md w-full space-y-6 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-24">
+        {/* Header with enhanced styling */}
+        <div className="text-center space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white drop-shadow-lg">
+              {companyName}
+            </h2>
+            <p className="text-sm sm:text-base text-white/90 font-medium">
+              Sign in to your account to continue
+            </p>
+          </div>
+        </div>
+
+        {/* Login Form with glassmorphism effect */}
+        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-md">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl font-semibold text-center text-gray-800">Sign In</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700 font-medium">Email Address</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-teal-600 transition-colors" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="pl-10 h-11 border-gray-300 focus:border-teal-500 focus:ring-teal-500 transition-all"
+                    placeholder="Enter your email"
+                    required
+                    disabled={isLoggingIn}
+                  />
+                </div>
               </div>
-            </div>
-            
-            <Button
-              type="submit"
-              className="w-full bg-green-600 hover:bg-green-700"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-teal-600 transition-colors" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="pl-10 pr-10 h-11 border-gray-300 focus:border-teal-500 focus:ring-teal-500 transition-all"
+                    placeholder="Enter your password"
+                    required
+                    disabled={isLoggingIn}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors"
+                    disabled={isLoggingIn}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+
+                {/* Forgot Password Link */}
+                <div className="text-right pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline transition-all"
+                    disabled={isLoggingIn}
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              </div>
+
+              {/* Error/Success Messages */}
+              {error && (
+                <Alert variant="destructive" className="border-red-200 bg-red-50 animate-in slide-in-from-top-2">
+                  <AlertDescription className="text-red-800">{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              
+              {success && (
+                <Alert className="border-green-200 bg-green-50 animate-in slide-in-from-top-2">
+                  <AlertDescription className="text-green-800">{success}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+                disabled={isLoggingIn}
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+            </form>
+
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center text-sm text-white/80 space-y-1">
+          <p className="font-medium">{companyName} Management System</p>
+          <p className="text-xs">Secure • Reliable • Professional</p>
+        </div>
+      </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-blue-600" />
+              Forgot Password
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <HelpCircle className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Forgot Your Password?</h3>
+              <p className="text-gray-600 mb-4">
+                Please contact your administrator to reset your password.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setShowForgotPassword(false)}
+                className="px-6 bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

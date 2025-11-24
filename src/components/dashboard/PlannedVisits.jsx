@@ -91,15 +91,15 @@ export default function PlannedVisits({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     >
-      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 flex flex-col h-[600px]">
-        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 flex-shrink-0">
-          <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200/60 dark:border-gray-600/60 flex flex-col h-[500px] md:h-[550px] lg:h-[600px]">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 flex-shrink-0 px-4 md:px-5 lg:px-6 py-3 md:py-3.5 lg:py-4">
+          <CardTitle className="text-base md:text-lg lg:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
             Planned Visits
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 flex-1 overflow-hidden">
-          <div className={`space-y-4 h-full ${plannedVisits.length > 0 ? 'overflow-y-auto pr-2' : ''}`}>
+        <CardContent className="p-4 md:p-5 lg:p-6 flex-1 overflow-hidden">
+          <div className={`space-y-3 md:space-y-3.5 lg:space-y-4 h-full ${plannedVisits.length > 0 ? 'overflow-y-auto pr-2' : ''}`}>
             {plannedVisits.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 No planned visits scheduled
@@ -111,12 +111,12 @@ export default function PlannedVisits({ visits }) {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                  className="p-2.5 md:p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
                   <Link to={`${createPageUrl("NewVisit")}?id=${visit.id}`}>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 md:space-y-2">
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-xs md:text-sm leading-tight">
                           {visit.shop_name || "Unnamed Shop"}
                         </h4>
                         <Badge variant="outline" className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs whitespace-nowrap">

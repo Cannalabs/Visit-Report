@@ -33,15 +33,15 @@ const QuickActionButton = ({ icon: Icon, title, description, to, color, delay = 
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay }}
     >
-      <Link to={to}>
+      <Link to={to} className="w-full">
         <Button
           variant="outline"
-          className={`w-full h-auto p-4 flex-col gap-2 border-gray-300/50 dark:border-gray-600/50 ${hoverClasses[color] || 'hover:bg-gray-600'} hover:text-white dark:hover:text-white transition-all duration-200 group bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm`}
+          className={`w-full h-auto p-2.5 md:p-3 lg:p-4 flex-col gap-1 md:gap-1.5 lg:gap-2 border-gray-300/50 dark:border-gray-600/50 ${hoverClasses[color] || 'hover:bg-gray-600'} hover:text-white dark:hover:text-white transition-all duration-200 group bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm min-h-[90px] md:min-h-[100px] lg:min-h-[120px]`}
         >
-          <Icon className={`w-6 h-6 ${textColor} group-hover:text-white dark:text-gray-400`} />
-          <div className="text-center">
-            <div className="font-semibold text-gray-900 dark:text-white group-hover:text-white">{title}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/80">
+          <Icon className={`w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ${textColor} group-hover:text-white dark:text-gray-400 flex-shrink-0`} />
+          <div className="text-center w-full min-w-0">
+            <div className="font-semibold text-xs md:text-sm lg:text-base text-gray-900 dark:text-white group-hover:text-white truncate">{title}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/80 line-clamp-2 leading-tight mt-0.5">
               {description}
             </div>
           </div>
@@ -109,12 +109,12 @@ export default function QuickActions() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
     >
-      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30">
-        <CardHeader className="border-b border-white/10 dark:border-gray-700/30">
-          <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">Quick Actions</CardTitle>
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200/60 dark:border-gray-600/60">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 px-4 md:px-5 lg:px-6 py-3 md:py-3.5 lg:py-4">
+          <CardTitle className="text-base md:text-lg lg:text-xl font-bold text-gray-900 dark:text-white">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <CardContent className="p-3 md:p-4 lg:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3 lg:gap-4">
             {actions.map((action, index) => (
               <QuickActionButton key={action.title} {...action} />
             ))}

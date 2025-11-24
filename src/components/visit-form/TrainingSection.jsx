@@ -89,19 +89,19 @@ export default function TrainingSection({ formData, updateFormData }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card className="bg-blue-50 border-blue-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <GraduationCap className="w-5 h-5" />
+        <CardHeader className="pb-3 px-4 md:px-6 pt-4 md:pt-6">
+          <CardTitle className="flex items-center gap-2 text-blue-800 text-sm md:text-base">
+            <GraduationCap className="w-4 h-4 md:w-5 md:h-5" />
             Training & Education
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="training_provided">Training Provided During Visit</Label>
-              <p className="text-sm text-gray-600">
+        <CardContent className="space-y-4 p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="space-y-1 flex-1 min-w-0">
+              <Label htmlFor="training_provided" className="text-sm md:text-base">Training Provided During Visit</Label>
+              <p className="text-xs md:text-sm text-gray-600">
                 Did you provide any training or education during this visit?
               </p>
             </div>
@@ -109,26 +109,27 @@ export default function TrainingSection({ formData, updateFormData }) {
               id="training_provided"
               checked={formData.training_provided}
               onCheckedChange={(checked) => updateFormData({ training_provided: checked })}
+              className="flex-shrink-0"
             />
           </div>
 
           {formData.training_provided && (
-            <div className="space-y-4 p-4 bg-white rounded-lg border">
-              <Label>Training Topics Covered</Label>
+            <div className="space-y-3 md:space-y-4 p-3 md:p-4 bg-white rounded-lg border">
+              <Label className="text-sm md:text-base">Training Topics Covered</Label>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {TRAINING_TOPICS.map(topic => (
                   <Button
                     key={topic}
                     variant={formData.training_topics?.includes(topic) ? "default" : "outline"}
                     size="sm"
                     onClick={() => toggleTopic(topic)}
-                    className={formData.training_topics?.includes(topic) 
+                    className={`text-xs md:text-sm ${formData.training_topics?.includes(topic) 
                       ? "bg-blue-600 hover:bg-blue-700" 
                       : "border-blue-200 hover:bg-blue-50"
-                    }
+                    }`}
                   >
-                    {topic}
+                    <span className="truncate">{topic}</span>
                   </Button>
                 ))}
               </div>
@@ -138,7 +139,7 @@ export default function TrainingSection({ formData, updateFormData }) {
                   placeholder="Add custom training topic..."
                   value={customTopic}
                   onChange={(e) => setCustomTopic(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 min-w-0 text-sm md:text-base"
                   onKeyPress={(e) => e.key === 'Enter' && addCustomTopic()}
                 />
                 <Button
@@ -146,6 +147,7 @@ export default function TrainingSection({ formData, updateFormData }) {
                   disabled={!customTopic}
                   size="icon"
                   variant="outline"
+                  className="flex-shrink-0 h-9 w-9 md:h-10 md:w-10"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -153,19 +155,19 @@ export default function TrainingSection({ formData, updateFormData }) {
 
               {formData.training_topics?.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Selected Topics:</Label>
+                  <Label className="text-sm md:text-base">Selected Topics:</Label>
                   <div className="flex flex-wrap gap-2">
                     {formData.training_topics.map(topic => (
                       <Badge
                         key={topic}
                         variant="secondary"
-                        className="bg-blue-100 text-blue-800 flex items-center gap-1"
+                        className="bg-blue-100 text-blue-800 flex items-center gap-1 text-xs md:text-sm"
                       >
-                        {topic}
+                        <span className="truncate max-w-[120px] md:max-w-none">{topic}</span>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-4 w-4 p-0 hover:bg-blue-200"
+                          className="h-4 w-4 p-0 hover:bg-blue-200 flex-shrink-0"
                           onClick={() => removeTopic(topic)}
                         >
                           <X className="w-3 h-3" />
@@ -181,17 +183,17 @@ export default function TrainingSection({ formData, updateFormData }) {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-purple-600" />
+        <CardHeader className="pb-3 px-4 md:px-6 pt-4 md:pt-6">
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
             Support Materials
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="support_materials_required">Support Materials Provided?</Label>
-              <p className="text-sm text-gray-600">
+        <CardContent className="space-y-4 p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="space-y-1 flex-1 min-w-0">
+              <Label htmlFor="support_materials_required" className="text-sm md:text-base">Support Materials Provided?</Label>
+              <p className="text-xs md:text-sm text-gray-600">
                 Did you leave any brochures, charts, or other materials?
               </p>
             </div>
@@ -199,25 +201,26 @@ export default function TrainingSection({ formData, updateFormData }) {
               id="support_materials_required"
               checked={formData.support_materials_required}
               onCheckedChange={(checked) => updateFormData({ support_materials_required: checked })}
+              className="flex-shrink-0"
             />
           </div>
           
           {formData.support_materials_required && (
-            <div className="space-y-4 p-4 bg-white rounded-lg border">
-              <Label>Materials Provided</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="space-y-3 md:space-y-4 p-3 md:p-4 bg-white rounded-lg border">
+              <Label className="text-sm md:text-base">Materials Provided</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {SUPPORT_MATERIALS.map(material => (
                   <Button
                     key={material}
                     variant={formData.support_materials_items?.includes(material) ? "default" : "outline"}
                     size="sm"
                     onClick={() => toggleSupportMaterial(material)}
-                    className={formData.support_materials_items?.includes(material) 
+                    className={`text-xs md:text-sm ${formData.support_materials_items?.includes(material) 
                       ? "bg-purple-600 hover:bg-purple-700" 
                       : "border-purple-200 hover:bg-purple-50"
-                    }
+                    }`}
                   >
-                    {material}
+                    <span className="truncate">{material}</span>
                   </Button>
                 ))}
               </div>
@@ -227,7 +230,7 @@ export default function TrainingSection({ formData, updateFormData }) {
                   placeholder="Add custom material..."
                   value={customMaterial}
                   onChange={(e) => setCustomMaterial(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 min-w-0 text-sm md:text-base"
                   onKeyPress={(e) => e.key === 'Enter' && addCustomSupportMaterial()}
                 />
                 <Button
@@ -235,6 +238,7 @@ export default function TrainingSection({ formData, updateFormData }) {
                   disabled={!customMaterial}
                   size="icon"
                   variant="outline"
+                  className="flex-shrink-0 h-9 w-9 md:h-10 md:w-10"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -242,19 +246,19 @@ export default function TrainingSection({ formData, updateFormData }) {
 
               {formData.support_materials_items?.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Selected Materials:</Label>
+                  <Label className="text-sm md:text-base">Selected Materials:</Label>
                   <div className="flex flex-wrap gap-2">
                     {formData.support_materials_items.map(material => (
                       <Badge
                         key={material}
                         variant="secondary"
-                        className="bg-purple-100 text-purple-800 flex items-center gap-1"
+                        className="bg-purple-100 text-purple-800 flex items-center gap-1 text-xs md:text-sm"
                       >
-                        {material}
+                        <span className="truncate max-w-[120px] md:max-w-none">{material}</span>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-4 w-4 p-0 hover:bg-purple-200"
+                          className="h-4 w-4 p-0 hover:bg-purple-200 flex-shrink-0"
                           onClick={() => removeSupportMaterial(material)}
                         >
                           <X className="w-3 h-3" />

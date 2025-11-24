@@ -237,7 +237,7 @@ export default function FollowUps() {
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -245,8 +245,8 @@ export default function FollowUps() {
           className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Follow-up Visits</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Follow-up Visits</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
               Track and manage visits that require follow-up actions
             </p>
           </div>
@@ -254,20 +254,20 @@ export default function FollowUps() {
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Follow-ups</p>
-                    <p className="text-2xl font-bold">{filteredVisits.length}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Total Follow-ups</p>
+                    <p className="text-2xl md:text-3xl font-bold">{filteredVisits.length}</p>
                   </div>
-                  <AlertCircle className="w-8 h-8 text-orange-600" />
+                  <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-orange-600 flex-shrink-0" />
                 </div>
               </CardContent>
             </Card>
@@ -279,13 +279,13 @@ export default function FollowUps() {
             transition={{ delay: 0.2 }}
           >
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Pending</p>
-                    <p className="text-2xl font-bold text-orange-600">{pendingFollowUps.length}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Pending</p>
+                    <p className="text-2xl md:text-3xl font-bold text-orange-600">{pendingFollowUps.length}</p>
                   </div>
-                  <AlertCircle className="w-8 h-8 text-orange-600" />
+                  <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-orange-600 flex-shrink-0" />
                 </div>
               </CardContent>
             </Card>
@@ -297,13 +297,13 @@ export default function FollowUps() {
             transition={{ delay: 0.3 }}
           >
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Completed</p>
-                    <p className="text-2xl font-bold text-green-600">{completedFollowUps.length}</p>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Completed</p>
+                    <p className="text-2xl md:text-3xl font-bold text-green-600">{completedFollowUps.length}</p>
                   </div>
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
                 </div>
               </CardContent>
             </Card>
@@ -315,15 +315,15 @@ export default function FollowUps() {
             transition={{ delay: 0.4 }}
           >
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">In Progress</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-xs md:text-sm font-medium text-gray-600">In Progress</p>
+                    <p className="text-2xl md:text-3xl font-bold">
                       {filteredVisits.filter(v => v.follow_up_stage === 'in_progress').length}
                     </p>
                   </div>
-                  <AlertCircle className="w-8 h-8 text-blue-600" />
+                  <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-blue-600 flex-shrink-0" />
                 </div>
               </CardContent>
             </Card>
@@ -332,14 +332,14 @@ export default function FollowUps() {
 
         {/* Search and Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Filter className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               Filters & Search
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
+          <CardContent className="space-y-4 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -347,7 +347,7 @@ export default function FollowUps() {
                     placeholder="Search by shop name, address, contact, or follow-up notes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-9 md:h-10 text-sm md:text-base"
                   />
                 </div>
               </div>
@@ -355,7 +355,7 @@ export default function FollowUps() {
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full h-9 md:h-10 px-3 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>

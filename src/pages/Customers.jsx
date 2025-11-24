@@ -52,6 +52,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Complete list of all countries
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria",
+  "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan",
+  "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia",
+  "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica",
+  "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt",
+  "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon",
+  "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+  "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel",
+  "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar",
+  "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia",
+  "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal",
+  "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan",
+  "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar",
+  "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia",
+  "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa",
+  "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan",
+  "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
+  "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City",
+  "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+].sort();
+
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -67,7 +91,7 @@ export default function Customers() {
     email: "",
     city: "",
     region: "",
-    county: ""
+    country: ""
   });
   const [showDialog, setShowDialog] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -80,7 +104,7 @@ export default function Customers() {
     shop_address: "",
     zipcode: "",
     city: "",
-    county: "",
+    country: "",
     contact_person: "",
     contact_phone: "",
     contact_email: "",
@@ -169,9 +193,9 @@ export default function Customers() {
         customer.region?.toLowerCase().includes(advancedFilters.region.toLowerCase())
       );
     }
-    if (advancedFilters.county) {
-      filtered = filtered.filter(customer => 
-        customer.county?.toLowerCase().includes(advancedFilters.county.toLowerCase())
+    if (advancedFilters.country) {
+      filtered = filtered.filter(customer =>
+        customer.country?.toLowerCase().includes(advancedFilters.country.toLowerCase())
       );
     }
 
@@ -243,9 +267,6 @@ export default function Customers() {
     const cityError = validateTextOnly(customerData.city, "City");
     if (cityError) errors.city = cityError;
     
-    const countyError = validateTextOnly(customerData.county, "County");
-    if (countyError) errors.county = countyError;
-    
     const contactPersonError = validateTextOnly(customerData.contact_person, "Contact Person");
     if (contactPersonError) errors.contact_person = contactPersonError;
     
@@ -277,7 +298,6 @@ export default function Customers() {
     if (fieldErrors.contact_phone) errors.push(fieldErrors.contact_phone);
     if (fieldErrors.contact_email) errors.push(fieldErrors.contact_email);
     if (fieldErrors.city) errors.push(fieldErrors.city);
-    if (fieldErrors.county) errors.push(fieldErrors.county);
     if (fieldErrors.contact_person) errors.push(fieldErrors.contact_person);
     if (fieldErrors.job_title) errors.push(fieldErrors.job_title);
     if (fieldErrors.region) errors.push(fieldErrors.region);
@@ -355,7 +375,7 @@ export default function Customers() {
         shop_name: shopName,
         shop_type: shopType,
         city: customerData.city?.trim() || "",
-        county: customerData.county?.trim() || "",
+        country: customerData.country?.trim() || "",
         contact_person: customerData.contact_person?.trim() || "",
         contact_phone: customerData.contact_phone?.trim() || "",
         contact_email: customerData.contact_email?.trim() || "",
@@ -425,7 +445,7 @@ export default function Customers() {
       shop_address: "",
       zipcode: "",
       city: "",
-      county: "",
+      country: "",
       contact_person: "",
       contact_phone: "",
       contact_email: "",
@@ -523,7 +543,7 @@ export default function Customers() {
       email: "",
       city: "",
       region: "",
-      county: ""
+      country: ""
     });
   };
 
@@ -537,7 +557,7 @@ export default function Customers() {
 
     // Export as CSV
     const headers = [
-      'shop_name', 'shop_type', 'shop_address', 'zipcode', 'city', 'county', 
+      'shop_name', 'shop_type', 'shop_address', 'zipcode', 'city', 'country',
       'region', 'contact_person', 'contact_phone', 'contact_email', 'job_title', 
       'opening_time', 'closing_time', 'visit_notes', 'status'
     ];
@@ -667,7 +687,7 @@ export default function Customers() {
             shop_address: (item.shop_address || item['shop address'] || '').trim(),
             zipcode: (item.zipcode || item['zip code'] || '').trim(),
             city: (item.city || '').trim(),
-            county: (item.county || '').trim(),
+            country: (item.country || '').trim(),
             region: (item.region || '').trim(),
             contact_person: (item.contact_person || item['contact person'] || '').trim(),
             contact_phone: (item.contact_phone || item['contact phone'] || item.phone || '').trim(),
@@ -736,23 +756,23 @@ export default function Customers() {
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-start"
+          className="flex flex-col md:flex-row justify-between items-start gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="w-8 h-8 text-green-600" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+              <Users className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
               Customers & Contacts
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
               Manage your customer database and contact information
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <input
               type="file"
               accept=".csv"
@@ -763,18 +783,20 @@ export default function Customers() {
             <Button
               variant="outline"
               onClick={() => document.getElementById('import-customers')?.click()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-sm md:text-base flex-1 md:flex-none"
             >
               <FileUp className="w-4 h-4" />
-              Import
+              <span className="hidden sm:inline">Import</span>
+              <span className="sm:hidden">Import</span>
             </Button>
             <Button
               variant="outline"
               onClick={handleExportCustomers}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-sm md:text-base flex-1 md:flex-none"
             >
               <FileDown className="w-4 h-4" />
-              Export
+              <span className="hidden sm:inline">Export</span>
+              <span className="sm:hidden">Export</span>
             </Button>
             <Button
               onClick={() => {
@@ -786,10 +808,11 @@ export default function Customers() {
                 loadShopTypes();
                 setShowDialog(true);
               }}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-sm md:text-base flex-1 md:flex-none"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Customer
+              <Plus className="w-4 h-4 md:mr-2" />
+              <span className="hidden sm:inline">Add Customer</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </motion.div>
@@ -808,20 +831,20 @@ export default function Customers() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-4">
+          <CardContent className="p-4 md:p-6">
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     placeholder="Search by shop name, contact person, city, phone, email, or address..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-9 md:h-10 text-sm md:text-base"
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full md:w-48 h-9 md:h-10 text-sm md:text-base">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -833,10 +856,11 @@ export default function Customers() {
                 <Button
                   variant="outline"
                   onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full md:w-auto text-sm md:text-base h-9 md:h-10"
                 >
                   <Filter className="w-4 h-4" />
-                  Advanced Search
+                  <span className="hidden sm:inline">Advanced Search</span>
+                  <span className="sm:hidden">Advanced</span>
                   {showAdvancedSearch ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </Button>
               </div>
@@ -896,11 +920,11 @@ export default function Customers() {
                       />
                     </div>
                     <div>
-                      <Label>County</Label>
+                      <Label>Country</Label>
                       <Input
-                        placeholder="Search by county..."
-                        value={advancedFilters.county}
-                        onChange={(e) => setAdvancedFilters({...advancedFilters, county: e.target.value})}
+                        placeholder="Search by country..."
+                        value={advancedFilters.country}
+                        onChange={(e) => setAdvancedFilters({...advancedFilters, country: e.target.value})}
                       />
                     </div>
                   </div>
@@ -923,36 +947,39 @@ export default function Customers() {
         {/* Bulk Actions */}
         {selectedCustomers.length > 0 && (
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-gray-700">
                     {selectedCustomers.length} customer(s) selected
                   </span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     onClick={handleBulkArchive}
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
                   >
                     <Archive className="w-4 h-4" />
-                    Archive
+                    <span className="hidden sm:inline">Archive</span>
+                    <span className="sm:hidden">Archive</span>
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleBulkUnarchive}
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
                   >
                     <ArchiveRestore className="w-4 h-4" />
-                    Unarchive
+                    <span className="hidden sm:inline">Unarchive</span>
+                    <span className="sm:hidden">Unarchive</span>
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setSelectedCustomers([])}
                     size="sm"
+                    className="flex-shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -965,7 +992,130 @@ export default function Customers() {
         {/* Customers Table */}
         <Card>
           <CardContent className="p-0">
-            <Table>
+            {/* Mobile & Tablet Card View */}
+            <div className="lg:hidden p-4 space-y-3">
+              {filteredCustomers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16">
+                  <Users className="w-14 h-14 text-gray-300" />
+                  <p className="text-gray-500 font-medium text-sm">No customers found</p>
+                </div>
+              ) : (
+                filteredCustomers.map((customer) => (
+                  <Card key={customer.id} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedCustomers.includes(customer.id)}
+                          onCheckedChange={(checked) => handleSelectOne(customer.id, checked)}
+                          className="mt-1 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 text-base truncate">
+                                {customer.shop_name}
+                              </div>
+                              <div className="mt-1">
+                                <Badge className={`${getShopTypeColor(customer.shop_type)} text-xs`}>
+                                  {customer.shop_type?.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                              {getStatusBadge(customer.status)}
+                            </div>
+                          </div>
+
+                          {/* Contact Information */}
+                          <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                            <div className="text-xs font-medium text-gray-700 mb-1">Contact Information:</div>
+                            {customer.contact_person && (
+                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                <span>{customer.contact_person}</span>
+                              </div>
+                            )}
+                            {customer.contact_phone && (
+                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                <span>{customer.contact_phone}</span>
+                              </div>
+                            )}
+                            {customer.contact_email && (
+                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                <span className="truncate">{customer.contact_email}</span>
+                              </div>
+                            )}
+                            {!customer.contact_person && !customer.contact_phone && !customer.contact_email && (
+                              <span className="text-xs text-gray-400 italic">No contact information</span>
+                            )}
+                          </div>
+
+                          {/* Location */}
+                          <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                            <div className="text-xs font-medium text-gray-700 mb-1">Location:</div>
+                            {customer.city && (
+                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                <span>{customer.city}</span>
+                              </div>
+                            )}
+                            {customer.zipcode && (
+                              <div className="text-xs text-gray-500 ml-5">{customer.zipcode}</div>
+                            )}
+                            {customer.country && (
+                              <div className="text-xs text-gray-500 ml-5">Country: {customer.country}</div>
+                            )}
+                            {customer.region && (
+                              <div className="text-xs text-gray-500 ml-5">Region: {customer.region}</div>
+                            )}
+                            {!customer.city && !customer.zipcode && !customer.country && (
+                              <span className="text-xs text-gray-400 italic">No location information</span>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewingCustomer(customer)}
+                              className="flex items-center gap-1 text-xs h-8"
+                            >
+                              <Eye className="w-3 h-3" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(customer)}
+                              className="flex items-center gap-1 text-xs h-8"
+                            >
+                              <Edit className="w-3 h-3" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(customer.id)}
+                              className="border-red-200 hover:bg-red-50 text-red-600 h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow className="bg-green-50">
                   <TableHead className="w-12">
@@ -1030,8 +1180,8 @@ export default function Customers() {
                         {customer.zipcode && (
                           <div className="text-sm text-gray-500">{customer.zipcode}</div>
                         )}
-                        {customer.county && (
-                          <div className="text-sm text-gray-500">{customer.county}</div>
+                        {customer.country && (
+                          <div className="text-sm text-gray-500">{customer.country}</div>
                         )}
                       </div>
                     </TableCell>
@@ -1084,6 +1234,7 @@ export default function Customers() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -1126,11 +1277,11 @@ export default function Customers() {
                         <div className="mt-1 text-base">{viewingCustomer.shop_address}</div>
                       </div>
                     )}
-                    {(viewingCustomer.city || viewingCustomer.zipcode || viewingCustomer.county) && (
+                    {(viewingCustomer.city || viewingCustomer.zipcode || viewingCustomer.country) && (
                       <div>
                         <Label className="text-sm font-medium text-gray-500">Location</Label>
                         <div className="mt-1 text-base">
-                          {[viewingCustomer.city, viewingCustomer.zipcode, viewingCustomer.county]
+                          {[viewingCustomer.city, viewingCustomer.zipcode, viewingCustomer.country]
                             .filter(Boolean)
                             .join(", ") || "—"}
                         </div>
@@ -1390,23 +1541,26 @@ export default function Customers() {
                   )}
                 </div>
                 <div>
-                  <Label>County</Label>
-                  <Input
-                    value={customerData.county}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Only allow letters, spaces, hyphens, apostrophes, and periods
-                      if (value === "" || /^[a-zA-Z\s\-'\.]*$/.test(value)) {
-                        setCustomerData({...customerData, county: value});
-                        const error = validateTextOnly(value, "County");
-                        setFieldErrors({...fieldErrors, county: error || undefined});
-                      }
+                  <Label>Country</Label>
+                  <Select
+                    value={customerData.country}
+                    onValueChange={(value) => {
+                      setCustomerData({...customerData, country: value});
                     }}
-                    placeholder="County"
-                    className={fieldErrors.county ? "border-red-300" : ""}
-                  />
-                  {fieldErrors.county && (
-                    <p className="text-sm text-red-600 mt-1">{fieldErrors.county}</p>
+                  >
+                    <SelectTrigger className={fieldErrors.country ? "border-red-300" : ""}>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldErrors.country && (
+                    <p className="text-sm text-red-600 mt-1">{fieldErrors.country}</p>
                   )}
                 </div>
               </div>

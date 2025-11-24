@@ -19,18 +19,18 @@ const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => (
   >
     <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg">
       <div className={`absolute top-0 right-0 w-24 h-24 transform translate-x-6 -translate-y-6 ${color} rounded-full opacity-10 dark:opacity-20`} />
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 px-3 md:px-4 pt-3 md:pt-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <CardTitle className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </CardTitle>
-          <div className={`p-2 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20`}>
-            <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
+          <div className={`p-1.5 md:p-2 rounded-lg md:rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20`}>
+            <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${color.replace('bg-', 'text-')}`} />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+      <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4">
+        <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
           {value}
         </div>
         {trend && (
@@ -45,7 +45,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => (
 
 export default function StatsOverview({ todaysVisits, thisWeeksVisits, averageScore, followUpRequired }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
       <Link to={createPageUrl("Reports?dateRange=today")}>
         <StatCard
           title="Today's Visits"

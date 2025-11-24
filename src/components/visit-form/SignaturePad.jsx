@@ -87,7 +87,7 @@ export default function SignaturePad({ onSave, signerName, onError }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -96,16 +96,24 @@ export default function SignaturePad({ onSave, signerName, onError }) {
         onTouchStart={startDrawing}
         onTouchEnd={finishDrawing}
         onTouchMove={draw}
-        className="border border-gray-300 rounded-lg w-full h-48 bg-gray-50 cursor-crosshair"
+        className="border border-gray-300 rounded-lg w-full h-40 sm:h-48 bg-gray-50 cursor-crosshair touch-none"
       />
-      <div className="flex gap-4">
-        <Button variant="outline" onClick={clearCanvas}>
-          <Eraser className="w-4 h-4 mr-2" />
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+        <Button 
+          variant="outline" 
+          onClick={clearCanvas}
+          className="w-full sm:w-auto text-sm md:text-base"
+        >
+          <Eraser className="w-4 h-4 sm:mr-2 flex-shrink-0" />
           Clear
         </Button>
-        <Button onClick={saveSignature} className="bg-green-600 hover:bg-green-700">
-          <Save className="w-4 h-4 mr-2" />
-          Confirm Signature
+        <Button 
+          onClick={saveSignature} 
+          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm md:text-base"
+        >
+          <Save className="w-4 h-4 sm:mr-2 flex-shrink-0" />
+          <span className="hidden sm:inline">Confirm Signature</span>
+          <span className="sm:hidden">Confirm</span>
         </Button>
       </div>
     </div>

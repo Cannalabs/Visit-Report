@@ -28,7 +28,8 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarProvider,
-  SidebarTrigger
+  SidebarTrigger,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,18 +74,72 @@ const navigationItems = [
   }
 ];
 
-export default function Layout({ children, currentPageName }) {
+function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isMobile, setOpenMobile, setOpen, open } = useSidebar();
   const [user, setUser] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [companyLogo, setCompanyLogo] = React.useState(null);
   const [companyName, setCompanyName] = React.useState("CANNA");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('sidebarCollapsed') === 'true';
+    // Check if user has a saved preference
+    const savedPreference = localStorage.getItem('sidebarCollapsed');
+    if (savedPreference !== null) {
+      return savedPreference === 'true';
+    }
+    // Default to collapsed (icons only) on tablet (768px - 1024px)
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      return width >= 768 && width < 1024;
+    }
+    return false;
   });
   const [serverHealth, setServerHealth] = React.useState({ status: 'unknown', lastUpdated: null });
   const isAdmin = user?.role === 'admin';
+
+  // Helper function to check if we're on tablet
+  const isTablet = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      return width >= 768 && width < 1024;
+    }
+    return false;
+  };
+
+  // Handle link click - collapse sidebar on tablet if expanded
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else if (isTablet() && !sidebarCollapsed) {
+      // On tablet, if sidebar is expanded, collapse it when link is clicked
+      setSidebarCollapsed(true);
+    }
+  };
+
+  // Track last synced state to prevent circular updates
+  const lastSyncedCollapsedRef = React.useRef(sidebarCollapsed);
+
+  // Sync sidebar's internal state with sidebarCollapsed when it changes
+  React.useEffect(() => {
+    if (!isMobile && lastSyncedCollapsedRef.current !== sidebarCollapsed) {
+      // Sidebar's open state is inverse of collapsed (open = !collapsed)
+      setOpen(!sidebarCollapsed);
+      lastSyncedCollapsedRef.current = sidebarCollapsed;
+    }
+  }, [sidebarCollapsed, isMobile, setOpen]);
+
+  // Sync sidebarCollapsed when sidebar's open state changes (e.g., from SidebarTrigger)
+  React.useEffect(() => {
+    if (!isMobile && open !== undefined) {
+      const shouldBeCollapsed = !open;
+      // Only update if they're out of sync and we haven't just synced from sidebarCollapsed
+      if (shouldBeCollapsed !== sidebarCollapsed && shouldBeCollapsed !== lastSyncedCollapsedRef.current) {
+        setSidebarCollapsed(shouldBeCollapsed);
+        lastSyncedCollapsedRef.current = shouldBeCollapsed;
+      }
+    }
+  }, [open, isMobile, sidebarCollapsed]);
 
   React.useEffect(() => {
     // Run all initial loads in parallel for better performance
@@ -355,7 +410,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <SidebarProvider>
+    <>
       <style>{`
         :root {
           --canna-green: #2E7D32;
@@ -380,17 +435,33 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-green-50/30 to-gray-50">
-        <Sidebar className={`border-r border-gray-200/60 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-          <SidebarHeader className={`border-b border-gray-100/60 py-3 flex flex-row items-center bg-gradient-to-r from-green-50/30 to-transparent ${sidebarCollapsed ? 'px-2 justify-center' : 'px-4 relative'}`}>
+        <Sidebar 
+          collapsible="icon"
+          variant="inset"
+          className={`border-r border-gray-200/60 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300 flex-shrink-0 ${sidebarCollapsed ? 'w-16 sm:w-20' : 'w-64 sm:w-72'}`}
+        >
+          <SidebarHeader className={`border-b border-gray-100/60 py-2 md:py-3 flex flex-row items-center bg-gradient-to-r from-green-50/30 to-transparent ${sidebarCollapsed ? 'px-2 justify-center' : 'px-2 md:px-4 relative'}`}>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onClick={() => {
+                if (isMobile) {
+                  // On mobile, close the Sheet
+                  setOpenMobile(false);
+                } else {
+                  // On desktop, toggle collapsed state
+                  setSidebarCollapsed(!sidebarCollapsed);
+                }
+              }}
               className="hover:bg-green-50 h-8 w-8 flex-shrink-0"
             >
               <Menu className="w-4 h-4" />
             </Button>
-            <Link to={createPageUrl("Dashboard")} className={`flex items-center transition-opacity duration-300 absolute left-1/2 transform -translate-x-1/2 mt-3 ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
+            <Link 
+              to={createPageUrl("Dashboard")} 
+              onClick={handleLinkClick}
+              className={`flex items-center transition-opacity duration-300 absolute left-1/2 transform -translate-x-1/2 mt-3 ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
+            >
               {companyLogo ? (
                 <img
                   src={companyLogo}
@@ -410,10 +481,10 @@ export default function Layout({ children, currentPageName }) {
             </Link>
           </SidebarHeader>
 
-          <SidebarContent className={`${sidebarCollapsed ? 'px-2' : 'px-4'} py-4`}>
+          <SidebarContent className={`${sidebarCollapsed ? 'px-2' : 'px-2 md:px-4'} py-4 overflow-y-auto overflow-x-hidden`}>
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-3">
+                <SidebarMenu className="space-y-2 md:space-y-3">
                   {navigationItems.map((item, index) => {
                     const gradients = [
                       { from: 'from-emerald-500', via: 'via-green-500', to: 'to-teal-500', text: 'text-white', bg: 'bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50', hoverBg: 'hover:from-emerald-100 hover:via-green-100 hover:to-teal-100', icon: 'text-emerald-600', border: 'border-emerald-300' },
@@ -440,16 +511,20 @@ export default function Layout({ children, currentPageName }) {
                             }
                             ${sidebarCollapsed 
                               ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
-                              : 'rounded-2xl py-2.5 px-3 h-8'
+                              : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
                             transition-all duration-300 relative overflow-hidden flex items-center
                           `}
                         >
-                          <Link to={item.url} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
-                            <div className="relative z-10 flex items-center justify-center">
-                              <item.icon className={`w-5 h-5 ${isActive && !sidebarCollapsed ? 'text-white' : gradient.icon} transition-transform duration-300`} />
+                          <Link 
+                            to={item.url} 
+                            onClick={handleLinkClick}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-2 md:gap-3 relative w-full'}`}
+                          >
+                            <div className="relative z-10 flex items-center justify-center flex-shrink-0">
+                              <item.icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive && !sidebarCollapsed ? 'text-white' : gradient.icon} transition-transform duration-300`} />
                             </div>
-                            {!sidebarCollapsed && <span className={`font-semibold ${isActive ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>{item.title}</span>}
+                            {!sidebarCollapsed && <span className={`font-semibold text-sm md:text-base ${isActive ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap truncate`}>{item.title}</span>}
                             {isActive && !sidebarCollapsed && (
                               <div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse relative z-10" />
                             )}
@@ -477,12 +552,16 @@ export default function Layout({ children, currentPageName }) {
                             }
                             ${sidebarCollapsed 
                               ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
-                              : 'rounded-2xl py-2.5 px-3 h-8'
+                              : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
                             transition-all duration-300 relative overflow-hidden flex items-center
                           `}
                         >
-                          <Link to={createPageUrl("Configuration")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
+                          <Link 
+                            to={createPageUrl("Configuration")} 
+                            onClick={handleLinkClick}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}
+                          >
                             <div className="relative z-10 flex items-center justify-center">
                               <Settings className={`w-5 h-5 ${location.pathname === createPageUrl("Configuration") && !sidebarCollapsed ? 'text-white' : 'text-blue-600'} transition-transform duration-300`} />
                             </div>
@@ -504,12 +583,16 @@ export default function Layout({ children, currentPageName }) {
                             }
                             ${sidebarCollapsed 
                               ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
-                              : 'rounded-2xl py-2.5 px-3 h-8'
+                              : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
                             transition-all duration-300 relative overflow-hidden flex items-center
                           `}
                         >
-                          <Link to={createPageUrl("Admin")} className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}>
+                          <Link 
+                            to={createPageUrl("Admin")} 
+                            onClick={handleLinkClick}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}
+                          >
                             <div className="relative z-10 flex items-center justify-center">
                               <Shield className={`w-5 h-5 ${location.pathname === createPageUrl("Admin") && !sidebarCollapsed ? 'text-white' : 'text-rose-600'} transition-transform duration-300`} />
                             </div>
@@ -524,7 +607,7 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className={`border-t border-gray-100/60 py-3 bg-gradient-to-r from-gray-50/30 to-transparent ${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
+          <SidebarFooter className={`border-t border-gray-100/60 py-2 md:py-3 bg-gradient-to-r from-gray-50/30 to-transparent ${sidebarCollapsed ? 'px-2' : 'px-2 md:px-3'}`}>
             {/* Server Health Indicator - Hidden but functional */}
             {!sidebarCollapsed && (
               <div className="px-2 py-1.5 rounded-md bg-gray-50/50 space-y-1 mb-2 opacity-0 h-0 overflow-hidden">
@@ -588,9 +671,13 @@ export default function Layout({ children, currentPageName }) {
                 className={sidebarCollapsed ? "w-auto p-2 rounded-full min-w-[48px]" : "w-56"}
               >
                 <DropdownMenuItem asChild className={sidebarCollapsed ? "rounded-full" : ""}>
-                  <Link to={createPageUrl("Settings")} className={`flex items-center ${sidebarCollapsed 
-                    ? `justify-center w-10 h-10 p-0 rounded-full ${location.pathname === createPageUrl("Settings") ? 'bg-black text-white' : 'hover:bg-gray-100'}` 
-                    : 'gap-2'}`}>
+                  <Link 
+                    to={createPageUrl("Settings")} 
+                    onClick={handleLinkClick}
+                    className={`flex items-center ${sidebarCollapsed 
+                      ? `justify-center w-10 h-10 p-0 rounded-full ${location.pathname === createPageUrl("Settings") ? 'bg-black text-white' : 'hover:bg-gray-100'}` 
+                      : 'gap-2'}`}
+                  >
                     <Settings className="w-4 h-4" />
                     {!sidebarCollapsed && <span>Settings</span>}
                   </Link>
@@ -610,17 +697,17 @@ export default function Layout({ children, currentPageName }) {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col">
-          {/* Mobile header */}
-          <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/60 px-4 py-3 md:hidden shadow-sm relative">
-            <div className="flex items-center justify-between">
-              <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200" />
+        <main className="flex-1 flex flex-col min-w-0">
+          {/* Mobile/Tablet header */}
+          <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200/60 px-3 sm:px-4 py-2 sm:py-3 lg:hidden shadow-sm relative z-10 w-full">
+            <div className="flex items-center justify-between min-h-[3rem] w-full">
+              <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors duration-200 flex-shrink-0" />
               <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 {companyLogo ? (
                   <img
                     src={companyLogo}
                     alt={companyName}
-                    className="h-8 mx-auto"
+                    className="h-7 sm:h-8 mx-auto max-w-[120px] sm:max-w-[150px] object-contain"
                     onError={(e) => {
                       e.target.style.display = 'none';
                     }}
@@ -629,12 +716,12 @@ export default function Layout({ children, currentPageName }) {
                   <img
                     src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/ee07bf17f_1200-524-max.png"
                     alt="CANNA Logo"
-                    className="h-8 mx-auto"
+                    className="h-7 sm:h-8 mx-auto max-w-[120px] sm:max-w-[150px] object-contain"
                   />
                 )}
               </div>
-              <div className="flex items-center">
-                <div className={`w-1.5 h-1.5 rounded-full ${
+              <div className="flex items-center flex-shrink-0">
+                <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
                   serverHealth.status === 'healthy' 
                     ? 'bg-green-500' 
                     : serverHealth.status === 'unhealthy' 
@@ -646,11 +733,35 @@ export default function Layout({ children, currentPageName }) {
           </header>
 
           {/* Main content */}
-          <div id="page-content" className="flex-1 overflow-auto scrollbar-thin">
+          <div id="page-content" className="flex-1 overflow-y-auto overflow-x-auto scrollbar-thin w-full" style={{ minWidth: 0 }}>
             {children}
           </div>
         </main>
       </div>
+    </>
+  );
+}
+
+export default function Layout({ children, currentPageName }) {
+  // Calculate initial collapsed state (same logic as in LayoutContent)
+  const getInitialCollapsed = () => {
+    const savedPreference = localStorage.getItem('sidebarCollapsed');
+    if (savedPreference !== null) {
+      return savedPreference === 'true';
+    }
+    // Default to collapsed (icons only) on tablet (768px - 1024px)
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      return width >= 768 && width < 1024;
+    }
+    return false;
+  };
+
+  const initialCollapsed = getInitialCollapsed();
+  
+  return (
+    <SidebarProvider defaultOpen={!initialCollapsed}>
+      <LayoutContent children={children} currentPageName={currentPageName} />
     </SidebarProvider>
   );
 }

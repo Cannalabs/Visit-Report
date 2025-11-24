@@ -31,8 +31,6 @@ export default function PhotoSection({ formData, updateFormData }) {
   const [dragOver, setDragOver] = useState(false);
   const [previewFiles, setPreviewFiles] = useState([]); // Store selected files for preview
   const [previewImage, setPreviewImage] = useState(null); // Store image URL for full preview modal
-  const retryCountRef = useRef(0);
-  const maxRetries = 3;
   
   // React Speech Recognition hook
   // Note: Hook must be called unconditionally (React rules)
@@ -53,53 +51,31 @@ export default function PhotoSection({ formData, updateFormData }) {
   const notesBeforeRecordingRef = useRef('');
   const lastTranscriptRef = useRef('');
 
-  // Debug: Log speech recognition state changes
-  useEffect(() => {
-    console.log('🎤 [Voice-to-Text] State update:', {
-      listening,
-      hasTranscript: !!transcript,
-      transcriptLength: transcript?.length || 0,
-      interimTranscriptLength: interimTranscript?.length || 0,
-      finalTranscriptLength: finalTranscript?.length || 0,
-      browserSupports: browserSupportsSpeechRecognition
-    });
-  }, [listening, transcript, interimTranscript, finalTranscript, browserSupportsSpeechRecognition]);
-
   // Save notes before recording starts
   useEffect(() => {
     if (listening && !notesBeforeRecordingRef.current) {
       // Recording just started - save current notes
-      console.log('🎤 [Voice-to-Text] Recording started');
-      console.log('🎤 [Voice-to-Text] Browser supports speech recognition:', browserSupportsSpeechRecognition);
-      console.log('🎤 [Voice-to-Text] Language set to: en-US');
       notesBeforeRecordingRef.current = formData.notes || '';
       lastTranscriptRef.current = '';
     } else if (!listening && notesBeforeRecordingRef.current) {
       // Recording stopped - reset
-      console.log('🎤 [Voice-to-Text] Recording stopped');
       notesBeforeRecordingRef.current = '';
       lastTranscriptRef.current = '';
     }
-  }, [listening, formData.notes, browserSupportsSpeechRecognition]);
+  }, [listening, formData.notes]);
 
   // Update formData.notes in real-time as user speaks
   useEffect(() => {
     if (listening && transcript && transcript.trim() && transcript !== lastTranscriptRef.current) {
-      console.log('🎤 [Voice-to-Text] New transcript received:', transcript);
-      console.log('🎤 [Voice-to-Text] Transcript length:', transcript.length);
-      console.log('🎤 [Voice-to-Text] Interim transcript:', interimTranscript);
-      console.log('🎤 [Voice-to-Text] Final transcript:', finalTranscript);
-      
       // Get the base notes (before recording started)
       const baseNotes = notesBeforeRecordingRef.current;
       // Append current transcript
       const newNotes = baseNotes ? `${baseNotes} ${transcript.trim()}` : transcript.trim();
       
-      console.log('🎤 [Voice-to-Text] Updating notes with:', newNotes.substring(0, 100) + (newNotes.length > 100 ? '...' : ''));
       updateFormData({ notes: newNotes });
       lastTranscriptRef.current = transcript;
     }
-  }, [transcript, listening, updateFormData, interimTranscript, finalTranscript]);
+  }, [transcript, listening, updateFormData]);
 
   // Keyboard navigation for preview modal
   useEffect(() => {
@@ -368,51 +344,21 @@ export default function PhotoSection({ formData, updateFormData }) {
 
   const toggleVoiceRecording = async () => {
     if (listening) {
-      console.log('🎤 [Voice-to-Text] Stopping recording...');
-      retryCountRef.current = 0; // Reset retry count when manually stopping
       try {
         resetTranscript();
         SpeechRecognition.stopListening();
-        console.log('🎤 [Voice-to-Text] Recording stopped successfully');
       } catch (error) {
-        console.error('🎤 [Voice-to-Text] Error stopping speech recognition:', error);
-        console.error('🎤 [Voice-to-Text] Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
+        // Silently handle errors when stopping
       }
     } else {
-      console.log('🎤 [Voice-to-Text] Starting voice recording...');
-      console.log('🎤 [Voice-to-Text] Browser supports speech recognition:', browserSupportsSpeechRecognition);
-      
       // Check if browser supports speech recognition
       if (!browserSupportsSpeechRecognition) {
-        console.warn('🎤 [Voice-to-Text] Speech recognition not supported in this browser');
         alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
         return;
       }
 
       // Check internet connection first
-      console.log('🎤 [Voice-to-Text] Checking internet connection...');
       const hasInternet = await checkInternetConnection();
-      console.log('🎤 [Voice-to-Text] Internet connection:', hasInternet ? 'Available' : 'Not available');
-      
-      // Additional check: Try to reach Google's speech recognition service
-      if (hasInternet) {
-        try {
-          console.log('🎤 [Voice-to-Text] Testing connection to speech recognition service...');
-          // Try to fetch from a known endpoint to verify connectivity
-          const testResponse = await fetch('https://www.google.com', { 
-            method: 'HEAD', 
-            mode: 'no-cors',
-            cache: 'no-cache'
-          });
-          console.log('🎤 [Voice-to-Text] Network connectivity test completed');
-        } catch (testError) {
-          console.warn('🎤 [Voice-to-Text] Network test warning:', testError);
-        }
-      }
       
       if (!hasInternet) {
         alert('No internet connection detected. Speech recognition requires an active internet connection to work. Please check your connection and try again.');
@@ -423,7 +369,6 @@ export default function PhotoSection({ formData, updateFormData }) {
       const isHTTPS = window.location.protocol === 'https:';
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       if (!isHTTPS && !isLocalhost) {
-        console.warn('🎤 [Voice-to-Text] WARNING: Not using HTTPS. Speech recognition may not work on HTTP connections.');
         const proceed = confirm('Speech recognition works best over HTTPS. You are currently on HTTP. Do you want to continue anyway?');
         if (!proceed) {
           return;
@@ -432,223 +377,19 @@ export default function PhotoSection({ formData, updateFormData }) {
 
       // Try to request microphone permission explicitly (especially important for mobile)
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        console.log('🎤 [Voice-to-Text] Requesting microphone permission...');
         const hasPermission = await requestMicrophonePermission();
-        console.log('🎤 [Voice-to-Text] Microphone permission:', hasPermission ? 'Granted' : 'Denied');
         if (!hasPermission) {
-          console.warn('🎤 [Voice-to-Text] Microphone permission denied, cannot start recording');
           return;
         }
-      } else {
-        console.warn('🎤 [Voice-to-Text] navigator.mediaDevices.getUserMedia not available');
       }
 
       try {
-        retryCountRef.current = 0; // Reset retry count when starting fresh
-        console.log('🎤 [Voice-to-Text] Starting SpeechRecognition with options:', {
-          continuous: true,
-          interimResults: true,
-          language: 'en-US'
-        });
-        
-        // Check if SpeechRecognition is properly initialized
-        console.log('🎤 [Voice-to-Text] SpeechRecognition object:', {
-          available: !!SpeechRecognition,
-          startListening: typeof SpeechRecognition.startListening,
-          stopListening: typeof SpeechRecognition.stopListening,
-          getRecognition: typeof SpeechRecognition.getRecognition
-        });
-        
-        // Try to get the underlying recognition object for direct event access
-        let recognition = null;
-        try {
-          // Try react-speech-recognition's getRecognition method
-          if (SpeechRecognition.getRecognition) {
-            recognition = SpeechRecognition.getRecognition();
-            console.log('🎤 [Voice-to-Text] Got recognition object via getRecognition():', !!recognition);
-          }
-          
-          // Fallback: Try to access window's SpeechRecognition directly
-          if (!recognition) {
-            const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognitionAPI) {
-              console.log('🎤 [Voice-to-Text] Found native SpeechRecognition API:', {
-                SpeechRecognition: !!window.SpeechRecognition,
-                webkitSpeechRecognition: !!window.webkitSpeechRecognition
-              });
-              // Note: We can't create a new instance here as react-speech-recognition manages it
-              // But we can check if it's available
-            } else {
-              console.warn('🎤 [Voice-to-Text] Native SpeechRecognition API not found in window');
-            }
-          }
-          
-          if (recognition) {
-            console.log('🎤 [Voice-to-Text] Got recognition object:', !!recognition);
-            
-            // Add event listeners for debugging
-            if (recognition) {
-              recognition.onstart = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onstart event fired');
-              };
-              
-              recognition.onresult = (event) => {
-                console.log('🎤 [Voice-to-Text] Recognition.onresult event fired');
-                console.log('🎤 [Voice-to-Text] Result event:', {
-                  resultIndex: event.resultIndex,
-                  resultsLength: event.results.length,
-                  isFinal: event.results[event.resultIndex]?.isFinal,
-                  transcript: event.results[event.resultIndex]?.[0]?.transcript
-                });
-                for (let i = 0; i < event.results.length; i++) {
-                  console.log(`🎤 [Voice-to-Text] Result[${i}]:`, {
-                    transcript: event.results[i][0].transcript,
-                    confidence: event.results[i][0].confidence,
-                    isFinal: event.results[i].isFinal
-                  });
-                }
-              };
-              
-              recognition.onerror = (event) => {
-                console.error('🎤 [Voice-to-Text] Recognition.onerror event fired:', {
-                  error: event.error,
-                  message: event.message,
-                  type: event.type
-                });
-                
-                // Handle specific error types
-                if (event.error === 'network') {
-                  console.error('🎤 [Voice-to-Text] NETWORK ERROR - Speech recognition service cannot be reached');
-                  console.error('🎤 [Voice-to-Text] Possible causes:');
-                  console.error('  - No internet connection');
-                  console.error('  - Firewall/proxy blocking speech recognition API');
-                  console.error('  - Speech recognition service is down');
-                  console.error('  - Browser blocking the connection');
-                  console.error('🎤 [Voice-to-Text] Service URI:', recognition.serviceURI || 'default (browser managed)');
-                  
-                  // Try to retry if we haven't exceeded max retries
-                  if (retryCountRef.current < maxRetries) {
-                    retryCountRef.current += 1;
-                    console.log(`🎤 [Voice-to-Text] Retrying... (Attempt ${retryCountRef.current}/${maxRetries})`);
-                    
-                    // Wait a bit before retrying
-                    setTimeout(() => {
-                      try {
-                        console.log('🎤 [Voice-to-Text] Retrying speech recognition...');
-                        SpeechRecognition.stopListening();
-                        setTimeout(() => {
-                          SpeechRecognition.startListening({ 
-                            continuous: true, 
-                            interimResults: true, 
-                            language: 'en-US' 
-                          });
-                        }, 500);
-                      } catch (retryError) {
-                        console.error('🎤 [Voice-to-Text] Retry failed:', retryError);
-                        alert('Network error: Cannot connect to speech recognition service after multiple attempts. Please check your internet connection and try again later.');
-                        retryCountRef.current = 0;
-                      }
-                    }, 1000 * retryCountRef.current); // Exponential backoff
-                  } else {
-                    console.error('🎤 [Voice-to-Text] Max retries reached. Giving up.');
-                    retryCountRef.current = 0;
-                    alert('Network error: Cannot connect to speech recognition service after multiple attempts. Please check your internet connection and try again. If the problem persists, the speech recognition service may be temporarily unavailable.');
-                  }
-                } else if (event.error === 'no-speech') {
-                  console.warn('🎤 [Voice-to-Text] No speech detected - user may not be speaking or microphone may not be picking up audio');
-                  retryCountRef.current = 0; // Reset retry count for non-network errors
-                } else if (event.error === 'audio-capture') {
-                  console.error('🎤 [Voice-to-Text] Audio capture error - microphone may not be working');
-                  retryCountRef.current = 0;
-                } else if (event.error === 'not-allowed') {
-                  console.error('🎤 [Voice-to-Text] Permission denied - microphone access not allowed');
-                  retryCountRef.current = 0;
-                } else {
-                  console.error('🎤 [Voice-to-Text] Unknown error:', event.error);
-                  retryCountRef.current = 0;
-                }
-              };
-              
-              recognition.onend = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onend event fired');
-                // If we're still supposed to be listening but recognition ended due to error,
-                // and we haven't exceeded retries, the retry logic in onerror will handle it
-                if (listening && retryCountRef.current < maxRetries) {
-                  console.log('🎤 [Voice-to-Text] Recognition ended unexpectedly, but retry may be in progress');
-                } else if (!listening) {
-                  // Normal end - reset retry count
-                  retryCountRef.current = 0;
-                }
-              };
-              
-              recognition.onaudiostart = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onaudiostart event fired - Audio capture started');
-              };
-              
-              recognition.onaudioend = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onaudioend event fired - Audio capture ended');
-              };
-              
-              recognition.onsoundstart = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onsoundstart event fired - Sound detected');
-              };
-              
-              recognition.onsoundend = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onsoundend event fired - Sound ended');
-              };
-              
-              recognition.onspeechstart = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onspeechstart event fired - Speech detected');
-              };
-              
-              recognition.onspeechend = () => {
-                console.log('🎤 [Voice-to-Text] Recognition.onspeechend event fired - Speech ended');
-              };
-              
-              recognition.onnomatch = () => {
-                console.warn('🎤 [Voice-to-Text] Recognition.onnomatch event fired - No speech match found');
-              };
-            }
-          }
-        } catch (getRecognitionError) {
-          console.warn('🎤 [Voice-to-Text] Could not get recognition object:', getRecognitionError);
-        }
-        
-        // Start listening - options are set in the hook configuration
-        // Note: Some browsers may require HTTPS for speech recognition to work
-        console.log('🎤 [Voice-to-Text] Protocol check:', {
-          protocol: window.location.protocol,
-          isHTTPS: window.location.protocol === 'https:',
-          hostname: window.location.hostname,
-          isLocalhost: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        });
-        
         SpeechRecognition.startListening({ 
           continuous: true, 
           interimResults: true, 
           language: 'en-US' 
         });
-        console.log('🎤 [Voice-to-Text] SpeechRecognition.startListening() called successfully');
-        
-        // Log recognition state after starting
-        setTimeout(() => {
-          if (recognition) {
-            console.log('🎤 [Voice-to-Text] Recognition state after start:', {
-              continuous: recognition.continuous,
-              interimResults: recognition.interimResults,
-              lang: recognition.lang,
-              serviceURI: recognition.serviceURI
-            });
-          }
-        }, 100);
       } catch (error) {
-        console.error('🎤 [Voice-to-Text] Error starting speech recognition:', error);
-        console.error('🎤 [Voice-to-Text] Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          code: error.code
-        });
         let errorMessage = 'Failed to start voice recording. ';
         if (error.message) {
           errorMessage += error.message;
@@ -669,31 +410,33 @@ export default function PhotoSection({ formData, updateFormData }) {
   const isPhotosRequired = true; // Photos are mandatory according to checklist
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {isPhotosRequired && !hasPhotos && (
         <Alert variant="destructive" className="border-red-300 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+          <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+          <AlertDescription className="text-red-800 text-sm md:text-base">
             <strong>Required:</strong> At least one photo must be attached. Please upload photos using the options below.
           </AlertDescription>
         </Alert>
       )}
       <Card className={`bg-gradient-to-br from-blue-50 to-indigo-50 ${isPhotosRequired && !hasPhotos ? 'border-red-300' : 'border-blue-200'}`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <Camera className="w-5 h-5" />
-            Visit Photos
-            {isPhotosRequired && (
-              <span className="text-red-500 font-bold ml-1">*</span>
-            )}
+        <CardHeader className="pb-3 px-4 md:px-6 pt-4 md:pt-6">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-blue-800 text-sm md:text-base">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <span>Visit Photos</span>
+              {isPhotosRequired && (
+                <span className="text-red-500 font-bold">*</span>
+              )}
+            </div>
             {isPhotosRequired && !hasPhotos && (
-              <Badge variant="destructive" className="ml-auto">
+              <Badge variant="destructive" className="self-start sm:ml-auto">
                 Required - No Photos
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6">
           <input
             ref={fileInputRef}
             type="file"
@@ -729,39 +472,41 @@ export default function PhotoSection({ formData, updateFormData }) {
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-lg p-4 sm:p-6 md:p-8 text-center transition-colors ${
               dragOver 
                 ? 'border-blue-500 bg-blue-100' 
                 : 'border-blue-300 hover:border-blue-400 hover:bg-blue-50'
             }`}
           >
-            <div className="flex flex-col items-center gap-4">
-              <ImageIcon className="w-12 h-12 text-blue-400" />
-              <div>
-                <p className="text-lg font-medium text-blue-800 mb-2">
+            <div className="flex flex-col items-center gap-3 md:gap-4">
+              <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 text-blue-400 flex-shrink-0" />
+              <div className="w-full">
+                <p className="text-base sm:text-lg font-medium text-blue-800 mb-2">
                   Drag & Drop Images Here
                 </p>
-                <p className="text-sm text-blue-600 mb-4">
+                <p className="text-xs sm:text-sm text-blue-600 mb-3 sm:mb-4">
                   Or use the buttons below to take a photo or select files
                 </p>
-                <div className="flex gap-2 justify-center">
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   <Button
                     onClick={triggerCameraInput}
                     disabled={isUploading}
                     variant="outline"
-                    className="border-blue-300 hover:bg-blue-50"
+                    className="border-blue-300 hover:bg-blue-50 w-full sm:w-auto text-sm md:text-base"
                   >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Take Photo
+                    <Camera className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Take Photo</span>
+                    <span className="sm:hidden">Take Photo</span>
                   </Button>
                   <Button
                     onClick={triggerFileInput}
                     disabled={isUploading}
                     variant="outline"
-                    className="border-blue-300 hover:bg-blue-50"
+                    className="border-blue-300 hover:bg-blue-50 w-full sm:w-auto text-sm md:text-base"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Choose Files
+                    <Upload className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Choose Files</span>
+                    <span className="sm:hidden">Choose Files</span>
                   </Button>
                 </div>
               </div>
@@ -777,11 +522,11 @@ export default function PhotoSection({ formData, updateFormData }) {
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-2"
               >
-                <Label className="text-blue-700 font-semibold">
+                <Label className="text-blue-700 font-semibold text-sm md:text-base">
                   Selected Photos ({previewFiles.length})
-                  {isUploading && <span className="text-blue-500 ml-2">• Uploading...</span>}
+                  {isUploading && <span className="text-blue-500 ml-2 text-xs md:text-sm">• Uploading...</span>}
                 </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                   {previewFiles.map((previewItem, index) => (
                     <motion.div
                       key={`preview-${index}-${previewItem.name}`}
@@ -794,7 +539,7 @@ export default function PhotoSection({ formData, updateFormData }) {
                         <img
                           src={previewItem.preview}
                           alt={`Preview ${previewItem.name}`}
-                          className="w-full h-24 object-cover rounded-lg border shadow-sm group-hover:shadow-md transition-shadow"
+                          className="w-full h-20 sm:h-24 object-cover rounded-lg border shadow-sm group-hover:shadow-md transition-shadow"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
@@ -823,7 +568,7 @@ export default function PhotoSection({ formData, updateFormData }) {
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                          className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-7 h-7 sm:w-6 sm:h-6 rounded-full p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg z-10"
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent opening preview
                             if (previewItem.uploaded) {
@@ -910,31 +655,31 @@ export default function PhotoSection({ formData, updateFormData }) {
       </Card>
 
       <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <FileText className="w-5 h-5" />
+        <CardHeader className="pb-3 px-4 md:px-6 pt-4 md:pt-6">
+          <CardTitle className="flex items-center gap-2 text-green-800 text-sm md:text-base">
+            <FileText className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
             Additional Notes
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Label htmlFor="notes">Visit Notes</Label>
+        <CardContent className="p-4 md:p-6">
+          <div className="space-y-3 md:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+              <Label htmlFor="notes" className="text-sm md:text-base">Visit Notes</Label>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={toggleVoiceRecording}
-                className={`border-green-300 hover:bg-green-50 ${listening ? 'text-red-600 border-red-300' : ''}`}
+                className={`border-green-300 hover:bg-green-50 text-xs sm:text-sm ${listening ? 'text-red-600 border-red-300' : ''} w-full sm:w-auto`}
               >
                 {listening ? (
                   <>
-                    <MicOff className="w-4 h-4 mr-2" />
-                    Stop Recording
+                    <MicOff className="w-4 h-4 sm:mr-2 flex-shrink-0" />
+                    <span>Stop Recording</span>
                   </>
                 ) : (
                   <>
-                    <Mic className="w-4 h-4 mr-2" />
-                    Start Voice Input
+                    <Mic className="w-4 h-4 sm:mr-2 flex-shrink-0" />
+                    <span>Start Voice Input</span>
                   </>
                 )}
               </Button>
@@ -946,28 +691,26 @@ export default function PhotoSection({ formData, updateFormData }) {
                 const newValue = e.target.value;
                 // If user is typing, stop listening to avoid conflicts
                 if (listening) {
-                  console.log('🎤 [Voice-to-Text] User started typing, stopping voice recording');
                   try {
                     SpeechRecognition.stopListening();
                     resetTranscript();
-                    console.log('🎤 [Voice-to-Text] Voice recording stopped due to user input');
                   } catch (err) {
-                    console.error('🎤 [Voice-to-Text] Error stopping recognition on user input:', err);
+                    // Silently handle errors when stopping
                   }
                 }
                 updateFormData({ notes: newValue });
               }}
               placeholder="Add any additional observations, comments, or important details about this visit..."
               rows={4}
-              className="border-green-200 focus:border-green-400"
+              className="border-green-200 focus:border-green-400 text-sm md:text-base resize-none"
             />
             {listening && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
-                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                <span>Recording... {transcript && `(${transcript})`}</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-red-600 bg-red-50 p-2 sm:p-3 rounded">
+                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse flex-shrink-0"></div>
+                <span className="truncate">Recording... {transcript && `(${transcript.substring(0, 50)}${transcript.length > 50 ? '...' : ''})`}</span>
               </div>
             )}
-            <p className="text-xs text-green-600">
+            <p className="text-xs sm:text-sm text-green-600">
               💡 Use voice input for quick note-taking while on-site. Voice input will be processed and added to your notes.
             </p>
           </div>

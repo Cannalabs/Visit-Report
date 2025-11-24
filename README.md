@@ -1,4 +1,4 @@
-# CANNA Visit Report App
+# Visit Report App
 
 A comprehensive web application for managing shop visit reports, built with React (Vite) frontend and FastAPI backend.
 
@@ -50,6 +50,7 @@ A comprehensive web application for managing shop visit reports, built with Reac
 - **Sales/Purchase Breakdown**: Detailed sales data with bento box layout
 - **Training Tracking**: Record training topics and support materials provided
 - **Photo Management**: Upload and manage visit photos
+- **Voice-to-Text**: Speech recognition for quick note-taking during visits
 - **E-Signature**: Digital signature capture for visit reports
 - **GPS Coordinates**: Optional location tracking
 - **Follow-up Management**: Track follow-up requirements with assigned users, stages, and dates
@@ -58,6 +59,8 @@ A comprehensive web application for managing shop visit reports, built with Reac
   - Set follow-up dates
   - Dedicated Follow-ups page with detailed tracking
 - **User Settings**: Manage profile information (role, department, and territory are managed by admins)
+- **Enhanced Login Page**: Modern glassmorphism design with company logo, password visibility toggle, and forgot password functionality
+- **Route Protection**: All routes are protected with authentication, except the login page
 
 ## Tech Stack
 
@@ -191,6 +194,26 @@ npm run build
 - `GET /api/users` - List users
 - `GET /api/configurations` - Get configurations
 
+## Recent Updates
+
+### Login Page Enhancements
+- Modern glassmorphism design with background image
+- Company logo display at the top
+- Password visibility toggle (show/hide)
+- Forgot password dialog with contact admin message
+- Enhanced form styling with icons and animations
+- Responsive design for mobile and desktop
+
+### Security Improvements
+- All routes are protected with authentication (see `ROUTE_PROTECTION_ANALYSIS.md`)
+- Login page redirects authenticated users to dashboard
+- Token-based authentication with automatic refresh
+
+### Code Quality
+- Removed console logs from production code
+- Cleaned up voice-to-text functionality
+- Improved error handling
+
 ## Development Notes
 
 - Manual save button allows users to save visit data when ready
@@ -200,6 +223,7 @@ npm run build
 - Database migrations run automatically on backend startup
 - Follow-up fields (assigned user, stage, date) are saved automatically when changed
 - User role, department, and sales territory are managed by admins and readonly for regular users
+- Voice-to-text feature requires internet connection and microphone permissions
 
 ## License
 

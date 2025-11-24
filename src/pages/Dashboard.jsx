@@ -167,29 +167,30 @@ export default function Dashboard() {
     : (followUpRequired > 0 ? visits.filter(v => v.follow_up_required)[0] : null);
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-5 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-full" style={{ width: '100%', minWidth: 0 }}>
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-5 lg:space-y-8" style={{ width: '100%', minWidth: 0 }}>
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
               Welcome back, {user?.full_name?.split(' ')[0] || 'there'}! 👋
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 md:mt-2">
               Here's your visit activity overview for today
             </p>
           </div>
           <Link to={createPageUrl("NewVisit")}>
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 dark:from-green-500 dark:to-green-600 dark:hover:from-green-600 dark:hover:to-green-700 shadow-lg"
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 dark:from-green-500 dark:to-green-600 dark:hover:from-green-600 dark:hover:to-green-700 shadow-lg text-sm md:text-base"
             >
-              <Plus className="w-5 h-5 mr-2" />
-              New Visit Report
+              <Plus className="w-4 h-4 md:w-5 md:h-5 md:mr-2" />
+              <span className="hidden sm:inline">New Visit Report</span>
+              <span className="sm:hidden">New Visit</span>
             </Button>
           </Link>
         </motion.div>
@@ -203,57 +204,70 @@ export default function Dashboard() {
         />
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <RecentVisits visits={visits.filter(v => v.visit_status !== "appointment").slice(0, 5)} />
-            <QuickActions />
-          </div>
+        <div className="space-y-4 md:space-y-5 lg:space-y-8" style={{ width: '100%', minWidth: 0 }}>
+          {/* Recent Visits - Full Width */}
+          <RecentVisits visits={visits.filter(v => v.visit_status !== "appointment").slice(0, 5)} />
           
-          <div className="space-y-8">
-            <PlannedVisits visits={visits.filter(v => v.visit_status === "appointment")} />
-            <TopShops visits={visits} />
+          {/* Quick Actions - Full Width */}
+          <QuickActions />
+          
+          {/* Bento Box Layout - Planned Visits full height, Top Shops + Action Required stacked */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-8" style={{ width: '100%', minWidth: 0 }}>
+            {/* Planned Visits - Full Height */}
+            <div className="md:row-span-2">
+              <PlannedVisits visits={visits.filter(v => v.visit_status === "appointment")} />
+            </div>
             
-            {/* Action Required Card */}
-            {followUpRequired > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="border-orange-200/30 dark:border-orange-800/30 bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-xl shadow-xl border border-white/20 dark:border-gray-700/30">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300">
-                      <AlertCircle className="w-5 h-5" />
-                      Action Required
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-orange-700 dark:text-orange-300 mb-4">
-                      {followUpRequired} visit{followUpRequired !== 1 ? 's' : ''} require{followUpRequired === 1 ? 's' : ''} follow-up action
-                      {firstPendingFollowUp && (
-                        <span className="block text-sm mt-2 font-semibold">
-                          Next: {firstPendingFollowUp.shop_name || 'Unnamed Shop'}
-                        </span>
-                      )}
-                    </p>
-                    <div className="flex gap-2">
-                      {firstPendingFollowUp ? (
-                        <Link to={`${createPageUrl("NewVisit")}?id=${firstPendingFollowUp.id}&section=3&highlight=followup`}>
-                          <Button variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40">
-                            View Visit Report
+            {/* Right Column - Stacked Cards */}
+            <div className="flex flex-col gap-4 md:gap-5 lg:gap-8">
+              {/* Top Performing Shops - Half Height */}
+              <div className="flex-1">
+                <TopShops visits={visits} />
+              </div>
+              
+              {/* Action Required Card - Half Height */}
+              {followUpRequired > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex-1"
+                >
+                  <Card className="border-orange-200/30 dark:border-orange-800/30 bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-xl shadow-xl border-2 border-orange-300/60 dark:border-orange-600/60 flex flex-col h-[240px] md:h-[265px] lg:h-[284px]">
+                    <CardHeader className="pb-2 md:pb-2.5 px-4 md:px-4 lg:px-5 pt-3 md:pt-3.5 lg:pt-4 flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300 text-base md:text-lg">
+                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                        Action Required
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-4 md:px-4 lg:px-5 pb-3 md:pb-3.5 lg:pb-4 flex-1 flex flex-col justify-between">
+                      <p className="text-sm md:text-base text-orange-700 dark:text-orange-300 mb-2 md:mb-3">
+                        {followUpRequired} visit{followUpRequired !== 1 ? 's' : ''} require{followUpRequired === 1 ? 's' : ''} follow-up action
+                        {firstPendingFollowUp && (
+                          <span className="block text-xs md:text-sm mt-1.5 md:mt-2 font-semibold">
+                            Next: {firstPendingFollowUp.shop_name || 'Unnamed Shop'}
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {firstPendingFollowUp ? (
+                          <Link to={`${createPageUrl("NewVisit")}?id=${firstPendingFollowUp.id}&section=3&highlight=followup`} className="flex-1 sm:flex-initial">
+                            <Button variant="outline" className="w-full sm:w-auto border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-sm">
+                              View Visit Report
+                            </Button>
+                          </Link>
+                        ) : null}
+                        <Link to={createPageUrl("FollowUps")} className="flex-1 sm:flex-initial">
+                          <Button variant="outline" className="w-full sm:w-auto border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-sm">
+                            View All
                           </Button>
                         </Link>
-                      ) : null}
-                      <Link to={createPageUrl("FollowUps")}>
-                        <Button variant="outline" className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40">
-                          View All
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -59,15 +59,15 @@ export default function TopShops({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30">
-        <CardHeader className="border-b border-white/10 dark:border-gray-700/30">
-          <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200/60 dark:border-gray-600/60 flex flex-col h-[240px] md:h-[265px] lg:h-[284px]">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 flex-shrink-0 px-4 md:px-5 lg:px-6 py-3 md:py-3.5 lg:py-4">
+          <CardTitle className="text-base md:text-lg lg:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
             Top Performing Shops
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4">
+        <CardContent className="p-4 md:p-5 lg:p-6 flex-1 overflow-hidden">
+          <div className={`space-y-3 md:space-y-3.5 lg:space-y-4 h-full ${topShops.length > 0 ? 'overflow-y-auto pr-2' : ''}`}>
             {topShops.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 No shop data available yet
