@@ -550,7 +550,12 @@ export default function NewVisit() {
         ...formData, 
         visit_photos: cleanVisitPhotos,
         is_draft: !isAppointment, // Set is_draft to false for appointments
-        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        // Ensure visit_date includes time (hours, minutes, seconds) for heat map analysis
+        visit_date: formData.visit_date 
+          ? (formData.visit_date.includes('T') 
+              ? new Date(formData.visit_date).toISOString() 
+              : new Date(formData.visit_date + 'T' + new Date().toTimeString().split(' ')[0]).toISOString())
+          : new Date().toISOString(),
         draft_saved_at: new Date().toISOString(),
         // Ensure sales_data is included
         sales_data: formData.sales_data || {}
@@ -587,12 +592,19 @@ export default function NewVisit() {
       // Ensure visit_date is a proper datetime string
       // Include ALL fields from formData to ensure nothing is lost
       // Preserve the visit_status (appointment or draft)
+      // Ensure visit_date includes time (hours, minutes, seconds) for heat map analysis
+      const visitDateWithTime = formData.visit_date 
+        ? (formData.visit_date.includes('T') 
+            ? new Date(formData.visit_date).toISOString() 
+            : new Date(formData.visit_date + 'T' + new Date().toTimeString().split(' ')[0]).toISOString())
+        : new Date().toISOString();
+      
       const draftData = { 
         ...formData, 
         visit_photos: cleanVisitPhotos,
         is_draft: formData.visit_status !== "appointment", // Only set is_draft if not appointment
         visit_status: formData.visit_status || "draft", // Preserve visit_status
-        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        visit_date: visitDateWithTime,
         planned_visit_date: formData.planned_visit_date ? new Date(formData.planned_visit_date).toISOString() : null,
         draft_saved_at: new Date().toISOString(),
         // Ensure sales_data is included
@@ -765,6 +777,19 @@ export default function NewVisit() {
       setError(`Please complete the following required fields: ${missingLabels}`);
       return;
     }
+
+    // Validate that visit_date is not in the future for non-appointment visits
+    if (currentSection === 0 && formData.visit_status !== "appointment" && formData.visit_date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const visitDate = new Date(formData.visit_date);
+      visitDate.setHours(0, 0, 0, 0);
+      
+      if (visitDate > today) {
+        setError("Visit date cannot be in the future. Please use 'Planned Visit' status for future visits, or select today's date or a past date.");
+        return;
+      }
+    }
     
     if (currentSection < sections.length - 1) {
       // Only proceed if we have a visitId (either existing or newly created)
@@ -832,6 +857,18 @@ export default function NewVisit() {
         throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       }
 
+      // Validate that visit_date is not in the future for non-appointment visits
+      if (formData.visit_status !== "appointment" && formData.visit_date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const visitDate = new Date(formData.visit_date);
+        visitDate.setHours(0, 0, 0, 0);
+        
+        if (visitDate > today) {
+          throw new Error("Visit date cannot be in the future. Please use 'Planned Visit' status for future visits, or select today's date or a past date.");
+        }
+      }
+
       // Validate signature if signature is provided
       if (formData.signature && !formData.signature_signer_name) {
         throw new Error("Signer name is mandatory when a signature is provided. Please enter the signer name in the Signature section.");
@@ -848,9 +885,16 @@ export default function NewVisit() {
       
       // Build complete payload with ALL fields from formData
       // This ensures nothing is lost when saving to database
+      // Ensure visit_date includes time (hours, minutes, seconds) for heat map analysis
+      const visitDateWithTime = formData.visit_date 
+        ? (formData.visit_date.includes('T') 
+            ? new Date(formData.visit_date).toISOString() 
+            : new Date(formData.visit_date + 'T' + new Date().toTimeString().split(' ')[0]).toISOString())
+        : new Date().toISOString();
+      
       const payload = {
         ...formData,
-        visit_date: formData.visit_date ? new Date(formData.visit_date).toISOString() : new Date().toISOString(),
+        visit_date: visitDateWithTime,
         calculated_score: calculatedScore,
         priority_level: priorityLevel,
         visit_photos: cleanVisitPhotos, // Ensure all items are strings
@@ -918,8 +962,8 @@ export default function NewVisit() {
       2: [],
       // Section 3: Commercial Outcomes - commercial_outcome and overall_satisfaction are required
       3: ['commercial_outcome', 'overall_satisfaction'],
-      // Section 4: Photos & Notes - visit_photos required
-      4: ['visit_photos'],
+      // Section 4: Photos & Notes - photos are optional
+      4: [],
       // Section 5: Signature - signature and signer name required
       5: ['signature', 'signature_signer_name']
     };
@@ -1081,10 +1125,10 @@ export default function NewVisit() {
             if (!formData.customer_id || !formData.shop_name || !formData.shop_type || !formData.visit_purpose) {
               missingFields.push('Shop Information');
             }
-            // Section 4: Photos
-            if (!formData.visit_photos || formData.visit_photos.length === 0) {
-              missingFields.push('Visit Photos');
-            }
+            // Section 4: Photos - optional, no longer required
+            // if (!formData.visit_photos || formData.visit_photos.length === 0) {
+            //   missingFields.push('Visit Photos');
+            // }
             // Section 5: Signature
             if (!formData.signature || !formData.signature_signer_name) {
               missingFields.push('E-Signature');
@@ -1215,16 +1259,6 @@ export default function NewVisit() {
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="photos"
-                  checked={checklistItems.photosAttached}
-                  disabled
-                />
-                <label htmlFor="photos" className={checklistItems.photosAttached ? "text-green-700" : "text-red-600"}>
-                  Are all mandatory photos attached? {checklistItems.photosAttached ? "✓" : "✗"}
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
                   id="questionnaire"
                   checked={checklistItems.questionnaireComplete}
                   disabled
@@ -1259,7 +1293,7 @@ export default function NewVisit() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !Object.values(checklistItems).every(Boolean) || (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false && visitId))}
+                  disabled={isSubmitting || !checklistItems.questionnaireComplete || !checklistItems.followUpAdded || !checklistItems.signatureAttached || (formData.visit_status === "done" || (!formData.visit_status && formData.is_draft === false && visitId))}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   {isSubmitting ? (

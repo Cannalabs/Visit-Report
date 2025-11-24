@@ -156,6 +156,10 @@ class UserProfile(Base):
     phone = Column(String(50))
     bio = Column(Text)
     preferences = Column(JSON, default=dict)
+    # User signature (one-time submission)
+    signature = Column(Text)  # Base64 encoded signature
+    signature_signer_name = Column(String(255))
+    signature_date = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

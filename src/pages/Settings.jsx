@@ -16,8 +16,11 @@ import {
   Shield,
   LogOut,
   Save,
-  CheckCircle
+  CheckCircle,
+  Edit,
+  Lock
 } from "lucide-react";
+import SignaturePad from "@/components/visit-form/SignaturePad";
 
 export default function Settings() {
   const [user, setUser] = useState(null);
@@ -34,6 +37,10 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [signature, setSignature] = useState(null);
+  const [signatureSignerName, setSignatureSignerName] = useState("");
+  const [isSignatureSigned, setIsSignatureSigned] = useState(false);
+  const [signatureError, setSignatureError] = useState("");
 
   useEffect(() => {
     loadUser();
@@ -99,6 +106,12 @@ export default function Settings() {
               territory: preferences.territory || "",
               phone: profile.phone || ""
             });
+            // Load signature if it exists
+            if (profile.signature) {
+              setSignature(profile.signature);
+              setSignatureSignerName(profile.signature_signer_name || "");
+              setIsSignatureSigned(true);
+            }
           } else {
             // No profile found, use user data only
             setUserData({
@@ -138,6 +151,19 @@ export default function Settings() {
       await User.updateMyUserData({
         full_name: userData.full_name
       });
+
+      // Save signature if it was updated
+      if (signature && signatureSignerName.trim()) {
+        try {
+          await UserProfile.saveSignature(user.id, {
+            signature: signature,
+            signature_signer_name: signatureSignerName.trim()
+          });
+        } catch (err) {
+          console.error("Failed to save signature:", err);
+          // Continue with other updates even if signature save fails
+        }
+      }
 
       // Update UserProfile if it exists
       if (userProfile && userProfile.id) {
@@ -377,11 +403,93 @@ export default function Settings() {
           </Card>
         </motion.div>
 
-        {/* Application Settings */}
+        {/* Signature Management */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Edit className="w-5 h-5" />
+                Digital Signature
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Your signature will be automatically used in all visit reports. You can update it here at any time.
+              </p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signature_signer_name">Signer Name *</Label>
+                <Input
+                  id="signature_signer_name"
+                  placeholder="Enter full name"
+                  value={signatureSignerName}
+                  onChange={(e) => {
+                    setSignatureSignerName(e.target.value);
+                    setSignatureError("");
+                  }}
+                  className={signatureError || (!signatureSignerName.trim() && isSignatureSigned) ? "border-red-300 bg-red-50" : ""}
+                />
+                {!signatureSignerName.trim() && isSignatureSigned && (
+                  <p className="text-xs text-red-600">Signer name is required</p>
+                )}
+                {signatureError && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertDescription className="text-sm">{signatureError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {isSignatureSigned ? (
+                <div className="space-y-4">
+                  <div className="p-4 border border-green-200 bg-green-50 rounded-lg text-center">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Signature Saved</span>
+                    </div>
+                    <img src={signature} alt="signature" className="mx-auto border rounded max-w-full h-auto max-h-48"/>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsSignatureSigned(false);
+                      setSignature(null);
+                      setSignatureError("");
+                    }}
+                    className="w-full"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Update Signature
+                  </Button>
+                </div>
+              ) : (
+                <SignaturePad 
+                  onSave={(signatureDataUrl) => {
+                    if (!signatureSignerName || signatureSignerName.trim() === "") {
+                      setSignatureError("Signer name is mandatory. Please enter the name before submitting.");
+                      return false;
+                    }
+                    setSignatureError("");
+                    setSignature(signatureDataUrl);
+                    setIsSignatureSigned(true);
+                    return true;
+                  }}
+                  signerName={signatureSignerName}
+                  onError={(error) => setSignatureError(error)}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Application Settings */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
         >
           <Card>
             <CardHeader>
@@ -418,7 +526,7 @@ export default function Settings() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
         >
           <Card>
             <CardHeader>

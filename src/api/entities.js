@@ -217,6 +217,15 @@ export const UserProfile = {
   },
   getByUserId: async (userId) => {
     return apiCall(`/user-profiles/user/${userId}`);
+  },
+  saveSignature: async (userId, signatureData) => {
+    return apiCall(`/user-profiles/user/${userId}/signature`, {
+      method: 'PUT',
+      body: JSON.stringify(signatureData)
+    });
+  },
+  getSignature: async (userId) => {
+    return apiCall(`/user-profiles/user/${userId}/signature`);
   }
 };
 

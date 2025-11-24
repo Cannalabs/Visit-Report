@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -407,7 +407,74 @@ export default function PhotoSection({ formData, updateFormData }) {
 
   // Check if photos are required (mandatory field)
   const hasPhotos = formData.visit_photos && formData.visit_photos.length > 0;
-  const isPhotosRequired = true; // Photos are mandatory according to checklist
+  const isPhotosRequired = false; // Photos are optional
+
+  // Compute dialog content using useMemo to avoid React reconciliation issues
+  const dialogContent = useMemo(() => {
+    if (!previewImage) return null;
+    
+    // Combine all photos (uploaded + preview) for navigation
+    const allPhotos = [...(formData.visit_photos || []), ...previewFiles.map(p => p.preview)];
+    const currentIndex = allPhotos.indexOf(previewImage);
+    const totalPhotos = allPhotos.length;
+    const hasMultiple = totalPhotos > 1;
+
+    return (
+      <div className="relative" key={previewImage}>
+        <img
+          src={previewImage}
+          alt="Preview"
+          className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+        <Button
+          size="sm"
+          variant="destructive"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full p-0 shadow-lg z-10"
+          onClick={() => setPreviewImage(null)}
+        >
+          <X className="w-4 h-4" />
+        </Button>
+        {/* Navigation buttons if multiple photos */}
+        {hasMultiple && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full p-0 bg-black/50 hover:bg-black/70 border-white/30 text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : totalPhotos - 1;
+                setPreviewImage(allPhotos[prevIndex]);
+              }}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full p-0 bg-black/50 hover:bg-black/70 border-white/30 text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextIndex = currentIndex < totalPhotos - 1 ? currentIndex + 1 : 0;
+                setPreviewImage(allPhotos[nextIndex]);
+              }}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </>
+        )}
+        {/* Photo counter */}
+        {hasMultiple && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+            {currentIndex + 1} / {totalPhotos}
+          </div>
+        )}
+      </div>
+    );
+  }, [previewImage, formData.visit_photos, previewFiles]);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -720,69 +787,7 @@ export default function PhotoSection({ formData, updateFormData }) {
       {/* Full Image Preview Dialog */}
       <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black/95">
-          {previewImage && (() => {
-            // Combine all photos (uploaded + preview) for navigation
-            const allPhotos = [...(formData.visit_photos || []), ...previewFiles.map(p => p.preview)];
-            const currentIndex = allPhotos.indexOf(previewImage);
-            const totalPhotos = allPhotos.length;
-            const hasMultiple = totalPhotos > 1;
-
-            return (
-              <div className="relative">
-                <img
-                  src={previewImage}
-                  alt="Preview"
-                  className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full p-0 shadow-lg z-10"
-                  onClick={() => setPreviewImage(null)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-                {/* Navigation buttons if multiple photos */}
-                {hasMultiple && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full p-0 bg-black/50 hover:bg-black/70 border-white/30 text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const prevIndex = currentIndex > 0 ? currentIndex - 1 : totalPhotos - 1;
-                        setPreviewImage(allPhotos[prevIndex]);
-                      }}
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full p-0 bg-black/50 hover:bg-black/70 border-white/30 text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const nextIndex = currentIndex < totalPhotos - 1 ? currentIndex + 1 : 0;
-                        setPreviewImage(allPhotos[nextIndex]);
-                      }}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </Button>
-                  </>
-                )}
-                {/* Photo counter */}
-                {hasMultiple && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-                    {currentIndex + 1} / {totalPhotos}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {dialogContent}
         </DialogContent>
       </Dialog>
     </div>

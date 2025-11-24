@@ -59,10 +59,10 @@ export default function TopShops({ visits }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-2 border-gray-200/60 dark:border-gray-600/60 flex flex-col h-[240px] md:h-[265px] lg:h-[284px]">
-        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 flex-shrink-0 px-4 md:px-5 lg:px-6 py-3 md:py-3.5 lg:py-4">
+      <Card className="shadow-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 flex flex-col h-[284px] md:h-[314px] lg:h-[340px]">
+        <CardHeader className="border-b border-white/10 dark:border-gray-700/30 px-4 md:px-5 lg:px-6 py-3 md:py-3.5 lg:py-4">
           <CardTitle className="text-base md:text-lg lg:text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
             Top Performing Shops
           </CardTitle>
         </CardHeader>

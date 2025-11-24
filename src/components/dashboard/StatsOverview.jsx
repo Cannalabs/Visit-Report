@@ -1,88 +1,144 @@
 
 import React from 'react';
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Calendar,
   TrendingUp,
   Star,
-  AlertCircle
+  CircleAlert
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { format } from "date-fns";
 
-const StatCard = ({ title, value, icon: Icon, color, trend, delay = 0 }) => (
+const StatCard = ({ title, value, icon: Icon, gradientClasses, iconGradientClasses, textColor, delay = 0 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
+    initial={{ opacity: 0, transform: "none" }}
+    animate={{ opacity: 1, transform: "none" }}
     transition={{ delay }}
+    className="h-full"
   >
-    <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-lg">
-      <div className={`absolute top-0 right-0 w-24 h-24 transform translate-x-6 -translate-y-6 ${color} rounded-full opacity-10 dark:opacity-20`} />
-      <CardHeader className="pb-2 px-3 md:px-4 pt-3 md:pt-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
+    <div className={`rounded-xl text-card-foreground relative overflow-hidden hover:shadow-lg transition-all duration-300 border shadow-sm h-full ${gradientClasses}`}>
+      <div className="p-6 flex items-center justify-between h-full">
+        <div className="space-y-2">
+          <p className={`text-sm font-semibold ${textColor}`}>
             {title}
-          </CardTitle>
-          <div className={`p-1.5 md:p-2 rounded-lg md:rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20`}>
-            <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${color.replace('bg-', 'text-')}`} />
+          </p>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-bold text-gray-900 tracking-tight">
+              {value}
+            </h3>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4">
-        <div className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-          {value}
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 flex-shrink-0 ${iconGradientClasses}`}>
+          <Icon className="w-6 h-6 text-white" />
         </div>
-        {trend && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {trend}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   </motion.div>
 );
 
-export default function StatsOverview({ todaysVisits, thisWeeksVisits, averageScore, followUpRequired }) {
+const PlannedVisitsCard = ({ plannedVisitsByDate, delay = 0 }) => {
+  const sortedDates = Object.keys(plannedVisitsByDate).sort((a, b) => {
+    return new Date(a) - new Date(b);
+  }).slice(0, 3); // Show top 3 dates
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return format(date, "dd MMM");
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const totalPlannedVisits = Object.values(plannedVisitsByDate).reduce((sum, count) => sum + count, 0);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
-      <Link to={createPageUrl("Reports?dateRange=today")}>
+    <motion.div
+      initial={{ opacity: 0, transform: "none" }}
+      animate={{ opacity: 1, transform: "none" }}
+      transition={{ delay }}
+      className="h-full"
+    >
+      <Link to={createPageUrl("PlannedVisits")} className="h-full block">
+        <div className="rounded-xl text-card-foreground relative overflow-hidden hover:shadow-lg transition-all duration-300 border shadow-sm bg-gradient-to-br from-blue-50 via-blue-50 to-indigo-50 border-blue-100 h-full">
+          <div className="p-6 flex items-center justify-between h-full">
+            <div className="space-y-2 flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-600">
+                Planned Visits
+              </p>
+              <div className="space-y-1">
+                <h3 className="text-3xl font-bold text-gray-900 tracking-tight">
+                  {totalPlannedVisits}
+                </h3>
+                {sortedDates.length > 0 && (
+                  <div className="space-y-0.5">
+                    {sortedDates.map((date) => (
+                      <div key={date} className="text-xs text-gray-700 font-medium">
+                        {formatDate(date)} - {plannedVisitsByDate[date]} visit{plannedVisitsByDate[date] !== 1 ? 's' : ''}
+                      </div>
+                    ))}
+                    {Object.keys(plannedVisitsByDate).length > 3 && (
+                      <p className="text-xs text-gray-500">
+                        +{Object.keys(plannedVisitsByDate).length - 3} more date{Object.keys(plannedVisitsByDate).length - 3 !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {sortedDates.length === 0 && (
+                  <p className="text-xs text-gray-600">No planned visits</p>
+                )}
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-200 flex-shrink-0">
+              <Calendar className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+};
+
+export default function StatsOverview({ plannedVisitsByDate, thisWeeksVisits, averageScore, followUpRequired }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
+      <PlannedVisitsCard
+        plannedVisitsByDate={plannedVisitsByDate}
+        delay={0.1}
+      />
+      <Link to={createPageUrl("Reports")} className="h-full block">
         <StatCard
-          title="Today's Visits"
-          value={todaysVisits}
-          icon={Calendar}
-          color="bg-blue-500"
-          trend="Great progress today!"
-          delay={0.1}
+          title="Avg. Score"
+          value={averageScore.toFixed(1)}
+          icon={Star}
+          gradientClasses="bg-gradient-to-br from-amber-50 via-amber-50 to-yellow-50 border-amber-100"
+          iconGradientClasses="bg-gradient-to-br from-amber-500 to-yellow-600 shadow-amber-200"
+          textColor="text-amber-700"
+          delay={0.2}
         />
       </Link>
-      <Link to={createPageUrl("Reports?dateRange=week")}>
+      <Link to={createPageUrl("Reports?followUp=required")} className="h-full block">
+        <StatCard
+          title="Follow-ups"
+          value={followUpRequired}
+          icon={CircleAlert}
+          gradientClasses="bg-gradient-to-br from-rose-50 via-rose-50 to-red-50 border-rose-100"
+          iconGradientClasses="bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-200"
+          textColor="text-rose-600"
+          delay={0.3}
+        />
+      </Link>
+      <Link to={createPageUrl("Reports?dateRange=week")} className="h-full block">
         <StatCard
           title="This Week"
           value={thisWeeksVisits}
           icon={TrendingUp}
-          color="bg-green-500"
-          trend="Keep up the momentum"
-          delay={0.2}
-        />
-      </Link>
-      <Link to={createPageUrl("Reports")}>
-        <StatCard
-          title="Avg. Score"
-          value={`${averageScore.toFixed(1)}/100`}
-          icon={Star}
-          color="bg-purple-500"
-          trend="Quality visits matter"
-          delay={0.3}
-        />
-      </Link>
-      <Link to={createPageUrl("Reports?followUp=required")}>
-        <StatCard
-          title="Follow-ups"
-          value={followUpRequired}
-          icon={AlertCircle}
-          color="bg-orange-500"
-          trend="Action items pending"
+          gradientClasses="bg-gradient-to-br from-emerald-50 via-emerald-50 to-teal-50 border-emerald-100"
+          iconGradientClasses="bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-200"
+          textColor="text-emerald-600"
           delay={0.4}
         />
       </Link>

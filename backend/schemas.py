@@ -289,6 +289,9 @@ class UserProfileBase(BaseModel):
     phone: Optional[str] = None
     bio: Optional[str] = None
     preferences: Optional[Dict[str, Any]] = {}
+    signature: Optional[str] = None
+    signature_signer_name: Optional[str] = None
+    signature_date: Optional[datetime] = None
 
 class UserProfileCreate(UserProfileBase):
     user_id: int

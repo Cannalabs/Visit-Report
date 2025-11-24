@@ -24,7 +24,6 @@ import { motion } from "framer-motion";
 import StatsOverview from "../components/dashboard/StatsOverview";
 import RecentVisits from "../components/dashboard/RecentVisits";
 import TopShops from "../components/dashboard/TopShops";
-import PlannedVisits from "../components/dashboard/PlannedVisits";
 import QuickActions from "../components/dashboard/QuickActions";
 
 export default function Dashboard() {
@@ -70,7 +69,7 @@ export default function Dashboard() {
       }
 
       // Fetch visits first (critical data) to show page faster
-      const visitsData = await ShopVisit.list("-created_date", 100).catch((err) => {
+      const visitsData = await ShopVisit.list("-created_at", 100).catch((err) => {
         return []; // Return empty array on error
       });
       
@@ -117,21 +116,27 @@ export default function Dashboard() {
     );
   }
 
-  const todaysVisits = visits.filter(visit => {
-    if (!visit.created_date) return false;
-    try {
-      const visitDate = new Date(visit.created_date);
-      if (isNaN(visitDate.getTime())) return false;
-      return format(visitDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-    } catch (e) {
-      return false;
-    }
-  });
+  // Group planned visits by date
+  const plannedVisitsByDate = visits
+    .filter(visit => visit.visit_status === "appointment" && visit.planned_visit_date)
+    .reduce((acc, visit) => {
+      try {
+        const visitDate = new Date(visit.planned_visit_date);
+        if (isNaN(visitDate.getTime())) return acc;
+        const dateKey = format(visitDate, 'yyyy-MM-dd');
+        acc[dateKey] = (acc[dateKey] || 0) + 1;
+        return acc;
+      } catch (e) {
+        return acc;
+      }
+    }, {});
 
   const thisWeeksVisits = visits.filter(visit => {
-    if (!visit.created_date) return false;
+    // Use created_at (backend field) with fallback to created_date for compatibility
+    const dateField = visit.created_at || visit.created_date;
+    if (!dateField) return false;
     try {
-      const visitDate = new Date(visit.created_date);
+      const visitDate = new Date(dateField);
       if (isNaN(visitDate.getTime())) return false;
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -141,8 +146,10 @@ export default function Dashboard() {
     }
   });
 
-  const averageScore = visits.length > 0 
-    ? visits.reduce((sum, visit) => sum + (visit.calculated_score || 0), 0) / visits.length 
+  // Calculate average score - only count visits that have a calculated_score
+  const visitsWithScore = visits.filter(visit => visit.calculated_score != null && visit.calculated_score !== undefined);
+  const averageScore = visitsWithScore.length > 0 
+    ? visitsWithScore.reduce((sum, visit) => sum + (visit.calculated_score || 0), 0) / visitsWithScore.length 
     : 0;
 
   const followUpRequired = visits.filter(visit => visit.follow_up_required).length;
@@ -197,7 +204,7 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <StatsOverview 
-          todaysVisits={todaysVisits.length}
+          plannedVisitsByDate={plannedVisitsByDate}
           thisWeeksVisits={thisWeeksVisits.length}
           averageScore={averageScore}
           followUpRequired={followUpRequired}
@@ -205,60 +212,50 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="space-y-4 md:space-y-5 lg:space-y-8" style={{ width: '100%', minWidth: 0 }}>
-          {/* Recent Visits - Full Width */}
-          <RecentVisits visits={visits.filter(v => v.visit_status !== "appointment").slice(0, 5)} />
-          
-          {/* Quick Actions - Full Width */}
-          <QuickActions />
-          
-          {/* Bento Box Layout - Planned Visits full height, Top Shops + Action Required stacked */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-8" style={{ width: '100%', minWidth: 0 }}>
-            {/* Planned Visits - Full Height */}
-            <div className="md:row-span-2">
-              <PlannedVisits visits={visits.filter(v => v.visit_status === "appointment")} />
+          {/* Recent Visits and Top Performing Shops - Side by Side on Tablet/Desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 lg:gap-8" style={{ width: '100%', minWidth: 0 }}>
+            {/* Recent Visits - Full width on tablet, 60% on desktop (3/5 columns) */}
+            <div className="md:col-span-1 lg:col-span-3">
+              <RecentVisits visits={visits.filter(v => v.visit_status !== "appointment").slice(0, 5)} />
             </div>
             
-            {/* Right Column - Stacked Cards */}
-            <div className="flex flex-col gap-4 md:gap-5 lg:gap-8">
-              {/* Top Performing Shops - Half Height */}
-              <div className="flex-1">
-                <TopShops visits={visits} />
-              </div>
+            {/* Top Performing Shops and Action Required - Full width on tablet, 40% on desktop (2/5 columns) */}
+            <div className="md:col-span-1 lg:col-span-2 space-y-4 md:space-y-4 lg:space-y-5">
+              <TopShops visits={visits} />
               
-              {/* Action Required Card - Half Height */}
+              {/* Action Required Card */}
               {followUpRequired > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="flex-1"
                 >
-                  <Card className="border-orange-200/30 dark:border-orange-800/30 bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-xl shadow-xl border-2 border-orange-300/60 dark:border-orange-600/60 flex flex-col h-[240px] md:h-[265px] lg:h-[284px]">
+                  <Card className="border-orange-200/30 dark:border-orange-800/30 bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-xl shadow-xl border-2 border-orange-300/60 dark:border-orange-600/60 flex flex-col h-[200px] md:h-[220px] lg:h-[240px]">
                     <CardHeader className="pb-2 md:pb-2.5 px-4 md:px-4 lg:px-5 pt-3 md:pt-3.5 lg:pt-4 flex-shrink-0">
-                      <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300 text-base md:text-lg">
-                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                      <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300 text-base md:text-base lg:text-lg">
+                        <AlertCircle className="w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
                         Action Required
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="px-4 md:px-4 lg:px-5 pb-3 md:pb-3.5 lg:pb-4 flex-1 flex flex-col justify-between">
-                      <p className="text-sm md:text-base text-orange-700 dark:text-orange-300 mb-2 md:mb-3">
+                      <p className="text-sm md:text-sm lg:text-base text-orange-700 dark:text-orange-300 mb-2 md:mb-2 lg:mb-3">
                         {followUpRequired} visit{followUpRequired !== 1 ? 's' : ''} require{followUpRequired === 1 ? 's' : ''} follow-up action
                         {firstPendingFollowUp && (
-                          <span className="block text-xs md:text-sm mt-1.5 md:mt-2 font-semibold">
+                          <span className="block text-xs md:text-xs lg:text-sm mt-1.5 md:mt-1.5 lg:mt-2 font-semibold">
                             Next: {firstPendingFollowUp.shop_name || 'Unnamed Shop'}
                           </span>
                         )}
                       </p>
-                      <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex flex-col md:flex-col lg:flex-row gap-2">
                         {firstPendingFollowUp ? (
-                          <Link to={`${createPageUrl("NewVisit")}?id=${firstPendingFollowUp.id}&section=3&highlight=followup`} className="flex-1 sm:flex-initial">
-                            <Button variant="outline" className="w-full sm:w-auto border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-sm">
+                          <Link to={`${createPageUrl("NewVisit")}?id=${firstPendingFollowUp.id}&section=3&highlight=followup`} className="flex-1">
+                            <Button variant="outline" className="w-full border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-xs md:text-xs lg:text-sm">
                               View Visit Report
                             </Button>
                           </Link>
                         ) : null}
-                        <Link to={createPageUrl("FollowUps")} className="flex-1 sm:flex-initial">
-                          <Button variant="outline" className="w-full sm:w-auto border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-sm">
+                        <Link to={createPageUrl("FollowUps")} className="flex-1">
+                          <Button variant="outline" className="w-full border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-xs md:text-xs lg:text-sm">
                             View All
                           </Button>
                         </Link>
@@ -269,6 +266,9 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+          
+          {/* Quick Actions - Full Width */}
+          <QuickActions />
         </div>
       </div>
     </div>

@@ -35,9 +35,28 @@ const getPriorityColor = (priority) => {
   return colors[priority] || colors.medium;
 };
 
+const getPriorityBarColor = (priority) => {
+  // Return color for vertical bar based on priority
+  if (priority === 'high') {
+    return 'bg-red-500';
+  } else if (priority === 'medium') {
+    return 'bg-yellow-500';
+  } else {
+    // low or no priority -> green
+    return 'bg-green-500';
+  }
+};
+
 export default function RecentVisits({ visits }) {
   // Filter out appointments - only show actual visits (drafts or done)
-  const recentVisits = visits.filter(visit => visit.visit_status !== "appointment");
+  // Sort by created_at descending to show most recent first
+  const recentVisits = visits
+    .filter(visit => visit.visit_status !== "appointment")
+    .sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA; // Descending order (newest first)
+    });
   
   return (
     <motion.div
@@ -58,7 +77,7 @@ export default function RecentVisits({ visits }) {
           </div>
         </CardHeader>
         <CardContent className="p-0 md:p-0 flex-1 overflow-hidden min-w-0">
-          <div className={`md:space-y-0 space-y-3 md:space-y-0 p-3 md:p-0 h-full min-w-0 ${recentVisits.length > 0 ? 'overflow-y-auto overflow-x-visible' : ''}`}>
+          <div className={`space-y-3 md:space-y-4 p-3 md:p-4 h-full min-w-0 ${recentVisits.length > 0 ? 'overflow-y-auto overflow-x-visible' : ''}`}>
             {recentVisits.length === 0 ? (
               <div className="p-8 text-center">
                 <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -70,15 +89,21 @@ export default function RecentVisits({ visits }) {
                 </Link>
               </div>
             ) : (
-              recentVisits.map((visit, index) => (
+              recentVisits.map((visit, index) => {
+                const priority = visit.priority_level || 'low';
+                const barColor = getPriorityBarColor(priority);
+                
+                return (
                 <Link to={createPageUrl(`NewVisit?id=${visit.id}`)} key={visit.id} className="block">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="md:p-4 lg:p-6 p-4 md:border-b border-b-0 md:border-gray-50 dark:md:border-gray-700 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-200 rounded-lg md:rounded-none bg-white dark:bg-gray-800/50 shadow-sm md:shadow-none border border-gray-200 dark:border-gray-700 md:border-0"
+                    className="relative p-4 md:p-5 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-200 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm border border-gray-200 dark:border-gray-700"
                   >
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
+                    {/* Vertical Priority Bar */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${barColor} rounded-l-lg`}></div>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3 pl-3 md:pl-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
                           <h3 className="font-semibold text-sm md:text-base lg:text-lg text-gray-900 dark:text-white truncate">
@@ -149,7 +174,7 @@ export default function RecentVisits({ visits }) {
                     </div>
                   </motion.div>
                 </Link>
-              ))
+              )})
             )}
           </div>
         </CardContent>

@@ -15,7 +15,8 @@ import {
   LogOut,
   HelpCircle,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,6 +62,11 @@ const navigationItems = [
     title: "Follow-ups",
     url: createPageUrl("FollowUps"),
     icon: AlertCircle
+  },
+  {
+    title: "Planned Visits",
+    url: createPageUrl("PlannedVisits"),
+    icon: Calendar
   },
   {
     title: "Analytics",
@@ -479,7 +485,7 @@ function LayoutContent({ children, currentPageName }) {
             </Link>
           </SidebarHeader>
 
-          <SidebarContent className={`${sidebarCollapsed ? 'px-2' : 'px-2 md:px-4'} py-4 overflow-y-auto overflow-x-hidden`}>
+          <SidebarContent className="py-4 overflow-y-auto overflow-x-hidden">
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-2 md:space-y-3">
@@ -508,18 +514,18 @@ function LayoutContent({ children, currentPageName }) {
                                 : `${gradient.bg} text-gray-700 ${gradient.hoverBg} hover:shadow-md hover:scale-[1.02] border border-gray-200/60`
                             }
                             ${sidebarCollapsed 
-                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center items-center flex-shrink-0' 
                               : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
-                            transition-all duration-300 relative overflow-hidden flex items-center
+                            transition-all duration-300 relative overflow-hidden flex
                           `}
                         >
                           <Link 
                             to={item.url} 
                             onClick={handleLinkClick}
-                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-2 md:gap-3 relative w-full'}`}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center items-center w-full h-full' : 'gap-2 md:gap-3 relative w-full'}`}
                           >
-                            <div className="relative z-10 flex items-center justify-center flex-shrink-0">
+                            <div className={`relative z-10 flex items-center justify-center flex-shrink-0 ${sidebarCollapsed ? 'w-full h-full' : ''}`}>
                               <item.icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive && !sidebarCollapsed ? 'text-white' : gradient.icon} transition-transform duration-300`} />
                             </div>
                             {!sidebarCollapsed && <span className={`font-semibold text-sm md:text-base ${isActive ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap truncate`}>{item.title}</span>}
@@ -549,18 +555,18 @@ function LayoutContent({ children, currentPageName }) {
                                 : 'bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 text-gray-700 hover:from-blue-100 hover:via-indigo-100 hover:to-violet-100 hover:shadow-md hover:scale-[1.02] border border-gray-200/60'
                             }
                             ${sidebarCollapsed 
-                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center items-center flex-shrink-0' 
                               : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
-                            transition-all duration-300 relative overflow-hidden flex items-center
+                            transition-all duration-300 relative overflow-hidden flex
                           `}
                         >
                           <Link 
                             to={createPageUrl("Configuration")} 
                             onClick={handleLinkClick}
-                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center items-center w-full h-full' : 'gap-3 relative w-full'}`}
                           >
-                            <div className="relative z-10 flex items-center justify-center">
+                            <div className={`relative z-10 flex items-center justify-center flex-shrink-0 ${sidebarCollapsed ? 'w-full h-full' : ''}`}>
                               <Settings className={`w-5 h-5 ${location.pathname === createPageUrl("Configuration") && !sidebarCollapsed ? 'text-white' : 'text-blue-600'} transition-transform duration-300`} />
                             </div>
                             {!sidebarCollapsed && <span className={`font-semibold ${location.pathname === createPageUrl("Configuration") ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>Configuration</span>}
@@ -580,18 +586,18 @@ function LayoutContent({ children, currentPageName }) {
                                 : 'bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 text-gray-700 hover:from-rose-100 hover:via-red-100 hover:to-orange-100 hover:shadow-md hover:scale-[1.02] border border-gray-200/60'
                             }
                             ${sidebarCollapsed 
-                              ? 'rounded-full w-10 h-10 p-0 justify-center flex-shrink-0' 
+                              ? 'rounded-full w-10 h-10 p-0 justify-center items-center flex-shrink-0' 
                               : 'rounded-2xl py-2 md:py-2.5 px-2 md:px-3 h-10 md:h-8'
                             }
-                            transition-all duration-300 relative overflow-hidden flex items-center
+                            transition-all duration-300 relative overflow-hidden flex
                           `}
                         >
                           <Link 
                             to={createPageUrl("Admin")} 
                             onClick={handleLinkClick}
-                            className={`flex items-center ${sidebarCollapsed ? 'justify-center w-10 h-10' : 'gap-3 relative w-full'}`}
+                            className={`flex items-center ${sidebarCollapsed ? 'justify-center items-center w-full h-full' : 'gap-3 relative w-full'}`}
                           >
-                            <div className="relative z-10 flex items-center justify-center">
+                            <div className={`relative z-10 flex items-center justify-center flex-shrink-0 ${sidebarCollapsed ? 'w-full h-full' : ''}`}>
                               <Shield className={`w-5 h-5 ${location.pathname === createPageUrl("Admin") && !sidebarCollapsed ? 'text-white' : 'text-rose-600'} transition-transform duration-300`} />
                             </div>
                             {!sidebarCollapsed && <span className={`font-semibold ${location.pathname === createPageUrl("Admin") ? 'text-white' : 'text-gray-800'} relative z-10 whitespace-nowrap`}>Admin Panel</span>}

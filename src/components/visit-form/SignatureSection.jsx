@@ -6,12 +6,55 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import SignaturePad from "./SignaturePad";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Check, AlertCircle } from "lucide-react";
+import { Edit, Check, AlertCircle, Lock } from "lucide-react";
+import { UserProfile } from "@/api/entities";
+import { User } from "@/api/entities";
 
 export default function SignatureSection({ formData, updateFormData }) {
   const [signerName, setSignerName] = useState(formData.signature_signer_name || "");
   const [isSigned, setIsSigned] = useState(!!formData.signature);
   const [signatureError, setSignatureError] = useState("");
+  const [hasSavedSignature, setHasSavedSignature] = useState(false);
+  const [isLoadingSignature, setIsLoadingSignature] = useState(true);
+  const [user, setUser] = useState(null);
+
+  // Load user and check for saved signature
+  useEffect(() => {
+    const loadUserAndSignature = async () => {
+      try {
+        // Get current user
+        const userData = await User.me().catch(() => null);
+        if (userData) {
+          setUser(userData);
+          
+          // Check if user has a saved signature in profile
+          try {
+            const profile = await UserProfile.getSignature(userData.id);
+            if (profile && profile.signature) {
+              // User has a saved signature - use it
+              setHasSavedSignature(true);
+              updateFormData({
+                signature: profile.signature,
+                signature_signer_name: profile.signature_signer_name,
+                signature_date: profile.signature_date
+              });
+              setSignerName(profile.signature_signer_name || "");
+              setIsSigned(true);
+            }
+          } catch (err) {
+            // No saved signature found - that's okay
+            console.log("No saved signature found for user");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      } finally {
+        setIsLoadingSignature(false);
+      }
+    };
+    
+    loadUserAndSignature();
+  }, []);
 
   // Sync with formData when it changes (e.g., when loading existing visit)
   useEffect(() => {
@@ -21,7 +64,7 @@ export default function SignatureSection({ formData, updateFormData }) {
     setIsSigned(!!formData.signature);
   }, [formData.signature, formData.signature_signer_name]);
 
-  const handleSaveSignature = (signatureDataUrl) => {
+  const handleSaveSignature = async (signatureDataUrl) => {
     // Validate signer name before saving signature
     if (!signerName || signerName.trim() === "") {
       setSignatureError("Signer name is mandatory. Please enter the name before submitting.");
@@ -29,12 +72,36 @@ export default function SignatureSection({ formData, updateFormData }) {
     }
 
     setSignatureError("");
+    
+    const signatureDate = new Date().toISOString();
+    
+    // Update form data
     updateFormData({
       signature: signatureDataUrl,
       signature_signer_name: signerName.trim(),
-      signature_date: new Date().toISOString()
+      signature_date: signatureDate
     });
     setIsSigned(true);
+    
+    // If user hasn't saved signature to profile yet, save it now (one-time only)
+    if (user && !hasSavedSignature) {
+      try {
+        await UserProfile.saveSignature(user.id, {
+          signature: signatureDataUrl,
+          signature_signer_name: signerName.trim()
+        });
+        setHasSavedSignature(true);
+      } catch (error) {
+        // If signature already exists in profile, that's fine
+        if (error.message && error.message.includes("already been submitted")) {
+          setHasSavedSignature(true);
+        } else {
+          console.error("Failed to save signature to profile:", error);
+          // Continue anyway - signature is saved in form data
+        }
+      }
+    }
+    
     return true; // Success
   };
 
@@ -111,23 +178,34 @@ export default function SignatureSection({ formData, updateFormData }) {
             )}
           </div>
           
-          {isSigned ? (
+          {isLoadingSignature ? (
+            <div className="text-center py-4 text-gray-500">Loading signature...</div>
+          ) : isSigned ? (
             <div className="space-y-4">
               <div className="p-3 md:p-4 border border-green-200 bg-green-50 rounded-lg text-center">
                 <Badge className="bg-green-100 text-green-800 text-xs md:text-sm">
                   <Check className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 flex-shrink-0"/>
-                  Signature Captured
+                  {hasSavedSignature ? "Signature Saved (One-Time Submission)" : "Signature Captured"}
                 </Badge>
                 <img src={formData.signature} alt="signature" className="mx-auto mt-3 md:mt-4 border rounded max-w-full h-auto"/>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={handleEditSignature}
-                className="w-full text-sm md:text-base"
-              >
-                <Edit className="w-4 h-4 mr-2 flex-shrink-0" />
-                Edit Signature
-              </Button>
+              {hasSavedSignature ? (
+                <Alert className="border-blue-200 bg-blue-50">
+                  <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <AlertDescription className="text-blue-800 text-sm">
+                    Using signature from your profile. You can update it in Settings.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  onClick={handleEditSignature}
+                  className="w-full text-sm md:text-base"
+                >
+                  <Edit className="w-4 h-4 mr-2 flex-shrink-0" />
+                  Edit Signature
+                </Button>
+              )}
             </div>
           ) : (
             <SignaturePad 

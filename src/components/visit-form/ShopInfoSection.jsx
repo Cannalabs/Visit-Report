@@ -490,12 +490,28 @@ export default function ShopInfoSection({ formData, updateFormData }) {
               <Input
                 id="visit_date"
                 type="date"
+                max={formData.visit_status !== "appointment" ? new Date().toISOString().split('T')[0] : undefined}
                 value={
                   formData.visit_status === "appointment" && formData.planned_visit_date
                     ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
                     : (formData.visit_date || "")
                 }
-                onChange={(e) => updateFormData({ visit_date: e.target.value })}
+                onChange={(e) => {
+                  const selectedDate = e.target.value;
+                  // For non-appointment visits, validate that date is not in the future
+                  if (formData.visit_status !== "appointment" && selectedDate) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const selected = new Date(selectedDate);
+                    selected.setHours(0, 0, 0, 0);
+                    
+                    if (selected > today) {
+                      // Don't update if future date is selected
+                      return;
+                    }
+                  }
+                  updateFormData({ visit_date: selectedDate });
+                }}
                 className={getFieldStyle(
                   formData.visit_status === "appointment" && formData.planned_visit_date
                     ? new Date(formData.planned_visit_date).toISOString().split('T')[0]
@@ -523,6 +539,21 @@ export default function ShopInfoSection({ formData, updateFormData }) {
                     This field is required
                   </p>
                 )}
+                {formData.visit_status !== "appointment" && formData.visit_date && (() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const selected = new Date(formData.visit_date);
+                  selected.setHours(0, 0, 0, 0);
+                  if (selected > today) {
+                    return (
+                      <p className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Visit date cannot be in the future. Use "Planned Visit" status for future visits.
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             

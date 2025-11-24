@@ -534,27 +534,43 @@ export default function Analytics() {
         const dayLabel = dayMap[dayOfWeek];
         if (!dayLabel || !heatmapData[dayLabel]) return;
         
-        // Get hour of day
-        let hour = visitDate.getHours();
-        let minutes = visitDate.getMinutes();
-        
-        // If hour is 0 and minutes is 0, it might be a date-only field
-        // Try to use created_date/created_at which likely has a time component
-        if (hour === 0 && minutes === 0 && !visit.visit_date && (visit.created_date || visit.created_at)) {
-          const fallbackDate = new Date(visit.created_date || visit.created_at);
-          if (!isNaN(fallbackDate.getTime())) {
-            hour = fallbackDate.getHours();
-            minutes = fallbackDate.getMinutes();
+        // For heat map, prefer created_at as it always has accurate time with seconds
+        // Use visit_date only if created_at is not available
+        let dateForTime = visitDate;
+        if (visit.created_at) {
+          const createdDate = new Date(visit.created_at);
+          if (!isNaN(createdDate.getTime())) {
+            dateForTime = createdDate;
+          }
+        } else if (visit.created_date) {
+          const createdDate = new Date(visit.created_date);
+          if (!isNaN(createdDate.getTime())) {
+            dateForTime = createdDate;
           }
         }
         
-        // If still no time info, distribute evenly or use a default
-        // For now, if hour is 0 and it's likely a date-only field, use created_date time
-        if (hour === 0 && minutes === 0 && visit.created_date) {
-          const createdDate = new Date(visit.created_date);
-          if (!isNaN(createdDate.getTime()) && (createdDate.getHours() !== 0 || createdDate.getMinutes() !== 0)) {
-            hour = createdDate.getHours();
-            minutes = createdDate.getMinutes();
+        // Get hour, minutes, and seconds from the date
+        let hour = dateForTime.getHours();
+        let minutes = dateForTime.getMinutes();
+        let seconds = dateForTime.getSeconds();
+        
+        // If hour is 0 and minutes is 0 and seconds is 0, it might be a date-only field
+        // In this case, use created_at/created_date which should have time
+        if (hour === 0 && minutes === 0 && seconds === 0) {
+          if (visit.created_at) {
+            const createdDate = new Date(visit.created_at);
+            if (!isNaN(createdDate.getTime())) {
+              hour = createdDate.getHours();
+              minutes = createdDate.getMinutes();
+              seconds = createdDate.getSeconds();
+            }
+          } else if (visit.created_date) {
+            const createdDate = new Date(visit.created_date);
+            if (!isNaN(createdDate.getTime())) {
+              hour = createdDate.getHours();
+              minutes = createdDate.getMinutes();
+              seconds = createdDate.getSeconds();
+            }
           }
         }
         

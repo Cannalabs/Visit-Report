@@ -15,9 +15,14 @@ export default function CommercialSection({ formData, updateFormData, currentUse
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   
   // Check if current user can edit follow-up fields
-  // User can edit if they are the creator of the visit OR the assigned user for the follow-up
+  // User can edit if:
+  // 1. It's a new visit (no created_by set) - always allow
+  // 2. They are the creator of the visit
+  // 3. They are the assigned user for the follow-up
   const canEditFollowUp = useMemo(() => {
-    if (!currentUser || !formData) return true; // Allow editing if no user/visit data (new visit)
+    if (!currentUser || !formData) return true; // Allow editing if no user/visit data
+    // If created_by is not set, it's a new visit - allow editing
+    if (!formData.created_by) return true;
     const isCreator = formData.created_by === currentUser.id;
     const isAssignedUser = formData.follow_up_assigned_user_id === currentUser.id;
     return isCreator || isAssignedUser;
