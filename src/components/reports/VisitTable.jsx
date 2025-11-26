@@ -453,40 +453,82 @@ export default function VisitTable({ visits, isLoading, selectedVisits, onSelect
 
                     <TableCell className="py-4">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {visit.follow_up_required && (
-                            <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 text-xs font-medium px-2 py-0.5">
-                              <AlertCircle className="w-3 h-3 mr-1 inline" />
-                              Follow-up
-                            </Badge>
-                          )}
-                          {visit.follow_up_stage && (
-                            <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-700 border-gray-200">
-                              {visit.follow_up_stage.replace('_', ' ')}
-                            </Badge>
-                          )}
-                        </div>
-                        {visit.follow_up_date && (
+                        {/* Only show follow-up related badges if follow-up is actually required or exists */}
+                        {(visit.follow_up_required || visit.follow_up_date || visit.follow_up_stage) && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {visit.follow_up_required && (
+                              <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50 text-xs font-medium px-2 py-0.5">
+                                <AlertCircle className="w-3 h-3 mr-1 inline" />
+                                Follow-up
+                              </Badge>
+                            )}
+                            {visit.follow_up_stage && (visit.follow_up_required || visit.follow_up_date) && (
+                              <Badge 
+                                variant="secondary" 
+                                className={`text-xs font-medium px-2 py-0.5 border-gray-200 ${
+                                  visit.follow_up_stage === 'completed' 
+                                    ? 'bg-green-100 text-green-700 border-green-200' 
+                                    : visit.follow_up_stage === 'in_progress'
+                                    ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                {visit.follow_up_stage.replace('_', ' ')}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                        {visit.follow_up_date ? (
                           <div className="text-xs text-blue-600 font-medium">
-                            {(() => {
+                            Follow-up: {(() => {
                               try {
                                 const date = new Date(visit.follow_up_date);
-                                return isNaN(date.getTime()) ? '' : format(date, 'MMM d, yyyy');
+                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy');
                               } catch (e) {
-                                return '';
+                                return 'Invalid date';
                               }
                             })()}
                           </div>
-                        )}
-                        <div className="text-xs text-gray-500">
-                          {visit.created_date ? (() => {
-                            try {
-                              const date = new Date(visit.created_date);
-                              return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d');
-                            } catch (e) {
-                              return 'Invalid date';
-                            }
-                          })() : 'No date'}
+                        ) : (visit.follow_up_required && visit.follow_up_stage === 'completed') ? (
+                          <div className="text-xs text-gray-400 italic">
+                            Completed (no date set)
+                          </div>
+                        ) : null}
+                        <div className="space-y-1">
+                          {(() => {
+                            const formatDate = (dateValue) => {
+                              if (!dateValue) return null;
+                              try {
+                                const date = new Date(dateValue);
+                                return isNaN(date.getTime()) ? null : format(date, 'MMM d, yyyy');
+                              } catch (e) {
+                                return null;
+                              }
+                            };
+                            
+                            const createdDate = formatDate(visit.created_at || visit.created_date);
+                            const updatedDate = formatDate(visit.updated_at);
+                            
+                            return (
+                              <>
+                                {createdDate && (
+                                  <div className="text-xs text-gray-500">
+                                    Created: {createdDate}
+                                  </div>
+                                )}
+                                {updatedDate && (
+                                  <div className="text-xs text-gray-400">
+                                    Updated: {updatedDate}
+                                  </div>
+                                )}
+                                {!createdDate && !updatedDate && (
+                                  <div className="text-xs text-gray-400 italic">
+                                    No date available
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </TableCell>

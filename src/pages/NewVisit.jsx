@@ -59,6 +59,9 @@ export default function NewVisit() {
 
   const autoCreateDraftTimeoutRef = useRef(null);
   const isCreatingDraftRef = useRef(false);
+  const autoSaveTimeoutRef = useRef(null);
+  const isAutoSavingRef = useRef(false);
+  const previousFormDataRef = useRef(null);
 
   const [formData, setFormData] = useState({
     // customer_id is no longer initialized here; it's set dynamically upon customer selection/loading
@@ -275,6 +278,123 @@ export default function NewVisit() {
     };
   }, [formData.customer_id, visitId, isDraftCreated]);
 
+  // Initialize previousFormDataRef after visit data is loaded
+  useEffect(() => {
+    if (visitId && !isLoading && previousFormDataRef.current === null) {
+      // Deep clone formData to avoid reference issues
+      previousFormDataRef.current = JSON.parse(JSON.stringify(formData));
+    }
+  }, [visitId, isLoading]);
+
+  // Auto-save on any formData change (debounced)
+  useEffect(() => {
+    // Skip auto-save if:
+    // 1. No visitId yet (draft not created)
+    // 2. Visit is already "done" (submitted)
+    // 3. Currently auto-saving
+    // 4. Currently creating draft
+    // 5. Initial load (previousFormDataRef is null - not initialized yet)
+    if (
+      !visitId || 
+      formData.visit_status === "done" || 
+      (!formData.visit_status && formData.is_draft === false) ||
+      isAutoSavingRef.current ||
+      isCreatingDraftRef.current ||
+      previousFormDataRef.current === null ||
+      isLoading
+    ) {
+      return;
+    }
+
+    // Check if formData actually changed (deep comparison)
+    const currentDataStr = JSON.stringify(formData);
+    const previousDataStr = JSON.stringify(previousFormDataRef.current);
+    
+    if (currentDataStr === previousDataStr) {
+      // No changes, skip auto-save
+      return;
+    }
+
+    // Clear any pending auto-save timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
+    // Debounce auto-save: wait 1.5 seconds after last change
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      // Double-check conditions (they might have changed during timeout)
+      if (
+        !visitId || 
+        formData.visit_status === "done" || 
+        (!formData.visit_status && formData.is_draft === false) ||
+        isAutoSavingRef.current ||
+        isCreatingDraftRef.current ||
+        isLoading
+      ) {
+        autoSaveTimeoutRef.current = null;
+        return;
+      }
+
+      // Check again if formData changed (might have changed again during timeout)
+      const currentDataStrCheck = JSON.stringify(formData);
+      const previousDataStrCheck = JSON.stringify(previousFormDataRef.current);
+      
+      if (currentDataStrCheck === previousDataStrCheck) {
+        // No changes, skip save
+        autoSaveTimeoutRef.current = null;
+        return;
+      }
+
+      isAutoSavingRef.current = true;
+      setIsDraftSaving(true);
+      try {
+        // Clean visit_photos to ensure all items are strings
+        const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
+          typeof photo === 'string' && photo.trim().length > 0
+        );
+        
+        // For appointments, ensure is_draft is false
+        const isAppointment = formData.visit_status === "appointment";
+        
+        const draftData = { 
+          ...formData, 
+          visit_photos: cleanVisitPhotos,
+          is_draft: !isAppointment,
+          // Ensure visit_date includes time (hours, minutes, seconds) for heat map analysis
+          visit_date: formData.visit_date 
+            ? (formData.visit_date.includes('T') 
+                ? new Date(formData.visit_date).toISOString() 
+                : new Date(formData.visit_date + 'T' + new Date().toTimeString().split(' ')[0]).toISOString())
+            : new Date().toISOString(),
+          planned_visit_date: formData.planned_visit_date ? new Date(formData.planned_visit_date).toISOString() : null,
+          draft_saved_at: new Date().toISOString(),
+          // Ensure sales_data is included
+          sales_data: formData.sales_data || {}
+        };
+        
+        await ShopVisit.update(visitId, draftData);
+        setLastSaved(new Date());
+        // Update previousFormDataRef after successful save (deep clone)
+        previousFormDataRef.current = JSON.parse(JSON.stringify(formData));
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+        // Don't show error to user for auto-save failures, just log it
+      } finally {
+        setIsDraftSaving(false);
+        isAutoSavingRef.current = false;
+      }
+      
+      autoSaveTimeoutRef.current = null;
+    }, 1500); // 1.5 second debounce delay
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+    };
+  }, [formData, visitId, isLoading]);
 
   // Removed useEffect for fetching suggested contacts based on shop_name
   // Removed fetchSuggestedContacts and handleContactSelect functions
@@ -292,6 +412,8 @@ export default function NewVisit() {
           sales_data: visit.sales_data || {}
         };
         setFormData(formDataToSet);
+        // Initialize previousFormDataRef after loading visit data
+        previousFormDataRef.current = JSON.parse(JSON.stringify(formDataToSet));
         if (visit.customer_id) {
           // Use get() method instead of filter() for single customer lookup
           try {
@@ -533,10 +655,17 @@ export default function NewVisit() {
       return;
     }
     
+    // Cancel any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+    
     // For appointments, ensure is_draft is false
     const isAppointment = formData.visit_status === "appointment";
     
     setIsDraftSaving(true);
+    isAutoSavingRef.current = true; // Prevent auto-save during manual save
     try {
       // Clean visit_photos to ensure all items are strings
       const cleanVisitPhotos = (formData.visit_photos || []).filter(photo => 
@@ -545,7 +674,6 @@ export default function NewVisit() {
       
       // Ensure visit_date is a proper datetime string
       // Include ALL fields from formData to ensure nothing is lost
-      const isAppointment = formData.visit_status === "appointment";
       const draftData = { 
         ...formData, 
         visit_photos: cleanVisitPhotos,
@@ -556,16 +684,22 @@ export default function NewVisit() {
               ? new Date(formData.visit_date).toISOString() 
               : new Date(formData.visit_date + 'T' + new Date().toTimeString().split(' ')[0]).toISOString())
           : new Date().toISOString(),
+        planned_visit_date: formData.planned_visit_date ? new Date(formData.planned_visit_date).toISOString() : null,
         draft_saved_at: new Date().toISOString(),
         // Ensure sales_data is included
         sales_data: formData.sales_data || {}
       };
       await ShopVisit.update(visitId, draftData);
       setLastSaved(new Date());
+      // Update previousFormDataRef after successful manual save
+      previousFormDataRef.current = JSON.parse(JSON.stringify(formData));
     } catch (err) {
       // Failed to save draft
+      console.error("Manual save failed:", err);
+    } finally {
+      setIsDraftSaving(false);
+      isAutoSavingRef.current = false;
     }
-    setIsDraftSaving(false);
   };
 
   const createInitialDraft = async () => {
@@ -1075,7 +1209,12 @@ export default function NewVisit() {
                       <Clock className="w-3 h-3 flex-shrink-0" />
                       <span className="hidden sm:inline">Last saved: </span>
                       <span>{lastSaved.toLocaleTimeString()}</span>
-                      {isDraftSaving && <span className="text-blue-600">(Saving...)</span>}
+                      {isDraftSaving && <span className="text-blue-600 ml-1">(Auto-saving...)</span>}
+                    </div>
+                  )}
+                  {!lastSaved && visitId && formData.visit_status !== "done" && (!formData.visit_status || formData.is_draft !== false || formData.visit_status === "appointment") && (
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <span className="hidden sm:inline">Auto-save enabled</span>
                     </div>
                   )}
                 </div>

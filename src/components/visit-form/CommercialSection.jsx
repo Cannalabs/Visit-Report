@@ -193,7 +193,21 @@ export default function CommercialSection({ formData, updateFormData, currentUse
             <Switch
               id="follow_up_required"
               checked={formData.follow_up_required || false}
-              onCheckedChange={(checked) => updateFormData({ follow_up_required: checked })}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  // When enabling follow-up, just set the flag
+                  updateFormData({ follow_up_required: true });
+                } else {
+                  // When disabling follow-up, clear all follow-up related fields
+                  updateFormData({
+                    follow_up_required: false,
+                    follow_up_notes: null,
+                    follow_up_date: null,
+                    follow_up_assigned_user_id: null,
+                    follow_up_stage: null
+                  });
+                }
+              }}
             />
           </div>
 

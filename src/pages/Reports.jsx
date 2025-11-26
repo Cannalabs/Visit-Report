@@ -37,7 +37,10 @@ export default function Reports() {
     dateRange: "all",
     shopType: "all",
     priority: "all",
-    followUp: "all"
+    followUp: "all",
+    showAll: true,
+    showFollowUp: true,
+    showPlanned: true
   });
 
   useEffect(() => {
@@ -142,10 +145,34 @@ export default function Reports() {
       filtered = filtered.filter(visit => visit.priority_level === filters.priority);
     }
 
-    // Follow-up filter
+    // Follow-up filter (legacy dropdown)
     if (filters.followUp !== "all") {
       const needsFollowUp = filters.followUp === "required";
       filtered = filtered.filter(visit => visit.follow_up_required === needsFollowUp);
+    }
+
+    // Checkbox filters - show only selected types
+    // If "All" is checked, show all visits regardless of other checkboxes
+    if (!filters.showAll) {
+      filtered = filtered.filter(visit => {
+        const isFollowUp = visit.follow_up_required === true;
+        const isPlanned = visit.visit_status === "appointment";
+        
+        // If both checkboxes are checked, show visits that match either
+        if (filters.showFollowUp && filters.showPlanned) {
+          return isFollowUp || isPlanned;
+        }
+        // If only follow-up is checked
+        if (filters.showFollowUp && !filters.showPlanned) {
+          return isFollowUp;
+        }
+        // If only planned is checked
+        if (!filters.showFollowUp && filters.showPlanned) {
+          return isPlanned;
+        }
+        // If neither is checked, show nothing
+        return false;
+      });
     }
 
     setFilteredVisits(filtered);

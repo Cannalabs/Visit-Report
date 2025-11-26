@@ -16,7 +16,8 @@ import {
   HelpCircle,
   TrendingUp,
   AlertCircle,
-  Calendar
+  Calendar,
+  ClipboardList
 } from "lucide-react";
 import {
   Sidebar,
@@ -54,9 +55,9 @@ const navigationItems = [
     icon: FileText
   },
   {
-    title: "Reports",
+    title: "Visit Reports",
     url: createPageUrl("Reports"),
-    icon: BarChart3
+    icon: ClipboardList
   },
   {
     title: "Follow-ups",
