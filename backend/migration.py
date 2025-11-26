@@ -227,6 +227,19 @@ def run_migrations():
     logger.info("Migration check completed")
     logger.info("=" * 60)
     
+    # Create performance indexes after migrations
+    try:
+        from add_performance_indexes import create_performance_indexes
+        logger.info("\n" + "=" * 60)
+        logger.info("Checking performance indexes...")
+        logger.info("=" * 60)
+        indexes_created = create_performance_indexes()
+        if indexes_created > 0:
+            logger.info(f"✓ Created {indexes_created} performance indexes")
+    except Exception as e:
+        logger.warning(f"Could not create performance indexes: {e}")
+        # Don't fail migrations if index creation fails
+    
     return migrations_applied
 
 def migrate_county_to_country(engine: Engine):

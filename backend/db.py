@@ -18,10 +18,15 @@ elif database_url.startswith("postgresql://"):
     if "+psycopg2" not in database_url:
         database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Create database engine
+# Create database engine with connection pooling for better performance
 # All settings come from env.conf via config.py
 engine = create_engine(
-    database_url
+    database_url,
+    pool_size=10,  # Number of connections to maintain in the pool
+    max_overflow=20,  # Maximum number of connections to create beyond pool_size
+    pool_pre_ping=True,  # Verify connections before using them
+    pool_recycle=3600,  # Recycle connections after 1 hour
+    echo=False  # Set to True for SQL query logging (useful for debugging)
 )
 
 # Create session factory

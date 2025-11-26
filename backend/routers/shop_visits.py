@@ -54,6 +54,8 @@ def list_shop_visits(
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
+    # Optimize query: Use indexed column for ordering and limit result set
+    # For large datasets, consider only loading essential fields first
     query = db.query(ShopVisit)
     if customer_id:
         query = query.filter(ShopVisit.customer_id == customer_id)
@@ -63,7 +65,9 @@ def list_shop_visits(
         query = query.filter(ShopVisit.visit_status == visit_status)
     # Use created_at for ordering as it's more reliable and indexed
     # visit_date can be null for appointments
-    return query.order_by(ShopVisit.created_at.desc()).offset(skip).limit(limit).all()
+    # Limit to reasonable maximum to prevent excessive data loading
+    effective_limit = min(limit, 1000)  # Cap at 1000 records max
+    return query.order_by(ShopVisit.created_at.desc()).offset(skip).limit(effective_limit).all()
 
 @router.get("/{visit_id}", response_model=ShopVisitResponse)
 def get_shop_visit(visit_id: int, db: Session = Depends(get_db)):

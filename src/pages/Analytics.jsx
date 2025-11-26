@@ -84,7 +84,8 @@ export default function Analytics() {
       setIsLoading(true);
       try {
         // Fetch visits first (most important data) to show page faster
-        const visitData = await ShopVisit.list('-created_date', 500).catch(() => []);
+        // Reduced from 500 to 300 for better performance - analytics can work with sample
+        const visitData = await ShopVisit.list('-created_at', 300).catch(() => []);
         setVisits(visitData || []);
         setIsLoading(false); // Show page as soon as visits are loaded
         
