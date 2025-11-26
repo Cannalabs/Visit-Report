@@ -61,7 +61,9 @@ def list_shop_visits(
         query = query.filter(ShopVisit.is_draft == is_draft)
     if visit_status is not None:
         query = query.filter(ShopVisit.visit_status == visit_status)
-    return query.order_by(ShopVisit.visit_date.desc()).offset(skip).limit(limit).all()
+    # Use created_at for ordering as it's more reliable and indexed
+    # visit_date can be null for appointments
+    return query.order_by(ShopVisit.created_at.desc()).offset(skip).limit(limit).all()
 
 @router.get("/{visit_id}", response_model=ShopVisitResponse)
 def get_shop_visit(visit_id: int, db: Session = Depends(get_db)):

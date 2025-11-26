@@ -1,6 +1,7 @@
 import logging
 from fastapi import FastAPI, Response, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from jinja2 import Template
@@ -54,6 +55,9 @@ def load_error_template() -> str:
     template_path = backend_dir / "templates" / "error.html"
     with open(template_path, "r", encoding="utf-8") as f:
         return f.read()
+
+# Add GZip compression for API responses (reduces payload size significantly)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS from config - Allow specific origins for network access
 # If no allowed origins are configured, allow all (for development/network access)

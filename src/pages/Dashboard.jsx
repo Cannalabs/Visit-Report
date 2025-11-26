@@ -69,12 +69,26 @@ export default function Dashboard() {
       }
 
       // Fetch visits first (critical data) to show page faster
-      const visitsData = await ShopVisit.list("-created_at", 100).catch((err) => {
+      let visitsData = await ShopVisit.list("-created_at", 100).catch((err) => {
         return []; // Return empty array on error
       });
       
       // Ensure visitsData is an array
-      const visits = Array.isArray(visitsData) ? visitsData : [];
+      let visits = Array.isArray(visitsData) ? visitsData : [];
+      
+      // If we got exactly 100 visits, there might be more - load them
+      if (visits.length === 100) {
+        try {
+          const moreVisits = await ShopVisit.list("-created_at", 500); // Load up to 500 total
+          if (Array.isArray(moreVisits) && moreVisits.length > visits.length) {
+            visits = moreVisits;
+          }
+        } catch (err) {
+          // If loading more fails, just use the initial 100
+          console.warn("Failed to load additional visits:", err);
+        }
+      }
+      
       setVisits(visits);
       setIsLoading(false); // Show page as soon as visits are loaded
       

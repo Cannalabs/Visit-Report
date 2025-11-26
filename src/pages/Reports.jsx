@@ -76,10 +76,26 @@ export default function Reports() {
 
   const loadVisits = async () => {
     try {
-      const data = await ShopVisit.list("-created_date", 200);
-      setVisits(data);
+      // Use created_at instead of created_date for better performance
+      let data = await ShopVisit.list("-created_at", 200);
+      
+      // If we got exactly 200 visits, there might be more - load them
+      if (Array.isArray(data) && data.length === 200) {
+        try {
+          const moreVisits = await ShopVisit.list("-created_at", 1000); // Load up to 1000 total
+          if (Array.isArray(moreVisits) && moreVisits.length > data.length) {
+            data = moreVisits;
+          }
+        } catch (err) {
+          // If loading more fails, just use the initial 200
+          console.warn("Failed to load additional visits:", err);
+        }
+      }
+      
+      setVisits(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading visits:", error);
+      setVisits([]);
     }
     setIsLoading(false);
   };
