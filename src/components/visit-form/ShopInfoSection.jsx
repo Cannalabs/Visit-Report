@@ -151,33 +151,13 @@ export default function ShopInfoSection({ formData, updateFormData }) {
     );
   }
 
-  // Check for missing required fields
-  const missingRequiredFields = [];
-  if (!formData.customer_id) missingRequiredFields.push('Shop Selection');
-  if (!formData.shop_name) missingRequiredFields.push('Shop Name');
-  if (!formData.shop_type) missingRequiredFields.push('Shop Type');
-  if (!formData.visit_purpose) missingRequiredFields.push('Visit Purpose');
-
   return (
     <div className="space-y-6">
-      {missingRequiredFields.length > 0 && (
-        <Alert variant="destructive" className="border-red-300 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Required fields missing:</strong> {missingRequiredFields.join(', ')}. Please fill in all required fields marked with <span className="text-red-500 font-bold">*</span>.
-          </AlertDescription>
-        </Alert>
-      )}
-      <Card className={`bg-green-50 ${missingRequiredFields.length > 0 ? 'border-red-300' : 'border-green-200'}`}>
+      <Card className="bg-green-50 border-green-200">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-green-800">
             <Building2 className="w-5 h-5" />
             Shop Selection & Information
-            {missingRequiredFields.length > 0 && (
-              <Badge variant="destructive" className="ml-auto">
-                {missingRequiredFields.length} Required Field{missingRequiredFields.length > 1 ? 's' : ''} Missing
-              </Badge>
-            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

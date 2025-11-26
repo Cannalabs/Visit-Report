@@ -93,30 +93,10 @@ export default function Dashboard() {
     setIsLoading(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-8 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array(4).fill(0).map((_, i) => (
-              <Card key={i} className="animate-pulse bg-white dark:bg-gray-800">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Calculate total planned visits
+  const totalPlannedVisits = visits.filter(visit => visit.visit_status === "appointment").length;
 
-  // Group planned visits by date
+  // Group planned visits by date (kept for potential future use)
   const plannedVisitsByDate = visits
     .filter(visit => visit.visit_status === "appointment" && visit.planned_visit_date)
     .reduce((acc, visit) => {
@@ -204,7 +184,7 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <StatsOverview 
-          plannedVisitsByDate={plannedVisitsByDate}
+          totalPlannedVisits={totalPlannedVisits}
           thisWeeksVisits={thisWeeksVisits.length}
           averageScore={averageScore}
           followUpRequired={followUpRequired}

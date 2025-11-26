@@ -119,21 +119,10 @@ export default function SignatureSection({ formData, updateFormData }) {
   // Check if signature is required (mandatory field)
   const hasSignature = !!formData.signature && !!formData.signature_signer_name && !!formData.signature_date;
   const isSignatureRequired = true; // Signature is mandatory according to checklist
-  const missingSignatureFields = [];
-  if (!formData.signature) missingSignatureFields.push('Signature');
-  if (!formData.signature_signer_name) missingSignatureFields.push('Signer Name');
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {isSignatureRequired && !hasSignature && (
-        <Alert variant="destructive" className="border-red-300 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-          <AlertDescription className="text-red-800 text-sm md:text-base">
-            <strong>Required fields missing:</strong> {missingSignatureFields.join(', ')}. Please provide both signature and signer name to complete this section.
-          </AlertDescription>
-        </Alert>
-      )}
-      <Card className={`bg-gradient-to-br from-gray-50 to-gray-100 ${isSignatureRequired && !hasSignature ? 'border-red-300' : 'border-gray-200'}`}>
+      <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
         <CardHeader className="pb-3 px-4 md:px-6 pt-4 md:pt-6">
           <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-gray-800 text-sm md:text-base">
             <div className="flex items-center gap-2">
@@ -143,11 +132,6 @@ export default function SignatureSection({ formData, updateFormData }) {
                 <span className="text-red-500 font-bold">*</span>
               )}
             </div>
-            {isSignatureRequired && !hasSignature && (
-              <Badge variant="destructive" className="self-start sm:ml-auto">
-                Required - Incomplete
-              </Badge>
-            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-4 md:p-6">

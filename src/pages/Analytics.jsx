@@ -609,9 +609,6 @@ export default function Analytics() {
     return Object.values(heatmapData);
   };
 
-  if (isLoading) {
-    return <div className="p-8">Loading analytics...</div>;
-  }
 
   return (
     <div className="p-4 md:p-8 min-h-screen">

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { format } from "date-fns";
 
 const StatCard = ({ title, value, icon: Icon, gradientClasses, iconGradientClasses, textColor, delay = 0 }) => (
   <motion.div
@@ -38,23 +37,7 @@ const StatCard = ({ title, value, icon: Icon, gradientClasses, iconGradientClass
   </motion.div>
 );
 
-const PlannedVisitsCard = ({ plannedVisitsByDate, delay = 0 }) => {
-  const sortedDates = Object.keys(plannedVisitsByDate).sort((a, b) => {
-    return new Date(a) - new Date(b);
-  }).slice(0, 3); // Show top 3 dates
-
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
-      return format(date, "dd MMM");
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const totalPlannedVisits = Object.values(plannedVisitsByDate).reduce((sum, count) => sum + count, 0);
-
+const PlannedVisitsCard = ({ totalPlannedVisits, delay = 0 }) => {
   return (
     <motion.div
       initial={{ opacity: 0, transform: "none" }}
@@ -69,27 +52,10 @@ const PlannedVisitsCard = ({ plannedVisitsByDate, delay = 0 }) => {
               <p className="text-sm font-semibold text-blue-600">
                 Planned Visits
               </p>
-              <div className="space-y-1">
+              <div className="flex items-baseline gap-2">
                 <h3 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  {totalPlannedVisits}
+                  {totalPlannedVisits || 0}
                 </h3>
-                {sortedDates.length > 0 && (
-                  <div className="space-y-0.5">
-                    {sortedDates.map((date) => (
-                      <div key={date} className="text-xs text-gray-700 font-medium">
-                        {formatDate(date)} - {plannedVisitsByDate[date]} visit{plannedVisitsByDate[date] !== 1 ? 's' : ''}
-                      </div>
-                    ))}
-                    {Object.keys(plannedVisitsByDate).length > 3 && (
-                      <p className="text-xs text-gray-500">
-                        +{Object.keys(plannedVisitsByDate).length - 3} more date{Object.keys(plannedVisitsByDate).length - 3 !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {sortedDates.length === 0 && (
-                  <p className="text-xs text-gray-600">No planned visits</p>
-                )}
               </div>
             </div>
             <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-200 flex-shrink-0">
@@ -102,11 +68,11 @@ const PlannedVisitsCard = ({ plannedVisitsByDate, delay = 0 }) => {
   );
 };
 
-export default function StatsOverview({ plannedVisitsByDate, thisWeeksVisits, averageScore, followUpRequired }) {
+export default function StatsOverview({ totalPlannedVisits, thisWeeksVisits, averageScore, followUpRequired }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
       <PlannedVisitsCard
-        plannedVisitsByDate={plannedVisitsByDate}
+        totalPlannedVisits={totalPlannedVisits}
         delay={0.1}
       />
       <Link to={createPageUrl("Reports")} className="h-full block">

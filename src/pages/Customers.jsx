@@ -746,13 +746,6 @@ export default function Customers() {
     return colors[type] || colors.other;
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 min-h-screen">

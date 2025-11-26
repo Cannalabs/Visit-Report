@@ -410,9 +410,7 @@ export default function PlannedVisits() {
             <CardTitle className="text-base md:text-lg">Scheduled Visits</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading planned visits...</div>
-            ) : filteredVisits.length === 0 ? (
+            {filteredVisits.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                 <p>No planned visits found</p>
