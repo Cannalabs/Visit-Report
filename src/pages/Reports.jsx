@@ -67,8 +67,7 @@ export default function Reports() {
       setFilters(initialFilters); // Update filters state if URL parameters were found
     }
 
-    loadVisits();
-    loadShopTypes();
+    loadVisits(); // loadShopTypes is called inside loadVisits after initial load
   }, [location.search]);
 
   useEffect(() => {
@@ -77,18 +76,29 @@ export default function Reports() {
 
   const loadVisits = async () => {
     try {
-      // Use created_at instead of created_date for better performance
-      // Limit to 200 for reports page - implement pagination if more needed
-      let data = await ShopVisit.list("-created_at", 200);
+      setIsLoading(true);
       
-      // Removed automatic loading of 1000 records - too slow
-      // If more data is needed, implement server-side pagination
-      setVisits(Array.isArray(data) ? data : []);
+      // Load critical data first with reduced limit for faster initial load
+      const visitsData = await ShopVisit.list("-created_at", 100).catch(() => []);
+      setVisits(Array.isArray(visitsData) ? visitsData : []);
+      setIsLoading(false); // Show page immediately after critical data loads
+      
+      // Load shop types in background (non-blocking)
+      loadShopTypes();
+      
+      // Optionally load more visits in background if initial load was full
+      if (visitsData.length === 100) {
+        ShopVisit.list("-created_at", 200).then(moreData => {
+          if (Array.isArray(moreData) && moreData.length > visitsData.length) {
+            setVisits(moreData);
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error("Error loading visits:", error);
       setVisits([]);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const loadShopTypes = async () => {

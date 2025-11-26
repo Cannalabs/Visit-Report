@@ -62,7 +62,9 @@ export default function FollowUps() {
 
   const loadVisits = async () => {
     try {
-      // Get current user
+      setIsLoading(true);
+      
+      // Get cached user first for immediate filtering
       let currentUserData = null;
       const cachedUser = localStorage.getItem('user');
       if (cachedUser) {
@@ -74,20 +76,9 @@ export default function FollowUps() {
         }
       }
       
-      // Fetch fresh user data if needed
-      if (!currentUserData) {
-        try {
-          currentUserData = await User.me();
-          if (currentUserData) {
-            setCurrentUser(currentUserData);
-            localStorage.setItem('user', JSON.stringify(currentUserData));
-          }
-        } catch (error) {
-          console.error("Failed to load current user:", error);
-        }
-      }
+      // Load visits with reduced limit for faster initial load
+      const data = await ShopVisit.list("-created_at", 100).catch(() => []);
       
-      const data = await ShopVisit.list("-created_date", 200);
       // Filter only visits that require follow-up AND are assigned to current user OR created by current user
       const followUpVisits = data.filter(visit => {
         if (visit.follow_up_required !== true) return false;
@@ -99,11 +90,52 @@ export default function FollowUps() {
         }
         return false;
       });
+      
       setVisits(followUpVisits);
+      setIsLoading(false); // Show page immediately after critical data loads
+      
+      // Refresh user data in background if not cached
+      if (!currentUserData) {
+        User.me().then(user => {
+          if (user) {
+            setCurrentUser(user);
+            localStorage.setItem('user', JSON.stringify(user));
+            // Re-filter visits with fresh user data if needed
+            const freshFollowUps = data.filter(visit => {
+              if (visit.follow_up_required !== true) return false;
+              const isAssigned = visit.follow_up_assigned_user_id === user.id;
+              const isCreator = visit.created_by === user.id;
+              return isAssigned || isCreator;
+            });
+            setVisits(freshFollowUps);
+          }
+        }).catch(() => {});
+      }
+      
+      // Optionally load more visits in background if initial load was full
+      if (data.length === 100) {
+        ShopVisit.list("-created_at", 200).then(moreData => {
+          if (Array.isArray(moreData)) {
+            const moreFollowUps = moreData.filter(visit => {
+              if (visit.follow_up_required !== true) return false;
+              if (currentUserData) {
+                const isAssigned = visit.follow_up_assigned_user_id === currentUserData.id;
+                const isCreator = visit.created_by === currentUserData.id;
+                return isAssigned || isCreator;
+              }
+              return false;
+            });
+            if (moreFollowUps.length > followUpVisits.length) {
+              setVisits(moreFollowUps);
+            }
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
-      // Error loading visits
+      console.error("Error loading visits:", error);
+      setVisits([]);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const applyFilters = () => {

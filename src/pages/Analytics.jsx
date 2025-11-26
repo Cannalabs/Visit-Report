@@ -83,17 +83,22 @@ export default function Analytics() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch visits first (most important data) to show page faster
-        // Reduced from 500 to 300 for better performance - analytics can work with sample
-        const visitData = await ShopVisit.list('-created_at', 300).catch(() => []);
+        // Fetch minimal visits first (most important data) to show page faster
+        // Reduced to 100 for initial load - analytics can work with sample
+        const visitData = await ShopVisit.list('-created_at', 100).catch(() => []);
         setVisits(visitData || []);
-        setIsLoading(false); // Show page as soon as visits are loaded
+        setIsLoading(false); // Show page immediately after critical data loads
         
-        // Fetch customers and users in background (less critical)
+        // Load more data in background (progressive loading)
         Promise.all([
+          ShopVisit.list('-created_at', 300).catch(() => []), // Load more visits in background
           Customer.list().catch(() => []),
           User.list().catch(() => [])
-        ]).then(([customerData, userData]) => {
+        ]).then(([moreVisits, customerData, userData]) => {
+          // Update visits if we got more data
+          if (Array.isArray(moreVisits) && moreVisits.length > visitData.length) {
+            setVisits(moreVisits);
+          }
           setCustomers(customerData || []);
           setUsers(userData || []);
         }).catch(error => {

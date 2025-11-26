@@ -44,23 +44,42 @@ export default function PlannedVisits() {
 
   const loadData = async () => {
     try {
-      // Fetch visits, users, and customers
-      const [visitsData, usersData, customersData] = await Promise.all([
-        ShopVisit.list("-created_date", 200).catch(() => []),
-        UserEntity.list().catch(() => []),
-        Customer.list().catch(() => [])
-      ]);
-
+      setIsLoading(true);
+      
+      // Load critical data first with reduced limit for faster initial load
+      const visitsData = await ShopVisit.list("-created_at", 100).catch(() => []);
+      
       // Filter only planned visits (appointment status)
       const plannedVisits = (visitsData || []).filter(visit => visit.visit_status === "appointment");
       
       setVisits(plannedVisits);
-      setUsers(usersData || []);
-      setCustomers(customersData || []);
+      setIsLoading(false); // Show page immediately after critical data loads
+      
+      // Load secondary data in background (non-blocking)
+      Promise.all([
+        UserEntity.list().catch(() => []),
+        Customer.list().catch(() => [])
+      ]).then(([usersData, customersData]) => {
+        setUsers(usersData || []);
+        setCustomers(customersData || []);
+      }).catch(() => {});
+      
+      // Optionally load more visits in background if initial load was full
+      if (visitsData.length === 100) {
+        ShopVisit.list("-created_at", 200).then(moreData => {
+          if (Array.isArray(moreData)) {
+            const morePlannedVisits = moreData.filter(visit => visit.visit_status === "appointment");
+            if (morePlannedVisits.length > plannedVisits.length) {
+              setVisits(morePlannedVisits);
+            }
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error("Failed to load data:", error);
+      setVisits([]);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const getUserName = (userId) => {

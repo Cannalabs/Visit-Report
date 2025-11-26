@@ -50,6 +50,8 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
+      setIsLoading(true);
+      
       // Check for token before making API calls
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -57,46 +59,49 @@ export default function Dashboard() {
         return;
       }
 
-      // Try to get user from cache first
-      let userData = null;
+      // Try to get user from cache first (like Admin panel does)
+      let cachedUserData = null;
       const cachedUser = localStorage.getItem('user');
       if (cachedUser) {
         try {
-          userData = JSON.parse(cachedUser);
-          setUser(userData);
+          cachedUserData = JSON.parse(cachedUser);
+          setUser(cachedUserData); // Set cached user immediately for display
         } catch (e) {
           // Invalid cache, will fetch fresh
         }
       }
 
-      // Fetch visits first (critical data) to show page faster
-      // Limit to 50 for dashboard - enough for overview without excessive load
-      let visitsData = await ShopVisit.list("-created_at", 50).catch((err) => {
-        return []; // Return empty array on error
-      });
+      // Load critical data in parallel (like Admin panel) - this is the key to speed!
+      const [visitsData, freshUserData] = await Promise.all([
+        ShopVisit.list("-created_at", 30).catch(() => []), // Reduced to 30 for faster load
+        User.me().catch(() => cachedUserData) // Fallback to cached if API fails
+      ]);
       
       // Ensure visitsData is an array
-      let visits = Array.isArray(visitsData) ? visitsData : [];
+      const visits = Array.isArray(visitsData) ? visitsData : [];
       
-      // Dashboard doesn't need all visits - 50 is sufficient for overview
-      // Removed the additional loading to improve performance
+      // Use fresh user data if available, otherwise use cached
+      if (freshUserData) {
+        setUser(freshUserData);
+        localStorage.setItem('user', JSON.stringify(freshUserData));
+      }
       
       setVisits(visits);
-      setIsLoading(false); // Show page as soon as visits are loaded
+      setIsLoading(false); // Show page immediately after parallel data loads
       
-      // Fetch user data in background (less critical, already have cached)
-      User.me().then((freshUserData) => {
-        if (freshUserData) {
-          setUser(freshUserData);
-          localStorage.setItem('user', JSON.stringify(freshUserData));
-        }
-      }).catch(() => {
-        // Already have cached user, so this is fine
-      });
+      // Load more visits in background if needed for better stats accuracy
+      if (visits.length === 30) {
+        ShopVisit.list("-created_at", 50).then(moreVisits => {
+          if (Array.isArray(moreVisits) && moreVisits.length > visits.length) {
+            setVisits(moreVisits);
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
-      setVisits([]); // Set empty array on error
+      console.error("Error loading dashboard data:", error);
+      setVisits([]);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Calculate total planned visits
