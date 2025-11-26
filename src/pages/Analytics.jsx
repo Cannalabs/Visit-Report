@@ -20,6 +20,7 @@ import {
   Store,
   MapPin
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Helper to format currency
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(value);
@@ -609,6 +610,46 @@ export default function Analytics() {
     return Object.values(heatmapData);
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-8 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </div>
+
+          {/* KPI Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Chart Skeleton */}
+          <Card className="p-4 md:p-6">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <Skeleton className="h-80 w-full" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 min-h-screen">

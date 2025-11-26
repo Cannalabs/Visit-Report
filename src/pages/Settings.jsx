@@ -21,6 +21,7 @@ import {
   Lock
 } from "lucide-react";
 import SignaturePad from "@/components/visit-form/SignaturePad";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Settings() {
   const [user, setUser] = useState(null);
@@ -255,15 +256,42 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="space-y-4">
-              <div className="h-20 bg-gray-200 rounded"></div>
-              <div className="h-20 bg-gray-200 rounded"></div>
-            </div>
+      <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* Header Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-96" />
           </div>
+
+          {/* Profile Card Skeleton */}
+          <Card className="p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Card>
+
+          {/* Signature Card Skeleton */}
+          <Card className="p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <Skeleton className="h-10 w-full mb-4" />
+            <Skeleton className="h-48 w-full" />
+          </Card>
+
+          {/* Settings Card Skeleton */}
+          <Card className="p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </Card>
         </div>
       </div>
     );

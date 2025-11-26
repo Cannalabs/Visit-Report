@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfDay, startOfWeek, startOfMonth, isToday, isTomorrow, isThisWeek } from "date-fns";
 import ExportOptions from "../components/reports/ExportOptions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PlannedVisits() {
   const navigate = useNavigate();
@@ -272,6 +273,57 @@ export default function PlannedVisits() {
       return false;
     }
   });
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="p-4 md:p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="flex gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </Card>
+
+          {/* List Skeleton */}
+          <Card className="p-4 md:p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">

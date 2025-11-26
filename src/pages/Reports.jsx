@@ -24,6 +24,7 @@ import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import ReportFilters from "../components/reports/ReportFilters";
 import VisitTable from "../components/reports/VisitTable";
 import ExportOptions from "../components/reports/ExportOptions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Reports() {
   const location = useLocation();
@@ -262,6 +263,61 @@ export default function Reports() {
       URL.revokeObjectURL(url);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-8 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="p-4 md:p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Table Skeleton */}
+          <Card className="p-4 md:p-6">
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 min-h-screen">

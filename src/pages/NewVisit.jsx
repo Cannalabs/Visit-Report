@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import ShopInfoSection from "../components/visit-form/ShopInfoSection";
 import ProductVisibilitySection from "../components/visit-form/ProductVisibilitySection";
@@ -1122,8 +1123,45 @@ export default function NewVisit() {
 
   if (isLoading) {
     return (
-      <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-0 to-green-0">
+        <div className="max-w-4xl mx-auto p-3 sm:p-4 md:p-8">
+          {/* Header Skeleton */}
+          <div className="flex items-center gap-4 mb-8">
+            <Skeleton className="h-10 w-10 rounded" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          {/* Progress Skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-2 w-full mb-4" />
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-8 w-24" />
+              ))}
+            </div>
+          </div>
+
+          {/* Form Card Skeleton */}
+          <Card className="p-6">
+            <Skeleton className="h-6 w-32 mb-6" />
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          </Card>
+
+          {/* Navigation Skeleton */}
+          <div className="flex justify-between mt-8">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
       </div>
     );
   }

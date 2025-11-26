@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Admin() {
   const [users, setUsers] = useState([]);
@@ -475,8 +476,40 @@ export default function Admin() {
 
   if (isLoading) {
     return (
-      <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-4 md:p-8 bg-gradient-to-br from-gray-50 to-green-50 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-40" />
+            </div>
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="p-4 md:p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="flex gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </Card>
+
+          {/* Table Skeleton */}
+          <Card className="p-4 md:p-6">
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

@@ -43,6 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadFile } from "@/api/integrations";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Configuration() {
   const [configs, setConfigs] = useState([]);
@@ -522,8 +523,29 @@ export default function Configuration() {
 
   if (isLoading) {
     return (
-      <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+          {/* Header Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+
+          {/* Tabs Skeleton */}
+          <Card className="p-4 md:p-6">
+            <div className="flex gap-2 mb-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-32" />
+              ))}
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

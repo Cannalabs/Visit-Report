@@ -25,6 +25,7 @@ import StatsOverview from "../components/dashboard/StatsOverview";
 import RecentVisits from "../components/dashboard/RecentVisits";
 import TopShops from "../components/dashboard/TopShops";
 import QuickActions from "../components/dashboard/QuickActions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [visits, setVisits] = useState([]);
@@ -166,6 +167,62 @@ export default function Dashboard() {
   const firstPendingFollowUp = sortedPending.length > 0 
     ? sortedPending[0] 
     : (followUpRequired > 0 ? visits.filter(v => v.follow_up_required)[0] : null);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-5 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-full" style={{ width: '100%', minWidth: 0 }}>
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-5 lg:space-y-8" style={{ width: '100%', minWidth: 0 }}>
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+
+          {/* Stats Overview Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Main Content Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 lg:gap-8">
+            <div className="md:col-span-1 lg:col-span-3">
+              <Card className="p-4 md:p-6">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
+              </Card>
+            </div>
+            <div className="md:col-span-1 lg:col-span-2 space-y-4 md:space-y-4 lg:space-y-5">
+              <Card className="p-4 md:p-6">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-5 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-full" style={{ width: '100%', minWidth: 0 }}>
