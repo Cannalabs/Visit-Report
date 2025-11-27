@@ -158,6 +158,14 @@
             padding: 4mm 15mm;
             background: white;
         }
+        
+        #signature-section .content-section {
+            padding: 2mm 15mm;
+        }
+        
+        #signature-section .section-header {
+            padding: 3mm 15mm;
+        }
 
         .data-grid {
             display: grid;
@@ -253,7 +261,7 @@
 
         .chart-container {
             position: relative;
-            height: 60mm;
+            height: 45mm;
             width: 100%;
             display: flex;
             align-items: center;
@@ -280,7 +288,7 @@
 
         .donut-chart-container {
             position: relative;
-            height: 60mm;
+            height: 45mm;
             width: 100%;
             display: flex;
             align-items: center;
@@ -339,7 +347,7 @@
         .distributor-item {
             background: white;
             border-radius: 4px;
-            padding: 6mm;
+            padding: 4mm;
             text-align: center;
             border: 1px solid #e0e0e0;
         }
@@ -349,14 +357,14 @@
         }
 
         .distributor-percentage {
-            font-size: 20pt;
+            font-size: 16pt;
             font-weight: 700;
             color: #2d5016;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
         }
 
         .distributor-label {
-            font-size: 8pt;
+            font-size: 7pt;
             color: #666;
             font-weight: 400;
         }
@@ -365,23 +373,23 @@
         .order-value-card {
             background: #2d5016;
             border-radius: 4px;
-            padding: 6mm;
+            padding: 4mm;
             margin-top: 6mm;
             text-align: center;
             color: white;
         }
 
         .order-value-title {
-            font-size: 7pt;
+            font-size: 6pt;
             font-weight: 600;
-            margin-bottom: 3mm;
+            margin-bottom: 2mm;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             opacity: 0.9;
         }
 
         .order-value-amount {
-            font-size: 24pt;
+            font-size: 18pt;
             font-weight: 700;
         }
 
@@ -644,8 +652,8 @@
             }
 
             #signature-section {
-                page-break-before: auto;
-                break-before: auto;
+                page-break-before: avoid;
+                break-before: avoid;
                 page-break-after: avoid;
                 break-after: avoid;
                 display: block !important;
@@ -1023,33 +1031,33 @@
         </div>
 
         <!-- Signature Section -->
-        <div id="signature-section" class="section-wrapper" style="display: block; page-break-inside: avoid; break-inside: avoid;">
-        <div class="section-header" style="page-break-after: avoid; break-after: avoid;">Signature</div>
+        <div id="signature-section" class="section-wrapper" style="display: block; page-break-inside: avoid; break-inside: avoid; margin-top: 0;">
+        <div class="section-header" style="page-break-after: avoid; break-after: avoid; padding: 3mm 15mm;">Signature</div>
         <div class="content-section" style="page-break-inside: avoid; break-inside: avoid;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15mm;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start;">
                 <!-- Sales Representative Signature -->
-                <div>
-                    <div class="data-item-label" style="margin-bottom: 3mm;">Sales Representative</div>
-                    <div style="border: 1px solid #e0e0e0; background: white; padding: 4mm; border-radius: 3px; min-height: 30mm; display: flex; align-items: center; justify-content: center; margin-bottom: 3mm;">
-                        <img id="sales-rep-signature-image" src="" alt="Sales Rep Signature" style="max-width: 100%; max-height: 30mm; display: none;">
-                        <span id="no-sales-rep-signature-text" style="color: #999; font-style: italic;">No signature provided</span>
+                <div style="display: flex; flex-direction: column; height: 100%;">
+                    <div class="data-item-label" style="margin-bottom: 1.5mm; font-size: 7pt;">Sales Representative</div>
+                    <div style="border: 1px solid #e0e0e0; background: white; padding: 2mm; border-radius: 3px; min-height: 18mm; height: 18mm; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5mm;">
+                        <img id="sales-rep-signature-image" src="" alt="Sales Rep Signature" style="max-width: 100%; max-height: 18mm; display: none;">
+                        <span id="no-sales-rep-signature-text" style="color: #999; font-style: italic; font-size: 7pt;">No signature provided</span>
                     </div>
-                    <div class="data-item">
-                        <span class="data-item-label">Name</span>
-                        <div class="data-item-value" id="sales-rep-name">-</div>
+                    <div class="data-item" style="padding: 1.5mm 2mm; margin-top: auto;">
+                        <span class="data-item-label" style="font-size: 6pt;">Name</span>
+                        <div class="data-item-value" id="sales-rep-name" style="font-size: 7pt;">-</div>
                     </div>
                 </div>
                 
                 <!-- Shop Representative Signature -->
-                <div>
-                    <div class="data-item-label" style="margin-bottom: 3mm;">Shop Representative</div>
-                    <div style="border: 1px solid #e0e0e0; background: white; padding: 4mm; border-radius: 3px; min-height: 30mm; display: flex; align-items: center; justify-content: center; margin-bottom: 3mm;">
-                        <img id="shop-rep-signature-image" src="" alt="Shop Rep Signature" style="max-width: 100%; max-height: 30mm; display: none;">
-                        <span id="no-shop-rep-signature-text" style="color: #999; font-style: italic;">No signature provided</span>
+                <div style="display: flex; flex-direction: column; height: 100%;">
+                    <div class="data-item-label" style="margin-bottom: 1.5mm; font-size: 7pt;">Shop Representative</div>
+                    <div style="border: 1px solid #e0e0e0; background: white; padding: 2mm; border-radius: 3px; min-height: 18mm; height: 18mm; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5mm;">
+                        <img id="shop-rep-signature-image" src="" alt="Shop Rep Signature" style="max-width: 100%; max-height: 18mm; display: none;">
+                        <span id="no-shop-rep-signature-text" style="color: #999; font-style: italic; font-size: 7pt;">No signature provided</span>
                     </div>
-                    <div class="data-item">
-                        <span class="data-item-label">Name</span>
-                        <div class="data-item-value" id="shop-rep-name">-</div>
+                    <div class="data-item" style="padding: 1.5mm 2mm; margin-top: auto;">
+                        <span class="data-item-label" style="font-size: 6pt;">Name</span>
+                        <div class="data-item-value" id="shop-rep-name" style="font-size: 7pt;">-</div>
                     </div>
                 </div>
             </div>
@@ -1464,7 +1472,7 @@
                 const date = new Date(dateStr);
                 return date.toLocaleDateString('en-US', { 
                     year: 'numeric', 
-                    month: 'long', 
+                    month: 'short', 
                     day: 'numeric' 
                 });
             } catch (e) {

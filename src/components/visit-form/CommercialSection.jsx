@@ -221,15 +221,6 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                   </AlertDescription>
                 </Alert>
               )}
-              {!formData.follow_up_notes && (
-                <Alert variant="destructive" className="border-red-300 bg-red-50 mb-2">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
-                    <strong>Required:</strong> Follow-up notes are mandatory when follow-up is required. Please describe the required follow-up actions.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
               <div className="space-y-2">
                 <Label htmlFor="follow_up_notes" className="flex items-center gap-1">
                   Follow-up Notes {renderRequiredAsterisk()}
@@ -241,6 +232,7 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                   placeholder="Describe the required follow-up actions..."
                   className={getFieldStyle(formData.follow_up_notes, formData.follow_up_required)}
                   disabled={!canEditFollowUp}
+                  required
                 />
                 {formData.follow_up_required && !formData.follow_up_notes && (
                   <p className="text-xs text-red-600 flex items-center gap-1">
@@ -288,11 +280,7 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                   <Select
                     value={formData.follow_up_stage || undefined}
                     onValueChange={(value) => {
-                      if (value === "__none__") {
-                        updateFormData({ follow_up_stage: null });
-                      } else {
-                        updateFormData({ follow_up_stage: value || null });
-                      }
+                      updateFormData({ follow_up_stage: value || null });
                     }}
                     disabled={!canEditFollowUp}
                   >
@@ -300,10 +288,9 @@ export default function CommercialSection({ formData, updateFormData, currentUse
                       <SelectValue placeholder="Select stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
