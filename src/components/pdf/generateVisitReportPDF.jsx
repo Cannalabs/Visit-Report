@@ -4,6 +4,7 @@ export const generateVisitReportPDF = async (formData, user) => {
   let companyName = 'CANNA';
   let salesRepSignature = null;
   let salesRepName = null;
+  let assignedUserName = formData.follow_up_assigned_user_name || null;
   
   try {
     const { Configuration, UserProfile } = await import('@/api/entities');
@@ -34,6 +35,20 @@ export const generateVisitReportPDF = async (formData, user) => {
       } catch (err) {
         // No saved signature - use name only
         salesRepName = user.full_name;
+      }
+    }
+    
+    // Fetch assigned user name if we have user ID but no name
+    if (formData.follow_up_assigned_user_id && !assignedUserName) {
+      try {
+        const { User } = await import('@/api/entities');
+        const assignedUser = await User.get(formData.follow_up_assigned_user_id).catch(() => null);
+        if (assignedUser && assignedUser.full_name) {
+          assignedUserName = assignedUser.full_name;
+        }
+      } catch (err) {
+        console.error('Failed to fetch assigned user:', err);
+        // Keep assignedUserName as null, will show '-' in PDF
       }
     }
   } catch (error) {
@@ -67,7 +82,7 @@ export const generateVisitReportPDF = async (formData, user) => {
     follow_up_date: formData.follow_up_date || null,
     follow_up_stage: formData.follow_up_stage || null,
     follow_up_assigned_user_id: formData.follow_up_assigned_user_id || null,
-    follow_up_assigned_user_name: formData.follow_up_assigned_user_name || null,
+    follow_up_assigned_user_name: assignedUserName || formData.follow_up_assigned_user_name || null,
     notes: formData.notes || '',
     product_visibility_score: formData.product_visibility_score || 0,
     competitor_presence: formData.competitor_presence || '',
@@ -99,8 +114,10 @@ export const generateVisitReportPDF = async (formData, user) => {
 
   // Open the template in a new window with the storage key as a parameter
   // Use public folder path which is accessible in production
+  // Add timestamp to prevent browser caching
   const templatePath = '/pdf/visit-report-template.html';
-  const url = `${templatePath}?dataKey=${storageKey}`;
+  const timestamp = Date.now();
+  const url = `${templatePath}?dataKey=${storageKey}&t=${timestamp}`;
   const printWindow = window.open(url, '_blank');
   
   if (!printWindow) {

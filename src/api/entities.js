@@ -237,6 +237,9 @@ export const User = {
       body: JSON.stringify(data)
     });
   },
+  get: async (id) => {
+    return apiCall(`/users/${id}`);
+  },
   getCurrent: async () => {
     return User.me();
   },
