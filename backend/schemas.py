@@ -238,6 +238,44 @@ class ShopVisitResponse(ShopVisitBase):
     class Config:
         from_attributes = True
 
+# Lightweight schema for list views - excludes large fields to reduce payload size
+class ShopVisitSummary(BaseModel):
+    id: int
+    customer_id: int
+    shop_name: str
+    shop_type: Optional[str] = None
+    shop_address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    visit_status: Optional[VisitStatus] = VisitStatus.draft
+    assigned_user_id: Optional[int] = None
+    planned_visit_date: Optional[datetime] = None
+    visit_date: datetime
+    visit_duration: Optional[int] = 60
+    visit_purpose: Optional[str] = None
+    product_visibility_score: Optional[int] = 50
+    commercial_outcome: Optional[str] = None
+    order_value: Optional[float] = 0.0
+    overall_satisfaction: Optional[int] = 5
+    follow_up_required: Optional[bool] = False
+    follow_up_date: Optional[datetime] = None
+    follow_up_assigned_user_id: Optional[int] = None
+    follow_up_stage: Optional[str] = None
+    calculated_score: Optional[int] = None
+    priority_level: Optional[str] = None
+    is_draft: Optional[bool] = False
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    created_by: Optional[int] = None
+    # Excluded large fields: visit_photos, sales_data, signature, notes, gps_coordinates
+    # These can be loaded separately when viewing details
+    
+    class Config:
+        from_attributes = True
+
 # Configuration Schemas
 class ConfigurationBase(BaseModel):
     config_type: str
