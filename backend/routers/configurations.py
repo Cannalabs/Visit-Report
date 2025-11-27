@@ -2,14 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from db import get_db
-from models import Configuration
+from models import Configuration, User
 from schemas import ConfigurationCreate, ConfigurationUpdate, ConfigurationResponse
+from auth import get_current_user
 
 router = APIRouter()
 
 @router.post("", response_model=ConfigurationResponse)
 @router.post("/", response_model=ConfigurationResponse)
-def create_configuration(config: ConfigurationCreate, db: Session = Depends(get_db)):
+def create_configuration(
+    config: ConfigurationCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     db_config = Configuration(**config.dict())
     db.add(db_config)
     db.commit()
@@ -23,7 +28,8 @@ def list_configurations(
     is_active: Optional[bool] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Configuration)
     if config_type:
@@ -33,7 +39,11 @@ def list_configurations(
     return query.order_by(Configuration.display_order).offset(skip).limit(limit).all()
 
 @router.get("/{config_id}", response_model=ConfigurationResponse)
-def get_configuration(config_id: int, db: Session = Depends(get_db)):
+def get_configuration(
+    config_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     config = db.query(Configuration).filter(Configuration.id == config_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="Configuration not found")
@@ -43,7 +53,8 @@ def get_configuration(config_id: int, db: Session = Depends(get_db)):
 def update_configuration(
     config_id: int,
     config_update: ConfigurationUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     config = db.query(Configuration).filter(Configuration.id == config_id).first()
     if not config:
@@ -58,7 +69,11 @@ def update_configuration(
     return config
 
 @router.delete("/{config_id}")
-def delete_configuration(config_id: int, db: Session = Depends(get_db)):
+def delete_configuration(
+    config_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     config = db.query(Configuration).filter(Configuration.id == config_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="Configuration not found")

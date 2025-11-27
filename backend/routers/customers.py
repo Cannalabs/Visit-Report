@@ -2,14 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from db import get_db
-from models import Customer
+from models import Customer, User
 from schemas import CustomerCreate, CustomerUpdate, CustomerResponse
+from auth import get_current_user
 
 router = APIRouter()
 
 @router.post("", response_model=CustomerResponse)
 @router.post("/", response_model=CustomerResponse)
-def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+def create_customer(
+    customer: CustomerCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # Additional validation: ensure shop_name is not empty
     if not customer.shop_name or not customer.shop_name.strip():
         raise HTTPException(status_code=400, detail="Shop name is required and cannot be empty")
@@ -30,7 +35,8 @@ def list_customers(
     status: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Customer)
     if status:
@@ -38,7 +44,11 @@ def list_customers(
     return query.offset(skip).limit(limit).all()
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
-def get_customer(customer_id: int, db: Session = Depends(get_db)):
+def get_customer(
+    customer_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -48,7 +58,8 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)):
 def update_customer(
     customer_id: int,
     customer_update: CustomerUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
@@ -76,7 +87,11 @@ def update_customer(
     return customer
 
 @router.delete("/{customer_id}")
-def delete_customer(customer_id: int, db: Session = Depends(get_db)):
+def delete_customer(
+    customer_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")

@@ -78,22 +78,14 @@ export default function Reports() {
     try {
       setIsLoading(true);
       
-      // Load critical data first with reduced limit for faster initial load
-      const visitsData = await ShopVisit.list("-created_at", 100).catch(() => []);
+      // Load enough data initially so we don't need to update it later (prevents confusion)
+      const visitsData = await ShopVisit.list("-created_at", 200).catch(() => []);
       setVisits(Array.isArray(visitsData) ? visitsData : []);
       setIsLoading(false); // Show page immediately after critical data loads
       
-      // Load shop types in background (non-blocking)
+      // Load shop types in background (non-blocking, doesn't change visits)
       loadShopTypes();
-      
-      // Optionally load more visits in background if initial load was full
-      if (visitsData.length === 100) {
-        ShopVisit.list("-created_at", 200).then(moreData => {
-          if (Array.isArray(moreData) && moreData.length > visitsData.length) {
-            setVisits(moreData);
-          }
-        }).catch(() => {});
-      }
+      // No progressive loading - data stays stable to avoid user confusion
     } catch (error) {
       console.error("Error loading visits:", error);
       setVisits([]);

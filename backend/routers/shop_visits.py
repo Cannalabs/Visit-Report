@@ -52,7 +52,8 @@ def list_shop_visits(
     visit_status: Optional[VisitStatus] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Optimize query: Use indexed column for ordering and limit result set
     # For large datasets, consider only loading essential fields first
@@ -70,7 +71,11 @@ def list_shop_visits(
     return query.order_by(ShopVisit.created_at.desc()).offset(skip).limit(effective_limit).all()
 
 @router.get("/{visit_id}", response_model=ShopVisitResponse)
-def get_shop_visit(visit_id: int, db: Session = Depends(get_db)):
+def get_shop_visit(
+    visit_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         visit = db.query(ShopVisit).filter(ShopVisit.id == visit_id).first()
         if not visit:
@@ -176,7 +181,11 @@ def update_shop_visit(
         raise HTTPException(status_code=500, detail="A database error occurred. Please try again later.")
 
 @router.delete("/{visit_id}")
-def delete_shop_visit(visit_id: int, db: Session = Depends(get_db)):
+def delete_shop_visit(
+    visit_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     visit = db.query(ShopVisit).filter(ShopVisit.id == visit_id).first()
     if not visit:
         raise HTTPException(status_code=404, detail="Shop visit not found")

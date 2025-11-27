@@ -76,8 +76,8 @@ export default function FollowUps() {
         }
       }
       
-      // Load visits with reduced limit for faster initial load
-      const data = await ShopVisit.list("-created_at", 100).catch(() => []);
+      // Load enough data initially so we don't need to update it later (prevents confusion)
+      const data = await ShopVisit.list("-created_at", 200).catch(() => []);
       
       // Filter only visits that require follow-up AND are assigned to current user OR created by current user
       const followUpVisits = data.filter(visit => {
@@ -94,13 +94,13 @@ export default function FollowUps() {
       setVisits(followUpVisits);
       setIsLoading(false); // Show page immediately after critical data loads
       
-      // Refresh user data in background if not cached
+      // Refresh user data in background if not cached (only updates user, not visits)
       if (!currentUserData) {
         User.me().then(user => {
           if (user) {
             setCurrentUser(user);
             localStorage.setItem('user', JSON.stringify(user));
-            // Re-filter visits with fresh user data if needed
+            // Re-filter visits with fresh user data (only if user was missing)
             const freshFollowUps = data.filter(visit => {
               if (visit.follow_up_required !== true) return false;
               const isAssigned = visit.follow_up_assigned_user_id === user.id;
@@ -111,26 +111,7 @@ export default function FollowUps() {
           }
         }).catch(() => {});
       }
-      
-      // Optionally load more visits in background if initial load was full
-      if (data.length === 100) {
-        ShopVisit.list("-created_at", 200).then(moreData => {
-          if (Array.isArray(moreData)) {
-            const moreFollowUps = moreData.filter(visit => {
-              if (visit.follow_up_required !== true) return false;
-              if (currentUserData) {
-                const isAssigned = visit.follow_up_assigned_user_id === currentUserData.id;
-                const isCreator = visit.created_by === currentUserData.id;
-                return isAssigned || isCreator;
-              }
-              return false;
-            });
-            if (moreFollowUps.length > followUpVisits.length) {
-              setVisits(moreFollowUps);
-            }
-          }
-        }).catch(() => {});
-      }
+      // No progressive loading - data stays stable to avoid user confusion
     } catch (error) {
       console.error("Error loading visits:", error);
       setVisits([]);

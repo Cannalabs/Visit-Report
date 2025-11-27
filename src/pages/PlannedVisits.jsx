@@ -46,8 +46,8 @@ export default function PlannedVisits() {
     try {
       setIsLoading(true);
       
-      // Load critical data first with reduced limit for faster initial load
-      const visitsData = await ShopVisit.list("-created_at", 100).catch(() => []);
+      // Load enough data initially so we don't need to update it later (prevents confusion)
+      const visitsData = await ShopVisit.list("-created_at", 200).catch(() => []);
       
       // Filter only planned visits (appointment status)
       const plannedVisits = (visitsData || []).filter(visit => visit.visit_status === "appointment");
@@ -55,7 +55,7 @@ export default function PlannedVisits() {
       setVisits(plannedVisits);
       setIsLoading(false); // Show page immediately after critical data loads
       
-      // Load secondary data in background (non-blocking)
+      // Load secondary data in background (non-blocking, doesn't change visits)
       Promise.all([
         UserEntity.list().catch(() => []),
         Customer.list().catch(() => [])
@@ -63,18 +63,7 @@ export default function PlannedVisits() {
         setUsers(usersData || []);
         setCustomers(customersData || []);
       }).catch(() => {});
-      
-      // Optionally load more visits in background if initial load was full
-      if (visitsData.length === 100) {
-        ShopVisit.list("-created_at", 200).then(moreData => {
-          if (Array.isArray(moreData)) {
-            const morePlannedVisits = moreData.filter(visit => visit.visit_status === "appointment");
-            if (morePlannedVisits.length > plannedVisits.length) {
-              setVisits(morePlannedVisits);
-            }
-          }
-        }).catch(() => {});
-      }
+      // No progressive loading - data stays stable to avoid user confusion
     } catch (error) {
       console.error("Failed to load data:", error);
       setVisits([]);

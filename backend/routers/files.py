@@ -54,7 +54,10 @@ async def upload_file(
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 @router.get("/{file_id}")
-async def get_file(file_id: str):
+async def get_file(
+    file_id: str,
+    current_user: User = Depends(get_current_user)
+):
     """
     Get file by ID (placeholder - in production, retrieve from storage)
     """

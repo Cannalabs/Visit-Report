@@ -72,8 +72,9 @@ export default function Dashboard() {
       }
 
       // Load critical data in parallel (like Admin panel) - this is the key to speed!
+      // Load enough data initially so we don't need to update it later (prevents confusion)
       const [visitsData, freshUserData] = await Promise.all([
-        ShopVisit.list("-created_at", 30).catch(() => []), // Reduced to 30 for faster load
+        ShopVisit.list("-created_at", 50).catch(() => []), // Load enough data initially
         User.me().catch(() => cachedUserData) // Fallback to cached if API fails
       ]);
       
@@ -88,15 +89,7 @@ export default function Dashboard() {
       
       setVisits(visits);
       setIsLoading(false); // Show page immediately after parallel data loads
-      
-      // Load more visits in background if needed for better stats accuracy
-      if (visits.length === 30) {
-        ShopVisit.list("-created_at", 50).then(moreVisits => {
-          if (Array.isArray(moreVisits) && moreVisits.length > visits.length) {
-            setVisits(moreVisits);
-          }
-        }).catch(() => {});
-      }
+      // No progressive loading - data stays stable to avoid user confusion
     } catch (error) {
       console.error("Error loading dashboard data:", error);
       setVisits([]);

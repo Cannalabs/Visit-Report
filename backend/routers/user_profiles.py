@@ -11,7 +11,11 @@ router = APIRouter()
 
 @router.post("", response_model=UserProfileResponse)
 @router.post("/", response_model=UserProfileResponse)
-def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db)):
+def create_user_profile(
+    profile: UserProfileCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     db_profile = UserProfile(**profile.dict())
     db.add(db_profile)
     db.commit()
@@ -20,18 +24,31 @@ def create_user_profile(profile: UserProfileCreate, db: Session = Depends(get_db
 
 @router.get("", response_model=List[UserProfileResponse])
 @router.get("/", response_model=List[UserProfileResponse])
-def list_user_profiles(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_user_profiles(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     return db.query(UserProfile).offset(skip).limit(limit).all()
 
 @router.get("/{profile_id}", response_model=UserProfileResponse)
-def get_user_profile(profile_id: int, db: Session = Depends(get_db)):
+def get_user_profile(
+    profile_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     profile = db.query(UserProfile).filter(UserProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
     return profile
 
 @router.get("/user/{user_id}", response_model=UserProfileResponse)
-def get_user_profile_by_user_id(user_id: int, db: Session = Depends(get_db)):
+def get_user_profile_by_user_id(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
@@ -41,7 +58,8 @@ def get_user_profile_by_user_id(user_id: int, db: Session = Depends(get_db)):
 def update_user_profile(
     profile_id: int,
     profile_update: UserProfileUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     profile = db.query(UserProfile).filter(UserProfile.id == profile_id).first()
     if not profile:

@@ -83,29 +83,19 @@ export default function Analytics() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch minimal visits first (most important data) to show page faster
-        // Reduced to 100 for initial load - analytics can work with sample
-        const visitData = await ShopVisit.list('-created_at', 100).catch(() => []);
-        setVisits(visitData || []);
-        setIsLoading(false); // Show page immediately after critical data loads
-        
-        // Load more data in background (progressive loading)
-        Promise.all([
-          ShopVisit.list('-created_at', 300).catch(() => []), // Load more visits in background
+        // Load enough data initially so we don't need to update it later (prevents confusion)
+        // Analytics needs more data for accurate charts, so load 300 initially
+        const [visitData, customerData, userData] = await Promise.all([
+          ShopVisit.list('-created_at', 300).catch(() => []),
           Customer.list().catch(() => []),
           User.list().catch(() => [])
-        ]).then(([moreVisits, customerData, userData]) => {
-          // Update visits if we got more data
-          if (Array.isArray(moreVisits) && moreVisits.length > visitData.length) {
-            setVisits(moreVisits);
-          }
-          setCustomers(customerData || []);
-          setUsers(userData || []);
-        }).catch(error => {
-          console.error("Failed to fetch secondary data:", error);
-          setCustomers([]);
-          setUsers([]);
-        });
+        ]);
+        
+        setVisits(visitData || []);
+        setCustomers(customerData || []);
+        setUsers(userData || []);
+        setIsLoading(false); // Show page immediately after all data loads
+        // No progressive loading - data stays stable to avoid user confusion
       } catch (error) {
         console.error("Failed to fetch analytics data:", error);
         // Set empty arrays on error to prevent crashes
