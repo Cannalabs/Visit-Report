@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visit Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4;
+            margin: 15mm;
+            @top-center { content: ""; }
+            @bottom-center { content: ""; }
+            @top-left { content: ""; }
+            @top-right { content: ""; }
+            @bottom-left { content: ""; }
+            @bottom-right { content: ""; }
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.5;
+            font-size: 10pt;
+            width: 210mm;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .report-container {
+            width: 100%;
+            background: white;
+            overflow: hidden;
+        }
+
+        /* Professional Header */
+        .report-header {
+            background: linear-gradient(to right, #ffffff 0%, #ffffff 30%, #a8c090 70%, #4a7c2a 100%);
+            color: #1a1a1a;
+            padding: 10mm 15mm 8mm 15mm;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .company-name {
+            font-size: 20pt;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin: 0;
+            background: white;
+            padding: 2mm 4mm;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .company-logo {
+            max-height: 20mm;
+            max-width: 60mm;
+            height: auto;
+            width: auto;
+            object-fit: contain;
+            margin: 0;
+            background: white;
+            padding: 2mm;
+            border-radius: 3px;
+        }
+
+        .report-subtitle {
+            display: none;
+        }
+
+        .report-title {
+            font-size: 14pt;
+            font-weight: 600;
+            text-align: right;
+            margin: 0;
+            color: white;
+        }
+
+        /* Visit Information Grid */
+        .visit-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6mm;
+            padding: 8mm 15mm;
+            background: #f8f9fa;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .info-label {
+            font-size: 8pt;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 11pt;
+            color: #1a1a1a;
+            font-weight: 500;
+            word-wrap: break-word;
+        }
+
+        /* Section Wrappers */
+        .section-wrapper {
+            display: block;
+        }
+
+        .section-wrapper.hidden {
+            display: none;
+        }
+
+        .chart-card.hidden,
+        .distributor-section.hidden,
+        .order-value-card.hidden {
+            display: none;
+        }
+
+        /* Section Headers */
+        .section-header {
+            background: #2d5016;
+            color: white;
+            padding: 4mm 15mm;
+            font-size: 11pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Content Sections */
+        .content-section {
+            padding: 4mm 15mm;
+            background: white;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3mm;
+            margin-bottom: 0;
+        }
+
+        .data-item {
+            background: #fafafa;
+            padding: 2.5mm 3mm;
+            border-radius: 2px;
+            border-left: 2px solid #4a7c2a;
+        }
+
+        .data-item-label {
+            font-size: 7pt;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+            margin-bottom: 1.5px;
+        }
+
+        .data-item-value {
+            font-size: 9pt;
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+
+        /* Purpose Table */
+        .purpose-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .purpose-table td {
+            padding: 2.5mm 4mm;
+            vertical-align: top;
+        }
+
+        .purpose-table td:first-child {
+            background: #f0f7f0;
+            width: 35%;
+            font-weight: 600;
+            color: #2d5016;
+            font-size: 9pt;
+        }
+
+        .purpose-table td:last-child {
+            background: white;
+            color: #1a1a1a;
+            font-size: 9pt;
+            word-wrap: break-word;
+            word-break: normal;
+            white-space: normal;
+            line-height: 1.4;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            padding: 8mm 15mm;
+            background: #fafafa;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8mm;
+            margin-bottom: 8mm;
+        }
+
+        .chart-card {
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
+        }
+
+        .chart-card h3 {
+            font-size: 9pt;
+            font-weight: 600;
+            margin-bottom: 3mm;
+            color: #2d5016;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 60mm;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-container canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        .donut-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6mm;
+            align-items: center;
+        }
+
+        .donut-chart-item {
+            text-align: center;
+        }
+
+        .donut-chart-container {
+            position: relative;
+            height: 60mm;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donut-chart-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        .donut-label {
+            font-size: 9pt;
+            font-weight: 600;
+            color: #2d5016;
+            margin-top: 4mm;
+        }
+
+        .pie-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 3mm 4mm;
+            margin-top: 3mm;
+            padding: 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 3mm;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-label {
+            font-size: 9pt;
+            color: #333;
+        }
+
+        /* Distributor Section - Minimalist */
+        .distributor-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6mm;
+            margin-top: 6mm;
+        }
+
+        .distributor-item {
+            background: white;
+            border-radius: 4px;
+            padding: 6mm;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .distributor-icon {
+            width: 40px;
+            height: 40px;
+            background: #f0f7f0;
+            border-radius: 4px;
+            margin: 0 auto 4mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10pt;
+            font-weight: 600;
+            color: #2d5016;
+            border: 1px solid #4a7c2a;
+        }
+
+        .distributor-percentage {
+            font-size: 20pt;
+            font-weight: 700;
+            color: #2d5016;
+            margin-bottom: 2mm;
+        }
+
+        .distributor-label {
+            font-size: 8pt;
+            color: #666;
+            font-weight: 400;
+        }
+
+        /* Order Value Card - Minimalist */
+        .order-value-card {
+            background: #2d5016;
+            border-radius: 4px;
+            padding: 6mm;
+            margin-top: 6mm;
+            text-align: center;
+            color: white;
+        }
+
+        .order-value-title {
+            font-size: 7pt;
+            font-weight: 600;
+            margin-bottom: 3mm;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        .order-value-amount {
+            font-size: 24pt;
+            font-weight: 700;
+        }
+
+        /* Lists */
+        .list-item {
+            padding: 3mm 4mm;
+            background: #fafafa;
+            margin: 1.5mm 0;
+            border-radius: 2px;
+            border-left: 2px solid #4a7c2a;
+            font-size: 9pt;
+        }
+
+        /* Product Chips */
+        .product-chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm;
+        }
+
+        .product-chip {
+            display: inline-block;
+            padding: 2mm 4mm;
+            background: #e8f5e9;
+            border: 1px solid #4a7c2a;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 500;
+            color: #2d5016;
+            white-space: nowrap;
+        }
+
+        /* Badges */
+        .score-badge {
+            display: inline-block;
+            color: #2d5016;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+
+        .trend-badge {
+            display: inline-block;
+            padding: 2mm 6mm;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .trend-increasing {
+            background: #4caf50;
+            color: white;
+        }
+
+        .trend-stable {
+            background: #ff9800;
+            color: white;
+        }
+
+        .trend-decreasing {
+            background: #f44336;
+            color: white;
+        }
+
+        /* Progress Bar Styles */
+        .progress-bar-container {
+            margin-top: 2mm;
+        }
+
+        .progress-bar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 3mm;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6mm;
+            background: #e0e0e0;
+            border-radius: 3mm;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3mm;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 2mm;
+            font-size: 7pt;
+            font-weight: 600;
+            color: white;
+        }
+
+        .progress-bar-fill.increasing {
+            background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
+        }
+
+        .progress-bar-fill.stable {
+            background: linear-gradient(90deg, #ff9800 0%, #ffb74d 100%);
+        }
+
+        .progress-bar-fill.decreasing {
+            background: linear-gradient(90deg, #f44336 0%, #e57373 100%);
+        }
+
+        .progress-bar-label {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #666;
+            min-width: 20mm;
+            text-align: right;
+        }
+
+        .progress-bar-value {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #1a1a1a;
+            min-width: 15mm;
+            text-align: left;
+        }
+
+        .satisfaction-stars {
+            color: #ffc107;
+            font-size: 10pt;
+        }
+
+        /* Employee Grid */
+        .employee-grid {
+            display: grid;
+                grid-template-columns: repeat(6, 1fr);
+            gap: 2.5mm;
+            margin-top: 4mm;
+        }
+
+        .employee-size-item {
+            text-align: center;
+            padding: 3mm 2mm;
+            background: #f8f9fa;
+            border-radius: 3px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .employee-size-label {
+            font-size: 7pt;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 2mm;
+            font-weight: 600;
+        }
+
+        .employee-size-value {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #2d5016;
+        }
+
+        /* Presentation Grid */
+        .presentation-grid {
+            display: grid;
+                grid-template-columns: repeat(4, 1fr);
+            gap: 3mm;
+            margin-top: 4mm;
+        }
+
+        .presentation-item {
+            padding: 3mm 2mm;
+            background: #f8f9fa;
+            border-radius: 3px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: auto;
+        }
+
+        .presentation-label {
+            font-size: 7pt;
+            color: #666;
+            margin-bottom: 2mm;
+            font-weight: 600;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        .presentation-value {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #2d5016;
+            line-height: 1.2;
+        }
+
+        /* Print Button */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4a7c2a;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: background 0.3s;
+        }
+
+        .print-button:hover {
+            background: #2d5016;
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+                @top-center { content: ""; }
+                @bottom-center { content: ""; }
+                @top-left { content: ""; }
+                @top-right { content: ""; }
+                @bottom-left { content: ""; }
+                @bottom-right { content: ""; }
+            }
+
+            body {
+                width: 210mm;
+                margin: 0;
+                padding: 0;
+                font-size: 10pt;
+            }
+
+            .print-button {
+                display: none;
+            }
+
+            .report-container {
+                box-shadow: none;
+            }
+
+            .section-header,
+            .chart-card,
+            .distributor-item,
+            .data-section,
+            .visit-info,
+            #signature-section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .section-header {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            #signature-section {
+                page-break-before: auto;
+                break-before: auto;
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            #signature-section .content-section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .chart-container canvas,
+            .donut-chart-container canvas {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color-adjust: exact;
+            }
+
+            .chart-card,
+            .distributor-item,
+            .data-item,
+            .list-item,
+            .order-value-card {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color-adjust: exact;
+            }
+        }
+
+        /* Responsive adjustments for screen view */
+        @media screen {
+            body {
+                padding: 20px;
+                background: #f5f5f5;
+            }
+
+            .report-container {
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                max-width: 210mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="handlePrint()">🖨️ Print / Save as PDF</button>
+    <div class="report-container">
+        <!-- Professional Header -->
+        <div class="report-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div id="company-logo-container">
+                        <img id="company-logo" class="company-logo" src="" alt="Company Logo" style="display: none;">
+                        <div id="company-name" class="company-name">CANNA</div>
+                    </div>
+                </div>
+                <div class="report-title">VISIT REPORT</div>
+            </div>
+        </div>
+
+        <!-- Visit Information -->
+        <div class="visit-info">
+            <div class="info-item">
+                <span class="info-label">Visit ID</span>
+                    <span class="info-value" id="visit-id">-</span>
+                </div>
+            <div class="info-item">
+                <span class="info-label">Visitor Name</span>
+                    <span class="info-value" id="visitor-name">-</span>
+                </div>
+            <div class="info-item">
+                <span class="info-label">Date of Visit</span>
+                    <span class="info-value" id="visit-date">-</span>
+                </div>
+            <div class="info-item">
+                <span class="info-label">Shop Type</span>
+                    <span class="info-value" id="shop-type">-</span>
+                </div>
+            <div class="info-item">
+                <span class="info-label">Department</span>
+                    <span class="info-value" id="department">-</span>
+                </div>
+            <div class="info-item">
+                <span class="info-label">Person Met</span>
+                    <span class="info-value" id="person-met">-</span>
+            </div>
+        </div>
+
+        <!-- Shop Details Section -->
+        <div id="shop-details-section" class="section-wrapper">
+        <div class="section-header">Shop Details</div>
+            <div class="content-section">
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-item-label">Shop Name</span>
+                    <span class="data-item-value" id="shop-name">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Shop Address</span>
+                    <span class="data-item-value" id="shop-address">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">City</span>
+                    <span class="data-item-value" id="city">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Country</span>
+                    <span class="data-item-value" id="country">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Contact Phone</span>
+                    <span class="data-item-value" id="contact-phone">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Contact Email</span>
+                    <span class="data-item-value" id="contact-email">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Job Title</span>
+                    <span class="data-item-value" id="job-title">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Visit Duration</span>
+                    <span class="data-item-value" id="visit-duration">-</span>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visit Purpose and Details -->
+        <div id="visit-purpose-section" class="section-wrapper">
+            <div class="section-header">Visit Purpose and Details</div>
+        <table class="purpose-table">
+            <tr>
+                <td>Objective</td>
+                <td id="objective">-</td>
+            </tr>
+            <tr>
+                <td>Scope</td>
+                <td id="scope">-</td>
+            </tr>
+            <tr>
+                <td>Recommendations</td>
+                <td id="recommendations">-</td>
+            </tr>
+            <tr>
+                <td>Notes</td>
+                <td id="notes">-</td>
+            </tr>
+        </table>
+        </div>
+
+        <!-- Follow-up Section -->
+        <div id="follow-up-section" class="section-wrapper" style="display: none;">
+        <div class="section-header">Follow-up Actions</div>
+        <div class="content-section">
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-item-label">Follow-up Required</span>
+                    <span class="data-item-value" id="follow-up-required">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Follow-up Date</span>
+                    <span class="data-item-value" id="follow-up-date">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Follow-up Stage</span>
+                    <span class="data-item-value" id="follow-up-stage">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Assigned To</span>
+                    <span class="data-item-value" id="follow-up-assignee">-</span>
+                </div>
+            </div>
+            <div style="margin-top: 3mm;">
+                <div class="data-item-label" style="margin-bottom: 1.5mm;">Follow-up Notes</div>
+                <div class="data-item" style="padding: 2.5mm 3mm;">
+                    <span class="data-item-value" id="follow-up-notes" style="font-size: 9pt; line-height: 1.4;">-</span>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Product Visibility Section -->
+        <div id="product-visibility-section" class="section-wrapper">
+        <div class="section-header">Product Visibility & Performance</div>
+        <div class="content-section">
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-item-label">Product Visibility Score</span>
+                    <span class="data-item-value" id="visibility-score">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Competitor Presence</span>
+                    <span class="data-item-value" id="competitor-presence">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Overall Satisfaction</span>
+                    <span class="data-item-value" id="satisfaction-score">-</span>
+                </div>
+                <div class="data-item" style="grid-column: 1;">
+                    <span class="data-item-label">Calculated Score</span>
+                    <span class="data-item-value" id="calculated-score">-</span>
+                </div>
+                <div class="data-item" style="grid-column: 2;">
+                    <span class="data-item-label">Priority Level</span>
+                    <span class="data-item-value" id="priority-level">-</span>
+                </div>
+                <div class="data-item" style="grid-column: 3;">
+                    <span class="data-item-label">Commercial Outcome</span>
+                    <span class="data-item-value" id="commercial-outcome">-</span>
+                </div>
+                <div class="data-item" style="grid-column: 1 / -1; margin-top: 4mm;">
+                    <span class="data-item-label">Products Discussed</span>
+                    <div id="products-discussed-list" class="product-chips-container" style="margin-top: 3mm;"></div>
+            </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Training & Support Section -->
+        <div id="training-support-section" class="section-wrapper">
+        <div class="section-header">Training & Support</div>
+        <div class="content-section">
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-item-label">Training Provided</span>
+                    <span class="data-item-value" id="training-provided">-</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-item-label">Support Materials Required</span>
+                    <span class="data-item-value" id="support-materials-required">-</span>
+                </div>
+            </div>
+            <div style="margin-top: 4mm;">
+                <div class="data-item-label" style="margin-bottom: 2mm;">Training Topics</div>
+                <div id="training-topics-list" class="product-chips-container"></div>
+            </div>
+            <div style="margin-top: 4mm;">
+                <div class="data-item-label" style="margin-bottom: 2mm;">Support Materials</div>
+                <div id="support-materials-list" class="product-chips-container"></div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Sales Trends Section -->
+        <div id="sales-trends-section" class="section-wrapper">
+        <div class="section-header">Sales Trends</div>
+        <div class="content-section">
+            <div class="progress-bar-container">
+                <div class="data-item-label" style="margin-bottom: 3mm;">Liquids Trend</div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar">
+                        <div id="liquids-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                    <span id="liquids-trend-label" class="progress-bar-label">-</span>
+                    <span id="liquids-trend-percentage" class="progress-bar-value">-</span>
+                </div>
+            </div>
+            <div class="progress-bar-container" style="margin-top: 4mm;">
+                <div class="data-item-label" style="margin-bottom: 3mm;">Substrates Trend</div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar">
+                        <div id="substrates-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+                    <span id="substrates-trend-label" class="progress-bar-label">-</span>
+                    <span id="substrates-trend-percentage" class="progress-bar-value">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Sizing Section -->
+        <div id="employee-sizing-section" class="section-wrapper">
+        <div class="section-header">Employee Sizing Breakdown</div>
+        <div class="content-section">
+            <div class="data-item" style="margin-bottom: 4mm;">
+                <span class="data-item-label">Total Employees</span>
+                <span class="data-item-value" id="total-employees" style="font-size: 14pt;">-</span>
+            </div>
+            <div class="employee-grid" id="employee-sizes-grid"></div>
+        </div>
+        </div>
+
+        <!-- Shop Presentation Section -->
+        <div id="shop-presentation-section" class="section-wrapper">
+        <div class="section-header">Shop Presentation Matrix</div>
+        <div class="content-section">
+            <div class="presentation-grid" id="presentation-grid"></div>
+        </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div id="charts-section" class="section-wrapper">
+            <div class="section-header">Sales Analytics & Charts</div>
+        <div class="charts-section">
+            <div class="charts-grid">
+                <!-- Sales Liquid Card -->
+                <div id="sales-liquid-card" class="chart-card">
+                    <h3>Sales Liquid Distribution</h3>
+                    <div class="donut-charts">
+                        <div class="donut-chart-item">
+                            <div class="donut-chart-container">
+                                <canvas id="organic-chart"></canvas>
+                            </div>
+                            <div class="donut-label">Organic</div>
+                        </div>
+                        <div class="donut-chart-item">
+                            <div class="donut-chart-container">
+                                <canvas id="mineral-chart"></canvas>
+                            </div>
+                            <div class="donut-label">Mineral</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Value Card -->
+                <div id="purchase-value-card" class="chart-card">
+                    <h3 id="purchase-value-title">Purchase Value: €0</h3>
+                    <div class="donut-charts">
+                        <div class="donut-chart-item">
+                            <div class="donut-chart-container">
+                                <canvas id="liquids-chart"></canvas>
+                            </div>
+                            <div class="donut-label">CANNA Liquids</div>
+                        </div>
+                        <div class="donut-chart-item">
+                            <div class="donut-chart-container">
+                                <canvas id="substrates-chart"></canvas>
+                            </div>
+                            <div class="donut-label">CANNA Substrates</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Liquids and Top Substrates Pie Charts -->
+            <div class="charts-grid">
+                <div id="top-liquids-card" class="chart-card">
+                    <h3>Top Liquids Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="top-liquids-chart"></canvas>
+                    </div>
+                    <div class="pie-legend" id="top-liquids-legend"></div>
+                </div>
+
+                <div id="top-substrates-card" class="chart-card">
+                    <h3>Top Substrates Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="top-substrates-chart"></canvas>
+                    </div>
+                    <div class="pie-legend" id="top-substrates-legend"></div>
+                </div>
+            </div>
+
+            <!-- Distributor Breakdown -->
+            <div id="distributor-section" class="distributor-section">
+                <div class="distributor-item">
+                    <div class="distributor-icon">DE</div>
+                    <div class="distributor-percentage" id="german-dist-percentage">0%</div>
+                    <div class="distributor-label">German Distributor</div>
+                </div>
+                <div class="distributor-item">
+                    <div class="distributor-icon">INT</div>
+                    <div class="distributor-percentage" id="european-dist-percentage">0%</div>
+                    <div class="distributor-label">Other Distributor</div>
+                </div>
+            </div>
+
+            <!-- Order Value Card -->
+            <div id="order-value-card" class="order-value-card">
+                <div class="order-value-title">Total Order Value</div>
+                <div class="order-value-amount" id="order-value">€0</div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Signature Section -->
+        <div id="signature-section" class="section-wrapper" style="page-break-inside: avoid; break-inside: avoid;">
+        <div class="section-header" style="page-break-after: avoid; break-after: avoid;">Signature</div>
+        <div class="content-section" style="page-break-inside: avoid; break-inside: avoid;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15mm;">
+                <!-- Sales Representative Signature -->
+                <div>
+                    <div class="data-item-label" style="margin-bottom: 3mm;">Sales Representative</div>
+                    <div style="border: 1px solid #e0e0e0; background: white; padding: 4mm; border-radius: 3px; min-height: 30mm; display: flex; align-items: center; justify-content: center; margin-bottom: 3mm;">
+                        <img id="sales-rep-signature-image" src="" alt="Sales Rep Signature" style="max-width: 100%; max-height: 30mm; display: none;">
+                        <span id="no-sales-rep-signature-text" style="color: #999; font-style: italic;">No signature provided</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-item-label">Name</span>
+                        <div class="data-item-value" id="sales-rep-name">-</div>
+                    </div>
+                </div>
+                
+                <!-- Shop Representative Signature -->
+                <div>
+                    <div class="data-item-label" style="margin-bottom: 3mm;">Shop Representative</div>
+                    <div style="border: 1px solid #e0e0e0; background: white; padding: 4mm; border-radius: 3px; min-height: 30mm; display: flex; align-items: center; justify-content: center; margin-bottom: 3mm;">
+                        <img id="shop-rep-signature-image" src="" alt="Shop Rep Signature" style="max-width: 100%; max-height: 30mm; display: none;">
+                        <span id="no-shop-rep-signature-text" style="color: #999; font-style: italic;">No signature provided</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-item-label">Name</span>
+                        <div class="data-item-value" id="shop-rep-name">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        // Professional color palette
+        const chartColors = {
+            primary: '#2d5016',
+            secondary: '#4a7c2a',
+            accent: '#66bb6a',
+            light: '#81c784',
+            dark: '#1b3d0d'
+        };
+
+        const chartPalette = [
+            chartColors.primary,
+            chartColors.secondary,
+            chartColors.accent,
+            chartColors.light,
+            '#8bc34a',
+            '#9ccc65'
+        ];
+
+        // Initialize charts with visit data
+        function initializeCharts(visitData) {
+            const salesData = visitData.sales_data || {};
+            
+            // Sales Liquid Donut Charts
+            const organicPct = parseFloat(salesData.organic_percentage) || 0;
+            const mineralPct = 100 - organicPct;
+            createDonutChart('organic-chart', organicPct, chartColors.primary);
+            createDonutChart('mineral-chart', mineralPct, chartColors.secondary);
+
+            // Purchase Value Donut Charts
+            const liquidsPercentage = parseFloat(salesData.liquids_percentage) || 0;
+            const substratesPercentage = Math.max(0, 100 - liquidsPercentage);
+            createDonutChart('liquids-chart', liquidsPercentage, chartColors.primary);
+            createDonutChart('substrates-chart', substratesPercentage, chartColors.secondary);
+
+            // Update purchase value title
+            const estimatedValue = salesData.estimated_canna_value || 0;
+            document.getElementById('purchase-value-title').textContent = `Purchase Value: €${estimatedValue}K`;
+
+            // Top Liquids Pie Chart
+            createPieChart('top-liquids-chart', 'top-liquids-legend', salesData.liquid_brands || []);
+
+            // Top Substrates Pie Chart
+            createPieChart('top-substrates-chart', 'top-substrates-legend', salesData.substrate_brands || []);
+
+            // Distributor Breakdown
+            const germanPercentage = salesData.german_purchase_percentage || 0;
+            const europeanPercentage = 100 - germanPercentage;
+            document.getElementById('german-dist-percentage').textContent = `${germanPercentage}%`;
+            document.getElementById('european-dist-percentage').textContent = `${europeanPercentage}%`;
+
+            // Order Value
+            const orderValue = visitData.order_value || 0;
+            document.getElementById('order-value').textContent = `€${orderValue.toLocaleString()}`;
+        }
+
+        function createDonutChart(canvasId, percentage, color) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            // Ensure percentage is valid
+            percentage = Math.max(0, Math.min(100, parseFloat(percentage) || 0));
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            
+            // Ensure canvas has proper dimensions
+            const container = canvas.parentElement;
+            if (container) {
+                const containerWidth = container.offsetWidth || 200;
+                const containerHeight = container.offsetHeight || 200;
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+            }
+            
+            // Handle edge cases for 0% and 100%
+            let dataValues, backgroundColors;
+            if (percentage === 0) {
+                // Show completely gray ring for 0%
+                dataValues = [0.01, 99.99];
+                backgroundColors = ['#e8e8e8', '#e8e8e8'];
+            } else if (percentage === 100) {
+                // Show completely colored ring for 100%
+                dataValues = [99.99, 0.01];
+                backgroundColors = [color, color];
+            } else {
+                dataValues = [percentage, 100 - percentage];
+                backgroundColors = [color, '#e8e8e8'];
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 1,
+                    cutout: '75%',
+                    animation: {
+                        animateRotate: false,
+                        animateScale: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'centerText',
+                    beforeDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+                        const centerY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+                        
+                        ctx.save();
+                        const chartWidth = chart.chartArea.right - chart.chartArea.left;
+                        const fontSize = chartWidth < 80 ? '14pt' : (chartWidth < 100 ? '18pt' : '22pt');
+                        ctx.font = `bold ${fontSize} 'Segoe UI', Arial, sans-serif`;
+                        ctx.fillStyle = color || chartColors.primary;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${Math.round(percentage)}%`, centerX, centerY);
+                        ctx.restore();
+                    }
+                }]
+            });
+            
+            chartInstances[canvasId] = chart;
+        }
+
+        function createPieChart(canvasId, legendId, brands) {
+            if (!brands || brands.length === 0) {
+                brands = [
+                    { name: 'Aqua', percentage: 25 },
+                    { name: 'Hydro', percentage: 20 },
+                    { name: 'Terra', percentage: 30 },
+                    { name: 'Other', percentage: 25 }
+                ];
+            }
+
+            const labels = brands.map(b => b.name);
+            const data = brands.map(b => parseFloat(b.percentage) || 0);
+            const backgroundColors = chartPalette.slice(0, brands.length);
+
+            // Calculate "others" if total is less than 100
+            const total = data.reduce((sum, val) => sum + val, 0);
+            if (total < 100 && total > 0) {
+                labels.push('Other');
+                data.push(100 - total);
+                backgroundColors.push(chartPalette[chartPalette.length - 1]);
+            }
+
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            
+            // Ensure canvas has proper dimensions
+            const container = canvas.parentElement;
+            if (container) {
+                const containerWidth = container.offsetWidth || 200;
+                const containerHeight = container.offsetHeight || 200;
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 1,
+                    animation: {
+                        animateRotate: false,
+                        animateScale: false
+                    },
+                    layout: {
+                        padding: 10
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            chartInstances[canvasId] = chart;
+
+            // Create custom legend
+            const legendContainer = document.getElementById(legendId);
+            if (legendContainer) {
+            legendContainer.innerHTML = '';
+            labels.forEach((label, index) => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <div class="legend-color" style="background-color: ${backgroundColors[index]}"></div>
+                        <span class="legend-label">${label} (${data[index]}%)</span>
+                `;
+                legendContainer.appendChild(legendItem);
+            });
+            }
+        }
+
+        // Helper function to check if value is empty or default
+        function isEmpty(value) {
+            if (value === null || value === undefined) return true;
+            if (typeof value === 'string' && (value.trim() === '' || value === '-' || value === 'N/A')) return true;
+            if (typeof value === 'number' && value === 0) return false; // 0 is a valid value
+            if (Array.isArray(value) && value.length === 0) return true;
+            if (typeof value === 'object' && Object.keys(value).length === 0) return true;
+            return false;
+        }
+
+        // Function to hide sections with no data
+        function hideEmptySections(visitData) {
+            const salesData = visitData.sales_data || {};
+
+            // Shop Details Section - hide if no shop info
+            const shopDetailsSection = document.getElementById('shop-details-section');
+            if (shopDetailsSection) {
+                const hasShopData = visitData.shop_name || visitData.shop_address || visitData.city || 
+                                   visitData.country || visitData.contact_phone || visitData.contact_email ||
+                                   visitData.job_title || visitData.visit_duration;
+                if (!hasShopData) {
+                    shopDetailsSection.classList.add('hidden');
+                }
+            }
+
+            // Visit Purpose Section - hide if no purpose/notes
+            const visitPurposeSection = document.getElementById('visit-purpose-section');
+            if (visitPurposeSection) {
+                const hasPurposeData = visitData.visit_purpose || visitData.scope || 
+                                      visitData.follow_up_required || visitData.notes;
+                if (!hasPurposeData) {
+                    visitPurposeSection.classList.add('hidden');
+                }
+            }
+
+            // Product Visibility Section - hide if no visibility data
+            const productVisibilitySection = document.getElementById('product-visibility-section');
+            if (productVisibilitySection) {
+                const hasVisibilityData = visitData.product_visibility_score > 0 || 
+                                         visitData.competitor_presence || visitData.overall_satisfaction > 0 ||
+                                         visitData.calculated_score > 0 || visitData.priority_level ||
+                                         visitData.commercial_outcome || 
+                                         (visitData.products_discussed && visitData.products_discussed.length > 0);
+                if (!hasVisibilityData) {
+                    productVisibilitySection.classList.add('hidden');
+                }
+            }
+
+            // Training & Support Section - hide if no training/support data
+            const trainingSupportSection = document.getElementById('training-support-section');
+            if (trainingSupportSection) {
+                const hasTrainingData = visitData.training_provided || visitData.support_materials_required ||
+                                      (visitData.training_topics && visitData.training_topics.length > 0) ||
+                                      (visitData.support_materials_items && visitData.support_materials_items.length > 0) ||
+                                      visitData.support_materials_other_text;
+                if (!hasTrainingData) {
+                    trainingSupportSection.classList.add('hidden');
+                }
+            }
+
+            // Sales Trends Section - hide if no trend data
+            const salesTrendsSection = document.getElementById('sales-trends-section');
+            if (salesTrendsSection) {
+                const hasTrendData = salesData.liquids_trend || salesData.substrates_trend ||
+                                   salesData.liquids_trend_percentage || salesData.substrates_trend_percentage;
+                if (!hasTrendData) {
+                    salesTrendsSection.classList.add('hidden');
+                }
+            }
+
+            // Employee Sizing Section - hide if no employee data
+            const employeeSizingSection = document.getElementById('employee-sizing-section');
+            if (employeeSizingSection) {
+                const hasEmployeeData = salesData.total_employees > 0 || 
+                                       (salesData.employee_sizes && Object.keys(salesData.employee_sizes).length > 0);
+                if (!hasEmployeeData) {
+                    employeeSizingSection.classList.add('hidden');
+                }
+            }
+
+            // Shop Presentation Section - hide if no presentation data
+            const shopPresentationSection = document.getElementById('shop-presentation-section');
+            if (shopPresentationSection) {
+                const hasPresentationData = salesData.shop_presentation && 
+                                          Object.keys(salesData.shop_presentation).length > 0;
+                if (!hasPresentationData) {
+                    shopPresentationSection.classList.add('hidden');
+                }
+            }
+
+            // Charts Section - hide individual chart cards if no data
+            const salesLiquidCard = document.getElementById('sales-liquid-card');
+            if (salesLiquidCard) {
+                const hasSalesLiquidData = salesData.organic_percentage !== undefined;
+                if (!hasSalesLiquidData) {
+                    salesLiquidCard.classList.add('hidden');
+                }
+            }
+
+            const purchaseValueCard = document.getElementById('purchase-value-card');
+            if (purchaseValueCard) {
+                const hasPurchaseData = salesData.liquids_percentage !== undefined || 
+                                       salesData.estimated_canna_value > 0;
+                if (!hasPurchaseData) {
+                    purchaseValueCard.classList.add('hidden');
+                }
+            }
+
+            const topLiquidsCard = document.getElementById('top-liquids-card');
+            if (topLiquidsCard) {
+                const hasTopLiquids = salesData.liquid_brands && salesData.liquid_brands.length > 0;
+                if (!hasTopLiquids) {
+                    topLiquidsCard.classList.add('hidden');
+                }
+            }
+
+            const topSubstratesCard = document.getElementById('top-substrates-card');
+            if (topSubstratesCard) {
+                const hasTopSubstrates = salesData.substrate_brands && salesData.substrate_brands.length > 0;
+                if (!hasTopSubstrates) {
+                    topSubstratesCard.classList.add('hidden');
+                }
+            }
+
+            const distributorSection = document.getElementById('distributor-section');
+            if (distributorSection) {
+                const hasDistributorData = salesData.german_purchase_percentage !== undefined;
+                if (!hasDistributorData) {
+                    distributorSection.classList.add('hidden');
+                }
+            }
+
+            const orderValueCard = document.getElementById('order-value-card');
+            if (orderValueCard) {
+                const hasOrderValue = visitData.order_value > 0;
+                if (!hasOrderValue) {
+                    orderValueCard.classList.add('hidden');
+                }
+            }
+
+            // Hide entire charts section if no chart data at all
+            const chartsSection = document.getElementById('charts-section');
+            if (chartsSection) {
+                const hasAnyChartData = salesData.organic_percentage !== undefined ||
+                                      salesData.liquids_percentage !== undefined ||
+                                      salesData.estimated_canna_value > 0 ||
+                                      (salesData.liquid_brands && salesData.liquid_brands.length > 0) ||
+                                      (salesData.substrate_brands && salesData.substrate_brands.length > 0) ||
+                                      salesData.german_purchase_percentage !== undefined ||
+                                      visitData.order_value > 0;
+                if (!hasAnyChartData) {
+                    chartsSection.classList.add('hidden');
+                }
+            }
+        }
+
+        // Helper functions
+        function formatText(text) {
+            if (!text) return '-';
+            return String(text).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Populate visit data
+        function populateVisitData(visitData) {
+            // Set company logo/name first
+            setCompanyBranding(visitData);
+            
+            // Visit Information
+            document.getElementById('visit-id').textContent = visitData.id || '-';
+            document.getElementById('visitor-name').textContent = visitData.visitor_name || visitData.created_by_name || '-';
+            document.getElementById('visit-date').textContent = formatDate(visitData.visit_date);
+            document.getElementById('shop-type').textContent = formatText(visitData.shop_type);
+            document.getElementById('department').textContent = visitData.department || visitData.region || '-';
+            document.getElementById('person-met').textContent = visitData.contact_person || '-';
+
+            // Shop Details
+            document.getElementById('shop-name').textContent = visitData.shop_name || '-';
+            document.getElementById('shop-address').textContent = visitData.shop_address || '-';
+            document.getElementById('city').textContent = visitData.city || '-';
+            document.getElementById('country').textContent = visitData.country || '-';
+            document.getElementById('contact-phone').textContent = visitData.contact_phone || '-';
+            document.getElementById('contact-email').textContent = visitData.contact_email || '-';
+            document.getElementById('job-title').textContent = visitData.job_title || '-';
+            document.getElementById('visit-duration').textContent = visitData.visit_duration ? `${visitData.visit_duration} minutes` : '-';
+
+            // Visit Purpose
+            document.getElementById('objective').textContent = formatText(visitData.visit_purpose) || 'N/A';
+            document.getElementById('scope').textContent = visitData.scope || 'Review of shop performance, product visibility, and commercial opportunities.';
+            
+            // Recommendations
+            let recommendations = 'No urgent recommendations.';
+            if (visitData.follow_up_required) {
+                if (visitData.follow_up_notes) {
+                    recommendations = `Urgent: ${visitData.follow_up_notes}`;
+                } else {
+                    recommendations = 'Urgent: Increase visit frequency and provide additional training support.';
+                }
+            }
+            document.getElementById('recommendations').textContent = recommendations;
+            document.getElementById('notes').textContent = visitData.notes || 'No specific notes recorded for this visit.';
+
+            // Follow-up Section
+            const followUpSection = document.getElementById('follow-up-section');
+            if (visitData.follow_up_required || visitData.follow_up_date || visitData.follow_up_stage) {
+                followUpSection.style.display = 'block';
+                
+                // Follow-up Required
+                const followUpRequiredEl = document.getElementById('follow-up-required');
+                followUpRequiredEl.innerHTML = visitData.follow_up_required ? '<span style="color: #4caf50; font-size: 14pt; font-weight: bold;">✓</span>' : '<span style="color: #999;">✗</span>';
+                
+                // Follow-up Date
+                const followUpDate = visitData.follow_up_date ? formatDate(visitData.follow_up_date) : '-';
+                document.getElementById('follow-up-date').textContent = followUpDate;
+                
+                // Follow-up Stage
+                document.getElementById('follow-up-stage').textContent = formatText(visitData.follow_up_stage) || '-';
+                
+                // Follow-up Assignee
+                const assigneeName = visitData.follow_up_assigned_user_name || 
+                                   (visitData.follow_up_assigned_user_id ? `User ID: ${visitData.follow_up_assigned_user_id}` : null);
+                document.getElementById('follow-up-assignee').textContent = assigneeName || '-';
+                
+                // Follow-up Notes
+                document.getElementById('follow-up-notes').textContent = visitData.follow_up_notes || 'No follow-up notes provided.';
+            } else {
+                followUpSection.style.display = 'none';
+            }
+
+            // Product Visibility
+            const visibilityScore = visitData.product_visibility_score || 0;
+            document.getElementById('visibility-score').textContent = `${visibilityScore}/100`;
+            document.getElementById('competitor-presence').textContent = formatText(visitData.competitor_presence) || '-';
+            
+            // Overall Satisfaction
+            const satisfaction = visitData.overall_satisfaction || 0;
+            const stars = '★'.repeat(satisfaction) + '☆'.repeat(10 - satisfaction);
+            document.getElementById('satisfaction-score').textContent = `${stars} (${satisfaction}/10)`;
+            
+            // Calculated Score
+            const calculatedScore = visitData.calculated_score || 0;
+            document.getElementById('calculated-score').textContent = `${calculatedScore}/100`;
+            
+            // Priority Level
+            document.getElementById('priority-level').textContent = formatText(visitData.priority_level) || '-';
+            
+            // Commercial Outcome
+            document.getElementById('commercial-outcome').textContent = formatText(visitData.commercial_outcome) || '-';
+
+            // Products Discussed - Display as chips
+            const productsList = document.getElementById('products-discussed-list');
+            productsList.innerHTML = '';
+            if (visitData.products_discussed && visitData.products_discussed.length > 0) {
+                visitData.products_discussed.forEach(product => {
+                    const chip = document.createElement('span');
+                    chip.className = 'product-chip';
+                    chip.textContent = product;
+                    productsList.appendChild(chip);
+                });
+            } else {
+                const emptyChip = document.createElement('span');
+                emptyChip.className = 'product-chip';
+                emptyChip.style.opacity = '0.6';
+                emptyChip.textContent = 'No products discussed';
+                productsList.appendChild(emptyChip);
+            }
+
+            // Training & Support - Show checkmark instead of Yes
+            const trainingProvidedEl = document.getElementById('training-provided');
+            trainingProvidedEl.innerHTML = visitData.training_provided ? '<span style="color: #4caf50; font-size: 14pt; font-weight: bold;">✓</span>' : '<span style="color: #999;">✗</span>';
+            
+            const supportMaterialsEl = document.getElementById('support-materials-required');
+            supportMaterialsEl.innerHTML = visitData.support_materials_required ? '<span style="color: #4caf50; font-size: 14pt; font-weight: bold;">✓</span>' : '<span style="color: #999;">✗</span>';
+
+            // Training Topics - Display as chips
+            const topicsList = document.getElementById('training-topics-list');
+            topicsList.innerHTML = '';
+            if (visitData.training_topics && visitData.training_topics.length > 0) {
+                visitData.training_topics.forEach(topic => {
+                    const chip = document.createElement('span');
+                    chip.className = 'product-chip';
+                    chip.textContent = topic;
+                    topicsList.appendChild(chip);
+                });
+            } else {
+                const emptyChip = document.createElement('span');
+                emptyChip.className = 'product-chip';
+                emptyChip.style.opacity = '0.6';
+                emptyChip.textContent = 'No training topics';
+                topicsList.appendChild(emptyChip);
+            }
+
+            // Support Materials - Display as chips
+            const materialsList = document.getElementById('support-materials-list');
+            materialsList.innerHTML = '';
+            if (visitData.support_materials_items && visitData.support_materials_items.length > 0) {
+                visitData.support_materials_items.forEach(material => {
+                    const chip = document.createElement('span');
+                    chip.className = 'product-chip';
+                    chip.textContent = material;
+                    materialsList.appendChild(chip);
+                });
+            }
+            if (visitData.support_materials_other_text) {
+                const chip = document.createElement('span');
+                chip.className = 'product-chip';
+                chip.textContent = visitData.support_materials_other_text;
+                materialsList.appendChild(chip);
+            }
+            if (materialsList.innerHTML === '') {
+                const emptyChip = document.createElement('span');
+                emptyChip.className = 'product-chip';
+                emptyChip.style.opacity = '0.6';
+                emptyChip.textContent = 'No support materials';
+                materialsList.appendChild(emptyChip);
+            }
+
+            // Sales Trends - Progress Bars
+            const salesData = visitData.sales_data || {};
+            
+            // Liquids Trend Progress Bar
+            const liquidsTrend = salesData.liquids_trend || 'stable';
+            const liquidsTrendPct = Math.abs(salesData.liquids_trend_percentage || 0);
+            const liquidsProgressFill = document.getElementById('liquids-progress-fill');
+            const liquidsTrendLabel = document.getElementById('liquids-trend-label');
+            const liquidsTrendPctEl = document.getElementById('liquids-trend-percentage');
+            
+            // Set progress bar width (cap at 100%)
+            const liquidsWidth = Math.min(liquidsTrendPct, 100);
+            liquidsProgressFill.style.width = liquidsWidth + '%';
+            liquidsProgressFill.className = `progress-bar-fill ${liquidsTrend}`;
+            liquidsTrendLabel.textContent = formatText(liquidsTrend);
+            liquidsTrendPctEl.textContent = liquidsTrendPct > 0 ? `${liquidsTrendPct}%` : '0%';
+
+            // Substrates Trend Progress Bar
+            const substratesTrend = salesData.substrates_trend || 'stable';
+            const substratesTrendPct = Math.abs(salesData.substrates_trend_percentage || 0);
+            const substratesProgressFill = document.getElementById('substrates-progress-fill');
+            const substratesTrendLabel = document.getElementById('substrates-trend-label');
+            const substratesTrendPctEl = document.getElementById('substrates-trend-percentage');
+            
+            // Set progress bar width (cap at 100%)
+            const substratesWidth = Math.min(substratesTrendPct, 100);
+            substratesProgressFill.style.width = substratesWidth + '%';
+            substratesProgressFill.className = `progress-bar-fill ${substratesTrend}`;
+            substratesTrendLabel.textContent = formatText(substratesTrend);
+            substratesTrendPctEl.textContent = substratesTrendPct > 0 ? `${substratesTrendPct}%` : '0%';
+
+            // Employee Sizing
+            const totalEmployees = salesData.total_employees || 0;
+            document.getElementById('total-employees').textContent = totalEmployees;
+            const employeeSizes = salesData.employee_sizes || {};
+            const employeeGrid = document.getElementById('employee-sizes-grid');
+            employeeGrid.innerHTML = '';
+            const sizes = ['s', 'm', 'l', 'xl', 'xxl', 'other'];
+            const sizeLabels = { s: 'S', m: 'M', l: 'L', xl: 'XL', xxl: 'XXL', other: 'Other' };
+            sizes.forEach(size => {
+                const item = document.createElement('div');
+                item.className = 'employee-size-item';
+                item.innerHTML = `
+                    <div class="employee-size-label">${sizeLabels[size]}</div>
+                    <div class="employee-size-value">${employeeSizes[size] || 0}</div>
+                `;
+                employeeGrid.appendChild(item);
+            });
+
+            // Shop Presentation
+            const presentation = salesData.shop_presentation || {};
+            const presentationGrid = document.getElementById('presentation-grid');
+            presentationGrid.innerHTML = '';
+            const presentationItems = [
+                { key: 'overall', label: 'Overall Presentation' },
+                { key: 'instore', label: 'Instore' },
+                { key: 'branding', label: 'Branding' },
+                { key: 'canna', label: 'CANNA' }
+            ];
+            presentationItems.forEach(item => {
+                const value = presentation[item.key] || 'N/A';
+                const div = document.createElement('div');
+                div.className = 'presentation-item';
+                div.innerHTML = `
+                    <div class="presentation-label">${item.label}</div>
+                    <div class="presentation-value">${formatText(value)}</div>
+                `;
+                presentationGrid.appendChild(div);
+            });
+
+            // Signature Section
+            const signatureSection = document.getElementById('signature-section');
+            
+            // Sales Representative Signature (Visitor/User)
+            const salesRepSignatureImage = document.getElementById('sales-rep-signature-image');
+            const noSalesRepSignatureText = document.getElementById('no-sales-rep-signature-text');
+            const salesRepName = document.getElementById('sales-rep-name');
+            
+            // Use visitor's signature if available, otherwise show visitor name
+            if (visitData.visitor_signature) {
+                salesRepSignatureImage.src = visitData.visitor_signature;
+                salesRepSignatureImage.style.display = 'block';
+                noSalesRepSignatureText.style.display = 'none';
+            } else {
+                salesRepSignatureImage.style.display = 'none';
+                noSalesRepSignatureText.style.display = 'block';
+            }
+            salesRepName.textContent = visitData.visitor_signature_name || visitData.visitor_name || visitData.created_by_name || '-';
+            
+            // Shop Representative Signature (from form)
+            const shopRepSignatureImage = document.getElementById('shop-rep-signature-image');
+            const noShopRepSignatureText = document.getElementById('no-shop-rep-signature-text');
+            const shopRepName = document.getElementById('shop-rep-name');
+            
+            if (visitData.signature) {
+                shopRepSignatureImage.src = visitData.signature;
+                shopRepSignatureImage.style.display = 'block';
+                noShopRepSignatureText.style.display = 'none';
+                shopRepName.textContent = visitData.signature_signer_name || '-';
+            } else {
+                shopRepSignatureImage.style.display = 'none';
+                noShopRepSignatureText.style.display = 'block';
+                shopRepName.textContent = '-';
+            }
+
+            // Hide empty sections
+            hideEmptySections(visitData);
+
+            // Initialize charts with delay to ensure DOM is ready
+            setTimeout(() => {
+            initializeCharts(visitData);
+                // Force chart resize after initialization
+                setTimeout(() => {
+                    Object.values(chartInstances).forEach(chart => {
+                        if (chart && typeof chart.resize === 'function') {
+                            chart.resize();
+                        }
+                    });
+                }, 200);
+            }, 200);
+        }
+
+        // Global function for external calls
+        window.populateReport = function(visitData) {
+            populateVisitData(visitData);
+        };
+
+        // Handle print
+        function handlePrint() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        }
+
+        // Store chart instances
+        const chartInstances = {};
+
+        // Set company logo and name
+        function setCompanyBranding(visitData) {
+            const logoImg = document.getElementById('company-logo');
+            const logoContainer = document.getElementById('company-logo-container');
+            const companyNameEl = document.getElementById('company-name');
+            
+            if (visitData.company_logo) {
+                logoImg.src = visitData.company_logo;
+                logoImg.style.display = 'block';
+                companyNameEl.style.display = 'none';
+            } else {
+                logoImg.style.display = 'none';
+                companyNameEl.style.display = 'block';
+                companyNameEl.textContent = visitData.company_name || 'CANNA';
+            }
+        }
+
+        // Auto-populate with data on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataKey = urlParams.get('dataKey');
+            
+            if (dataKey) {
+                try {
+                    const storedData = sessionStorage.getItem(dataKey);
+                    if (storedData) {
+                        const visitData = JSON.parse(storedData);
+                        populateVisitData(visitData);
+                        setTimeout(() => {
+                            handlePrint();
+                        }, 2000);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error loading data from storage:', e);
+                }
+            }
+        });
+
+        // Ensure charts render properly before print
+        window.addEventListener('beforeprint', function() {
+            Object.values(chartInstances).forEach(chart => {
+                if (chart && typeof chart.resize === 'function') {
+                    chart.resize();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

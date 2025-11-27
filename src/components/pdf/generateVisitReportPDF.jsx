@@ -98,7 +98,8 @@ export const generateVisitReportPDF = async (formData, user) => {
   sessionStorage.setItem(storageKey, JSON.stringify(visitData));
 
   // Open the template in a new window with the storage key as a parameter
-  const templatePath = '/src/components/pdf/visit-report-template.html';
+  // Use public folder path which is accessible in production
+  const templatePath = '/pdf/visit-report-template.html';
   const url = `${templatePath}?dataKey=${storageKey}`;
   const printWindow = window.open(url, '_blank');
   
