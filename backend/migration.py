@@ -160,7 +160,7 @@ def check_and_migrate_table(engine: Engine, model_class):
             expected_type = get_column_type_sql(col)
             
             # Debug logging for type comparison
-            if col_name == 'config_name':  # Special logging for the problematic column
+            if col_name == 'config_name' or col_name == 'signature':  # Special logging for problematic columns
                 logger.info(f"  Debug: Column '{col_name}' - existing: '{existing_type}', expected: '{expected_type}'")
             
             # Check if we need to upgrade VARCHAR to TEXT
@@ -220,6 +220,12 @@ def run_migrations():
     except Exception as e:
         logger.error(f"✗ Error during county to country migration: {e}")
     
+    # Fix signature column type in user_profiles table (VARCHAR to TEXT)
+    try:
+        fix_signature_column_type(engine)
+    except Exception as e:
+        logger.error(f"✗ Error during signature column type migration: {e}")
+    
     if not migrations_applied:
         logger.info("✓ Database schema is up to date, no migrations needed")
     
@@ -241,6 +247,36 @@ def run_migrations():
         # Don't fail migrations if index creation fails
     
     return migrations_applied
+
+def fix_signature_column_type(engine: Engine):
+    """Fix signature column type from VARCHAR(255) to TEXT in user_profiles table."""
+    table_name = 'user_profiles'
+    column_name = 'signature'
+    
+    try:
+        if not table_exists(engine, table_name):
+            logger.info(f"Table '{table_name}' does not exist, skipping signature column fix")
+            return
+        
+        existing_columns = get_table_columns(engine, table_name)
+        if column_name not in existing_columns:
+            logger.info(f"Column '{column_name}' does not exist in table '{table_name}', skipping")
+            return
+        
+        existing_col = existing_columns[column_name]
+        existing_type = str(existing_col['type']).upper()
+        
+        # Check if column is VARCHAR and needs to be TEXT
+        if 'VARCHAR' in existing_type or 'CHARACTER VARYING' in existing_type:
+            logger.info(f"Fixing signature column type in '{table_name}': {existing_type} → TEXT")
+            if alter_column_type(engine, table_name, column_name, 'TEXT'):
+                logger.info(f"✓ Successfully fixed signature column type in '{table_name}'")
+            else:
+                logger.warning(f"✗ Failed to fix signature column type in '{table_name}'")
+        else:
+            logger.info(f"Signature column in '{table_name}' already has correct type: {existing_type}")
+    except Exception as e:
+        logger.error(f"Error fixing signature column type: {e}")
 
 def migrate_county_to_country(engine: Engine):
     """Migrate county column to country column for Customer and ShopVisit tables."""

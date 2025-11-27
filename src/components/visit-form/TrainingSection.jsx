@@ -108,7 +108,18 @@ export default function TrainingSection({ formData, updateFormData }) {
             <Switch
               id="training_provided"
               checked={formData.training_provided}
-              onCheckedChange={(checked) => updateFormData({ training_provided: checked })}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  updateFormData({ training_provided: true });
+                } else {
+                  // Clear all training data when toggle is off
+                  updateFormData({ 
+                    training_provided: false,
+                    training_topics: []
+                  });
+                  setCustomTopic("");
+                }
+              }}
               className="flex-shrink-0"
             />
           </div>
@@ -200,7 +211,19 @@ export default function TrainingSection({ formData, updateFormData }) {
             <Switch
               id="support_materials_required"
               checked={formData.support_materials_required}
-              onCheckedChange={(checked) => updateFormData({ support_materials_required: checked })}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  updateFormData({ support_materials_required: true });
+                } else {
+                  // Clear all support materials data when toggle is off
+                  updateFormData({ 
+                    support_materials_required: false,
+                    support_materials_items: [],
+                    support_materials_other_text: ""
+                  });
+                  setCustomMaterial("");
+                }
+              }}
               className="flex-shrink-0"
             />
           </div>

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import datetime
+from typing import List, Dict, Any
+from datetime import datetime, timezone
 from db import get_db
 from models import UserProfile, User
 from schemas import UserProfileCreate, UserProfileUpdate, UserProfileResponse
@@ -76,7 +76,7 @@ def update_user_profile(
 @router.put("/user/{user_id}/signature", response_model=UserProfileResponse)
 async def save_user_signature(
     user_id: int,
-    signature_data: dict,
+    signature_data: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -84,6 +84,10 @@ async def save_user_signature(
     # Ensure user can only update their own signature
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this user's signature")
+    
+    # Validate signature data
+    if not signature_data:
+        raise HTTPException(status_code=400, detail="Signature data is required")
     
     # Get or create user profile
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
@@ -94,9 +98,14 @@ async def save_user_signature(
         db.flush()
     
     # Save or update signature data (allows updates)
-    profile.signature = signature_data.get("signature")
-    profile.signature_signer_name = signature_data.get("signature_signer_name")
-    profile.signature_date = datetime.utcnow()
+    if "signature" in signature_data:
+        profile.signature = signature_data.get("signature")
+    if "signature_signer_name" in signature_data:
+        profile.signature_signer_name = signature_data.get("signature_signer_name")
+    
+    # Always update signature_date when signature is saved
+    if signature_data.get("signature"):
+        profile.signature_date = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(profile)

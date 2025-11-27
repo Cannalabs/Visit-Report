@@ -47,6 +47,7 @@ export default function Settings() {
     loadUser();
   }, []);
 
+
   const loadUser = async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -112,6 +113,11 @@ export default function Settings() {
               setSignature(profile.signature);
               setSignatureSignerName(profile.signature_signer_name || "");
               setIsSignatureSigned(true);
+            } else {
+              // Clear signature state if profile doesn't have one
+              setSignature(null);
+              setSignatureSignerName("");
+              setIsSignatureSigned(false);
             }
           } else {
             // No profile found, use user data only
@@ -123,6 +129,9 @@ export default function Settings() {
               territory: "",
               phone: ""
             });
+            // Try to get signature even if no profile exists (only if profile doesn't have it)
+            // Note: We don't call getSignature here to avoid unnecessary 404 errors
+            // The signature will be loaded when the profile is created/updated
           }
         } catch (error) {
           // If profile loading fails, use user data only
@@ -134,6 +143,10 @@ export default function Settings() {
             territory: "",
             phone: ""
           });
+          // Clear signature state if profile loading fails
+          setSignature(null);
+          setSignatureSignerName("");
+          setIsSignatureSigned(false);
         }
       }
     } catch (error) {
@@ -154,14 +167,15 @@ export default function Settings() {
       });
 
       // Save signature if it was updated
+      let savedSignatureResponse = null;
       if (signature && signatureSignerName.trim()) {
         try {
-          await UserProfile.saveSignature(user.id, {
+          savedSignatureResponse = await UserProfile.saveSignature(user.id, {
             signature: signature,
             signature_signer_name: signatureSignerName.trim()
           });
         } catch (err) {
-          console.error("Failed to save signature:", err);
+          setError(`Failed to save signature: ${err.message || err}`);
           // Continue with other updates even if signature save fails
         }
       }
@@ -202,8 +216,15 @@ export default function Settings() {
 
       // Re-fetch the user and profile to get the absolute latest state
       const updatedUser = await User.me().catch(() => user);
-      const profileList = await UserProfile.list();
-      const updatedProfile = profileList.find(p => p.user_id === updatedUser.id);
+      let updatedProfile = null;
+      try {
+        // Try to get profile by user_id first (more reliable)
+        updatedProfile = await UserProfile.getByUserId(updatedUser.id);
+      } catch (error) {
+        // If getByUserId fails, try listing and finding
+        const profileList = await UserProfile.list().catch(() => []);
+        updatedProfile = profileList.find(p => p.user_id === updatedUser.id);
+      }
       
       // Update the local state immediately
       setUser(updatedUser);
@@ -218,6 +239,39 @@ export default function Settings() {
           territory: preferences.territory || "",
           phone: updatedProfile.phone || ""
         });
+        
+        // Update signature state from the saved response or re-fetched profile
+        if (savedSignatureResponse && savedSignatureResponse.signature) {
+          // Use the response from saveSignature if available
+          setSignature(savedSignatureResponse.signature);
+          setSignatureSignerName(savedSignatureResponse.signature_signer_name || signatureSignerName);
+          setIsSignatureSigned(true);
+        } else if (updatedProfile) {
+          // Use the signature from the re-fetched profile
+          if (updatedProfile.signature) {
+            setSignature(updatedProfile.signature);
+            setSignatureSignerName(updatedProfile.signature_signer_name || "");
+            setIsSignatureSigned(true);
+          } else {
+            // Profile exists but no signature - clear signature state
+            if (signature && signatureSignerName.trim()) {
+              // Keep current state if we just saved it
+              setIsSignatureSigned(true);
+            } else {
+              setSignature(null);
+              setSignatureSignerName("");
+              setIsSignatureSigned(false);
+            }
+          }
+        } else if (signature && signatureSignerName.trim()) {
+          // If signature was saved but profile not found, keep current state
+          setIsSignatureSigned(true);
+        } else {
+          // No signature and no profile - clear state
+          setSignature(null);
+          setSignatureSignerName("");
+          setIsSignatureSigned(false);
+        }
       } else {
         setUserData({
           full_name: updatedUser.full_name || "",
@@ -471,14 +525,25 @@ export default function Settings() {
                 )}
               </div>
 
-              {isSignatureSigned ? (
-                <div className="space-y-4">
+              {isSignatureSigned && signature ? (
+                <div className="space-y-4" key={`signature-${signature.substring(0, 50)}`}>
                   <div className="p-4 border border-green-200 bg-green-50 rounded-lg text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">Signature Saved</span>
+                      <span className="text-sm font-medium text-green-800">Signature Captured</span>
                     </div>
-                    <img src={signature} alt="signature" className="mx-auto border rounded max-w-full h-auto max-h-48"/>
+                    {signature ? (
+                      <img 
+                        src={signature} 
+                        alt="signature" 
+                        className="mx-auto border rounded max-w-full h-auto max-h-48"
+                        onError={(e) => {
+                          setSignatureError("Failed to display signature image");
+                        }}
+                      />
+                    ) : (
+                      <p className="text-red-600 text-sm">Signature data is missing</p>
+                    )}
                   </div>
                   <Button 
                     variant="outline" 
@@ -495,14 +560,37 @@ export default function Settings() {
                 </div>
               ) : (
                 <SignaturePad 
-                  onSave={(signatureDataUrl) => {
+                  onSave={async (signatureDataUrl) => {
                     if (!signatureSignerName || signatureSignerName.trim() === "") {
                       setSignatureError("Signer name is mandatory. Please enter the name before submitting.");
                       return false;
                     }
+                    if (!signatureDataUrl) {
+                      setSignatureError("No signature data received.");
+                      return false;
+                    }
+                    if (!user || !user.id) {
+                      setSignatureError("User not loaded. Please refresh the page.");
+                      return false;
+                    }
+                    
                     setSignatureError("");
                     setSignature(signatureDataUrl);
                     setIsSignatureSigned(true);
+                    
+                    // Automatically save to database
+                    try {
+                      const savedResponse = await UserProfile.saveSignature(user.id, {
+                        signature: signatureDataUrl,
+                        signature_signer_name: signatureSignerName.trim()
+                      });
+                      setSuccess(true);
+                      setTimeout(() => setSuccess(false), 3000);
+                    } catch (err) {
+                      setSignatureError(`Failed to save signature: ${err.message || err}. Please try clicking 'Save Changes' button.`);
+                      // Don't return false - signature is still in state, user can try saving again
+                    }
+                    
                     return true;
                   }}
                   signerName={signatureSignerName}
