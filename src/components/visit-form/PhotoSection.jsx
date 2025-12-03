@@ -31,6 +31,7 @@ export default function PhotoSection({ formData, updateFormData }) {
   const [dragOver, setDragOver] = useState(false);
   const [previewFiles, setPreviewFiles] = useState([]); // Store selected files for preview
   const [previewImage, setPreviewImage] = useState(null); // Store image URL for full preview modal
+  const [isManuallyStopped, setIsManuallyStopped] = useState(false); // Track manual stop to force UI update
   
   // React Speech Recognition hook
   // Note: Hook must be called unconditionally (React rules)
@@ -57,16 +58,18 @@ export default function PhotoSection({ formData, updateFormData }) {
       // Recording just started - save current notes
       notesBeforeRecordingRef.current = formData.notes || '';
       lastTranscriptRef.current = '';
+      setIsManuallyStopped(false); // Reset manual stop flag when recording starts
     } else if (!listening && notesBeforeRecordingRef.current) {
       // Recording stopped - reset
       notesBeforeRecordingRef.current = '';
       lastTranscriptRef.current = '';
+      setIsManuallyStopped(false); // Reset manual stop flag
     }
   }, [listening, formData.notes]);
 
   // Update formData.notes in real-time as user speaks
   useEffect(() => {
-    if (listening && transcript && transcript.trim() && transcript !== lastTranscriptRef.current) {
+    if (listening && !isManuallyStopped && transcript && transcript.trim() && transcript !== lastTranscriptRef.current) {
       // Get the base notes (before recording started)
       const baseNotes = notesBeforeRecordingRef.current;
       // Append current transcript
@@ -75,7 +78,7 @@ export default function PhotoSection({ formData, updateFormData }) {
       updateFormData({ notes: newNotes });
       lastTranscriptRef.current = transcript;
     }
-  }, [transcript, listening, updateFormData]);
+  }, [transcript, listening, isManuallyStopped, updateFormData]);
 
   // Keyboard navigation for preview modal
   useEffect(() => {
@@ -343,12 +346,55 @@ export default function PhotoSection({ formData, updateFormData }) {
   };
 
   const toggleVoiceRecording = async () => {
-    if (listening) {
+    if (listening || isManuallyStopped) {
+      // Set manual stop flag immediately to update UI
+      setIsManuallyStopped(true);
+      
       try {
-        resetTranscript();
+        // Try multiple methods to ensure recording stops
+        // Method 1: Use stopListening (standard method)
         SpeechRecognition.stopListening();
+        
+        // Method 2: Get underlying recognition instance and stop it directly
+        try {
+          if (SpeechRecognition.getRecognition) {
+            const recognition = SpeechRecognition.getRecognition();
+            if (recognition) {
+              if (recognition.stop) {
+                recognition.stop();
+              }
+              // Also try abort as a more forceful stop
+              if (recognition.abort) {
+                recognition.abort();
+              }
+            }
+          }
+        } catch (recognitionError) {
+          // If getRecognition fails, that's okay, we already called stopListening
+        }
+        
+        // Reset transcript and clear state
+        resetTranscript();
+        lastTranscriptRef.current = '';
       } catch (error) {
-        // Silently handle errors when stopping
+        // If all methods fail, try to get recognition instance directly
+        try {
+          if (SpeechRecognition.getRecognition) {
+            const recognition = SpeechRecognition.getRecognition();
+            if (recognition && recognition.abort) {
+              recognition.abort();
+            }
+          }
+        } catch (finalError) {
+          console.error('Error stopping speech recognition:', finalError);
+          // Last resort: try stopListening again
+          try {
+            SpeechRecognition.stopListening();
+          } catch (e) {
+            // If everything fails, at least reset the transcript
+            resetTranscript();
+          }
+        }
       }
     } else {
       // Check if browser supports speech recognition
@@ -736,9 +782,9 @@ export default function PhotoSection({ formData, updateFormData }) {
                 size="sm"
                 variant="outline"
                 onClick={toggleVoiceRecording}
-                className={`border-green-300 hover:bg-green-50 text-xs sm:text-sm ${listening ? 'text-red-600 border-red-300' : ''} w-full sm:w-auto`}
+                className={`border-green-300 hover:bg-green-50 text-xs sm:text-sm ${(listening && !isManuallyStopped) ? 'text-red-600 border-red-300' : ''} w-full sm:w-auto`}
               >
-                {listening ? (
+                {(listening && !isManuallyStopped) ? (
                   <>
                     <MicOff className="w-4 h-4 sm:mr-2 flex-shrink-0" />
                     <span>Stop Recording</span>
@@ -757,10 +803,28 @@ export default function PhotoSection({ formData, updateFormData }) {
               onChange={(e) => {
                 const newValue = e.target.value;
                 // If user is typing, stop listening to avoid conflicts
-                if (listening) {
+                if (listening && !isManuallyStopped) {
+                  setIsManuallyStopped(true);
                   try {
                     SpeechRecognition.stopListening();
+                    // Also try to get recognition instance and stop it
+                    try {
+                      if (SpeechRecognition.getRecognition) {
+                        const recognition = SpeechRecognition.getRecognition();
+                        if (recognition) {
+                          if (recognition.stop) {
+                            recognition.stop();
+                          }
+                          if (recognition.abort) {
+                            recognition.abort();
+                          }
+                        }
+                      }
+                    } catch (recognitionError) {
+                      // Ignore if getRecognition fails
+                    }
                     resetTranscript();
+                    lastTranscriptRef.current = '';
                   } catch (err) {
                     // Silently handle errors when stopping
                   }
@@ -771,12 +835,6 @@ export default function PhotoSection({ formData, updateFormData }) {
               rows={4}
               className="border-green-200 focus:border-green-400 text-sm md:text-base resize-none"
             />
-            {listening && (
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-red-600 bg-red-50 p-2 sm:p-3 rounded">
-                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse flex-shrink-0"></div>
-                <span className="truncate">Recording... {transcript && `(${transcript.substring(0, 50)}${transcript.length > 50 ? '...' : ''})`}</span>
-              </div>
-            )}
             <p className="text-xs sm:text-sm text-green-600">
               💡 Use voice input for quick note-taking while on-site. Voice input will be processed and added to your notes.
             </p>
